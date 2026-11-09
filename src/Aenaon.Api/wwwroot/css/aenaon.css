@@ -276,3 +276,12 @@ img { display: block; max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Οι επιλεγμένες εικόνες ακολουθούν τόσο το αυτόματο όσο και το χειροκίνητο theme. */
+.logo-for-dark { display: none; }
+:root[data-theme="dark"] .logo-for-dark { display: block; }
+:root[data-theme="dark"] .logo-for-light { display: none; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) .logo-for-dark { display: block; }
+    :root:not([data-theme]) .logo-for-light { display: none; }
+}
