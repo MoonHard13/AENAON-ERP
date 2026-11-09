@@ -27,12 +27,14 @@ public sealed class SqlTenantAccessStore(AenaonDbContext context) : ITenantAcces
     public async Task<IReadOnlyList<AccessibleTenant>> ListUserTenantsAsync(Guid userId,
         CancellationToken cancellationToken = default)
     {
-        var result = await (from membership in context.TenantMemberships.AsNoTracking()
-                join tenant in context.Tenants.AsNoTracking()
-                    on membership.TenantId equals tenant.Id
-                where membership.UserId == userId
-                orderby tenant.Name, tenant.Id
-                select new AccessibleTenant(tenant.Id, tenant.Name, membership.Role))
+        var result = await context.TenantMemberships.AsNoTracking()
+            .Where(membership => membership.UserId == userId)
+            .Join(context.Tenants.AsNoTracking(),
+                membership => membership.TenantId,
+                tenant => tenant.Id,
+                (membership, tenant) => new AccessibleTenant(tenant.Id, tenant.Name, membership.Role))
+            .OrderBy(item => item.Name)
+            .ThenBy(item => item.TenantId)
             .ToListAsync(cancellationToken);
         return result;
     }
