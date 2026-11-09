@@ -1,11 +1,13 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Aenaon.Api/Aenaon.Api.csproj" />
+    <Project Path="src/Aenaon.Application/Aenaon.Application.csproj" />
     <Project Path="src/Aenaon.Domain/Aenaon.Domain.csproj" />
     <Project Path="src/Aenaon.Infrastructure/Aenaon.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Aenaon.Api.Tests/Aenaon.Api.Tests.csproj" />
+    <Project Path="tests/Aenaon.Application.Tests/Aenaon.Application.Tests.csproj" />
     <Project Path="tests/Aenaon.Domain.Tests/Aenaon.Domain.Tests.csproj" />
     <Project Path="tests/Aenaon.Infrastructure.Tests/Aenaon.Infrastructure.Tests.csproj" />
   </Folder>

@@ -3,6 +3,7 @@ using Aenaon.Api.Commands;
 using Aenaon.Api.Configuration;
 using Aenaon.Api.HealthChecks;
 using Aenaon.Api.Middleware;
+using Aenaon.Application.Tenancy;
 using Aenaon.Infrastructure.Database;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Configuration.UserSecrets;
@@ -16,20 +17,21 @@ public partial class Program
     {
         if (args is ["--help"] or ["-h"])
         {
-            Console.WriteLine("Aenaon ERP API\n  --check-database  Έλεγχος σύνδεσης SQL χωρίς εκκίνηση HTTP.\n  --configure-database --server INSTANCE [--database NAME] [--trust-server-certificate]\n                    Ρύθμιση SQL login στα User Secrets του Development.\n  --migrate-database --dry-run\n                    Προεπισκόπηση migrations χωρίς αλλαγές.\n  --migrate-database --apply --confirm-database NAME\n                    Εφαρμογή migrations σε υπάρχουσα βάση Development.\n  --help            Εμφάνιση βοήθειας.\nΧωρίς επιλογές εκκινεί το API.");
+            Console.WriteLine("Aenaon ERP API\n  --check-database  Έλεγχος σύνδεσης SQL χωρίς εκκίνηση HTTP.\n  --configure-database --server INSTANCE [--database NAME] [--trust-server-certificate]\n                    Ρύθμιση SQL login στα User Secrets του Development.\n  --migrate-database --dry-run\n                    Προεπισκόπηση migrations χωρίς αλλαγές.\n  --migrate-database --apply --confirm-database NAME\n                    Εφαρμογή migrations σε υπάρχουσα βάση Development.\n  --initialize-business (--dry-run | --apply --confirm-database NAME)\n                    --tenant-name NAME --store-code CODE --store-name NAME\n                    Αρχική καταχώρηση επιχείρησης και καταστήματος στο Development.\n  --help            Εμφάνιση βοήθειας.\nΧωρίς επιλογές εκκινεί το API.");
             return 0;
         }
 
         bool checkDatabase = args is ["--check-database"];
         bool configureDatabase = args.Length > 0 && args[0] == "--configure-database";
         bool migrateDatabase = args.Length > 0 && args[0] == "--migrate-database";
+        bool initializeBusiness = args.Length > 0 && args[0] == "--initialize-business";
         if (args.Contains("--check-database") && !checkDatabase)
         {
             Console.Error.WriteLine("Χρησιμοποίησε την επιλογή --check-database χωρίς επιπλέον ορίσματα εφαρμογής.");
             return 2;
         }
 
-        var builder = WebApplication.CreateBuilder(checkDatabase || configureDatabase || migrateDatabase ? [] : args);
+        var builder = WebApplication.CreateBuilder(checkDatabase || configureDatabase || migrateDatabase || initializeBusiness ? [] : args);
         builder.Services.AddApiServices(builder.Configuration, builder.Environment);
         builder.Logging.ClearProviders();
         builder.Logging.AddJsonConsole(options =>
@@ -51,7 +53,7 @@ public partial class Program
             return await ConfigureDatabaseCommand.ExecuteAsync(args[1..], secretsId, new DotnetUserSecretsWriter(),
                 Console.In, Console.Out, Console.Error, ConsolePasswordReader.Read);
         }
-        if (checkDatabase || migrateDatabase)
+        if (checkDatabase || migrateDatabase || initializeBusiness)
         {
             using var cancellation = new CancellationTokenSource();
             ConsoleCancelEventHandler handler = (_, eventArgs) =>
@@ -62,6 +64,16 @@ public partial class Program
             Console.CancelKeyPress += handler;
             try
             {
+                if (initializeBusiness)
+                {
+                    if (!app.Environment.IsDevelopment())
+                    {
+                        Console.Error.WriteLine("Η αρχικοποίηση επιχείρησης από αυτό το CLI επιτρέπεται μόνο στο Development.");
+                        return 2;
+                    }
+                    return await InitialBusinessCommand.ExecuteAsync(args[1..],
+                        app.Services.GetRequiredService<InitialBusinessService>(), Console.Out, Console.Error, cancellation.Token);
+                }
                 if (migrateDatabase)
                 {
                     if (!app.Environment.IsDevelopment())

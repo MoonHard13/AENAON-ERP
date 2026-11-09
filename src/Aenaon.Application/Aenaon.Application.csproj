@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Aenaon.Domain/Aenaon.Domain.csproj" />
+  </ItemGroup>
+</Project>

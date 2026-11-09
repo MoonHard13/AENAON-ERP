@@ -4,7 +4,7 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 ## Τρέχον στάδιο
 
-**Βήμα 4 — Πίνακες επιχειρήσεων και καταστημάτων.** Προστίθενται EF Core mapping, η πρώτη migration και SQL αρχείο επιθεώρησης. Το CLI υποστηρίζει προεπισκόπηση χωρίς αλλαγές και ρητή εφαρμογή στην υπάρχουσα βάση Development. Η διαχείριση χρηστών και τα επιχειρησιακά endpoints θα ακολουθήσουν.
+**Βήμα 5 — Αρχική επιχείρηση και κεντρικό κατάστημα.** Προστίθενται Application service και Development CLI με προεπισκόπηση, επιβεβαίωση βάσης και ατομική καταχώρηση στην ήδη ενημερωμένη βάση. Οι ταυτόχρονες εκτελέσεις και η επανάληψη προστατεύονται από transaction/application lock και έλεγχο υπάρχοντων δεδομένων.
 
 Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
 
@@ -80,14 +80,28 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 
 Πλήρης οδηγός και ανάκτηση: [Πίνακες επιχειρήσεων και καταστημάτων](docs/04-tenancy-database.md).
 
+## Αρχική δοκιμαστική επιχείρηση
+
+Σε ενημερωμένη βάση χωρίς επιχειρήσεις/καταστήματα:
+
+```powershell
+dotnet run --project src/Aenaon.Api --launch-profile https -- --initialize-business --dry-run --tenant-name "Aenaon Demo" --store-code "MAIN" --store-name "Κεντρικό"
+```
+
+Μετά την επιθεώρηση της προεπισκόπησης, αντικατάστησε το `--dry-run` με `--apply --confirm-database AenaonERP_Dev`. Η εντολή καταχωρεί την επιχείρηση και το κατάστημα μαζί και απορρίπτει την επανάληψη όταν υπάρχουν ήδη δεδομένα.
+
+Πλήρης οδηγός, έλεγχοι SQL και ανάκτηση: [Αρχική επιχείρηση](docs/05-initial-business.md).
+
 ## Δομή
 
 | Διαδρομή | Περιεχόμενο |
 | --- | --- |
 | `src/Aenaon.Api` | API, controllers, συμβόλαια και κοινή υποδομή HTTP. |
+| `src/Aenaon.Application` | Κοινές υπηρεσίες εφαρμογής και συμβόλαια αποθήκευσης. |
 | `src/Aenaon.Domain` | Μοντέλα και επιχειρησιακοί κανόνες, χωρίς εξάρτηση από web, βάση ή επιπλέον packages. |
 | `src/Aenaon.Infrastructure` | SQL probe, EF Core context/mapping και migrations με περιορισμένο logging. |
 | `tests/Aenaon.Api.Tests` | Integration tests του HTTP pipeline με απομονωμένο test server. |
+| `tests/Aenaon.Application.Tests` | Έλεγχοι επικύρωσης και συντονισμού πριν από πρόσβαση στη βάση. |
 | `tests/Aenaon.Domain.Tests` | Unit tests ιδιοκτησίας, μοναδικότητας κωδικών και επικύρωσης πεδίων. |
 | `tests/Aenaon.Infrastructure.Tests` | Έλεγχοι TLS, CLI προστασιών, model/snapshot/SQL και πραγματικής αποθήκευσης σε CI SQL. |
 | `docs/01-getting-started.md` | Αναλυτικές οδηγίες εγκατάστασης, CLI, logs και αντιμετώπισης προβλημάτων. |
@@ -96,6 +110,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 | `docs/04-tenancy-database.md` | Προεπισκόπηση/εφαρμογή migrations, έλεγχοι SSMS και ανάκτηση. |
 | `database/001-initial-tenancy.sql` | Παραγόμενο SQL της πρώτης migration για επιθεώρηση. |
 | `.config/dotnet-tools.json` | Τοπικό, σταθερό εργαλείο `dotnet-ef`. |
+| `docs/05-initial-business.md` | Αρχική καταχώρηση, προεπισκόπηση, προστασίες και έλεγχοι SQL. |
 | `docs/requirements.md` | Απαιτήσεις και αποφάσεις για τα επόμενα βήματα. |
 | `global.json` | Σταθερή επιλογή SDK χωρίς preview εκδόσεις. |
 | `Directory.Packages.props` | Κεντρικές εκδόσεις NuGet. |
@@ -114,4 +129,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Επιχειρήσεις και καταστήματα](docs/02-tenants-and-stores.md)
 - [Σύνδεση SQL Server](docs/03-sql-server-connection.md)
 - [Πίνακες επιχειρήσεων και καταστημάτων](docs/04-tenancy-database.md)
+- [Αρχική επιχείρηση και κατάστημα](docs/05-initial-business.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)

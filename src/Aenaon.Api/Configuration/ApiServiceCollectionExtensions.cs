@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using Aenaon.Api.HealthChecks;
+using Aenaon.Application.Tenancy;
 using Aenaon.Infrastructure.Database;
+using Aenaon.Infrastructure.Persistence;
 
 namespace Aenaon.Api.Configuration;
 
@@ -17,6 +19,10 @@ public static class ApiServiceCollectionExtensions
         services.AddSingleton<IDatabaseSchemaManager>(provider => new DatabaseSchemaManager(
             configuration.GetConnectionString("Aenaon"), environment.IsDevelopment(),
             provider.GetRequiredService<ILogger<DatabaseSchemaManager>>()));
+        services.AddSingleton<IInitialBusinessStore>(provider => new SqlInitialBusinessStore(
+            configuration.GetConnectionString("Aenaon"), environment.IsDevelopment(),
+            provider.GetRequiredService<IDatabaseSchemaManager>(), provider.GetRequiredService<ILogger<SqlInitialBusinessStore>>()));
+        services.AddSingleton<InitialBusinessService>();
         services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("sqlserver",
             tags: [DatabaseHealthCheck.Tag], timeout: TimeSpan.FromSeconds(10));
         services.AddProblemDetails(options =>

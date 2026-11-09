@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="../Aenaon.Application/Aenaon.Application.csproj" />
     <ProjectReference Include="../Aenaon.Domain/Aenaon.Domain.csproj" />
     <PackageReference Include="Microsoft.Data.SqlClient" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
