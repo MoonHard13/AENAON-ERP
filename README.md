@@ -4,7 +4,7 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 ## Τρέχον στάδιο
 
-**Βήμα 8.1 — Authentication Services.** Το Identity ελέγχει τους κωδικούς με lockout μετά από 5 αποτυχίες για 15 λεπτά, χωρίς ακόμη HTTP login ή session. Προστίθεται προστατευμένο Development CLI για έλεγχο κωδικού και εφάπαξ διόρθωση του αρχικού ενδεικτικού email του Owner.
+**Βήμα 8.2 — Tenant Authorization.** Η υπηρεσία επιβεβαιώνει συμμετοχή χρήστη σε επιχείρηση, ρόλο Owner/Member και προέλευση καταστήματος, με deny-by-default. Η νέα Development CLI εντολή επαληθεύει πρώτα Identity password και μετά δικαίωμα Read/Manage χωρίς ακόμη HTTP login ή session.
 
 Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
 
@@ -140,6 +140,24 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --fix-admin-email 
 
 Πλήρης οδηγός: [Authentication Services και διόρθωση email](docs/08-authentication-services.md).
 
+## Tenant Authorization (Βήμα 8.2)
+
+Πρώτα γίνεται πραγματική επαλήθευση κωδικού, έπειτα έλεγχος δικαιώματος Read για την ήδη δημιουργημένη επιχείρηση:
+
+~~~powershell
+dotnet run --project src/Aenaon.Api --launch-profile https -- --check-tenant-access --username admin --tenant-id 9698df79-3c31-41c9-b292-b7240c7265fb --permission Read --confirm-database AenaonERP_Dev
+~~~
+
+Για έλεγχο δικαιώματος Manage στο κεντρικό κατάστημα MAIN:
+
+~~~powershell
+dotnet run --project src/Aenaon.Api --launch-profile https -- --check-tenant-access --username admin --tenant-id 9698df79-3c31-41c9-b292-b7240c7265fb --store-id c697b9c3-e221-4156-b533-f54dee27d979 --permission Manage --confirm-database AenaonERP_Dev
+~~~
+
+Το CLI επιτρέπεται μόνο σε Development, ζητά τον κωδικό διαδραστικά και δεν δημιουργεί session ή αλλαγή δεδομένων επιχειρήσεων. Τα memberships αφορούν προς το παρόν **ολόκληρη την επιχείρηση**, όχι διαφορετικά δικαιώματα ανά κατάστημα.
+
+Πλήρης οδηγός: [Tenant Authorization](docs/09-tenant-authorization.md).
+
 ## Δομή
 
 | Διαδρομή | Περιεχόμενο |
@@ -162,6 +180,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --fix-admin-email 
 | `docs/06-users-and-memberships.md` | Schema Identity/memberships, αναβάθμιση και διατήρηση δεδομένων. |
 | `docs/07-first-administrator.md` | Ασφαλής δημιουργία πρώτου διαχειριστή, έλεγχοι και rollback. |
 | `docs/08-authentication-services.md` | Έλεγχος κωδικών, lockout και ασφαλής διόρθωση αρχικού email. |
+| `docs/09-tenant-authorization.md` | Κανόνες πρόσβασης Owner/Member, isolation και CLI έλεγχος. |
 | `database/002-identity-memberships.sql` | SQL αναβάθμισης από την πρώτη στη δεύτερη migration. |
 | `docs/requirements.md` | Απαιτήσεις και αποφάσεις για τα επόμενα βήματα. |
 | `global.json` | Σταθερή επιλογή SDK χωρίς preview εκδόσεις. |
@@ -185,4 +204,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --fix-admin-email 
 - [Χρήστες και συμμετοχές](docs/06-users-and-memberships.md)
 - [Πρώτος διαχειριστής](docs/07-first-administrator.md)
 - [Authentication Services](docs/08-authentication-services.md)
+- [Tenant Authorization](docs/09-tenant-authorization.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
