@@ -77,9 +77,9 @@ public sealed class SessionEndpointTests
         Assert.IsTrue(login.Headers.TryGetValues("Set-Cookie", out var cookies));
         string ticket = Assert.ContainsSingle(cookies.Where(value =>
             value.StartsWith("__Host-AenaonERP.Session=", StringComparison.Ordinal)));
-        Assert.Contains("Secure", ticket);
-        Assert.Contains("HttpOnly", ticket);
-        Assert.Contains("SameSite=Strict", ticket);
+        Assert.IsTrue(ticket.Contains("secure", StringComparison.OrdinalIgnoreCase));
+        Assert.IsTrue(ticket.Contains("httponly", StringComparison.OrdinalIgnoreCase));
+        Assert.IsTrue(ticket.Contains("samesite=strict", StringComparison.OrdinalIgnoreCase));
 
         using var me = await client.GetAsync("/api/auth/me");
         Assert.AreEqual(HttpStatusCode.OK, me.StatusCode);
