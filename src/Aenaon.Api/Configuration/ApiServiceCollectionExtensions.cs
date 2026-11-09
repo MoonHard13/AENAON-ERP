@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Aenaon.Api.HealthChecks;
 using Aenaon.Application.Identity;
 using Aenaon.Application.Tenancy;
@@ -5,8 +6,6 @@ using Aenaon.Infrastructure.Database;
 using Aenaon.Infrastructure.Identity;
 using Aenaon.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
-using System.Diagnostics;
-
 namespace Aenaon.Api.Configuration;
 
 public static class ApiServiceCollectionExtensions
