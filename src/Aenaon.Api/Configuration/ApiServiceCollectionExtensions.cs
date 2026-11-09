@@ -31,6 +31,9 @@ public static class ApiServiceCollectionExtensions
         services.AddIdentityCore<AenaonUser>(options =>
         {
             options.User.RequireUniqueEmail = true;
+            options.Lockout.AllowedForNewUsers = true;
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             options.Password.RequiredLength = 14;
             options.Password.RequiredUniqueChars = 6;
             options.Password.RequireDigit = true;
@@ -44,6 +47,15 @@ public static class ApiServiceCollectionExtensions
             provider.GetRequiredService<IServiceScopeFactory>(),
             provider.GetRequiredService<ILogger<SqlInitialAdministratorStore>>()));
         services.AddScoped<InitialAdministratorService>();
+        services.AddScoped<ICredentialVerifier, IdentityCredentialVerifier>();
+        services.AddScoped<IAdministratorEmailChangeStore>(provider => new SqlAdministratorEmailChangeStore(
+            configuration.GetConnectionString("Aenaon"), environment.IsDevelopment(),
+            provider.GetRequiredService<IDatabaseSchemaManager>(),
+            provider.GetRequiredService<AenaonDbContext>(),
+            provider.GetRequiredService<UserManager<AenaonUser>>(),
+            provider.GetRequiredService<ICredentialVerifier>(),
+            provider.GetRequiredService<ILogger<SqlAdministratorEmailChangeStore>>()));
+        services.AddScoped<AdministratorEmailChangeService>();
         services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("sqlserver",
             tags: [DatabaseHealthCheck.Tag], timeout: TimeSpan.FromSeconds(10));
         services.AddProblemDetails(options =>
