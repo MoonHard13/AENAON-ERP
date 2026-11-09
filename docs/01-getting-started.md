@@ -51,7 +51,7 @@ dotnet test AenaonERP.slnx --configuration Release --no-build --no-restore
 
 Το `--locked-mode` χρησιμοποιεί τις καταγεγραμμένες εκδόσεις των `packages.lock.json`. Αλλαγή εξαρτήσεων γίνεται συνειδητά με νέο restore και έλεγχο των διαφορών. Το restore εκτελεί και NuGet security audit· τα warnings αντιμετωπίζονται ως σφάλματα.
 
-Οι δοκιμές εκκινούν απομονωμένο HTTP test server. Δεν απαιτούν βάση δεδομένων, πιστοποιητικό HTTPS ή υπηρεσίες παραγωγής. Καλύπτουν το health check, την πληροφορία εφαρμογής, άγνωστη διαδρομή, μη επιτρεπτή μέθοδο και ανακατεύθυνση HTTP σε HTTPS.
+Τα integration tests εκκινούν απομονωμένο HTTP test server. Δεν απαιτούν βάση δεδομένων, πιστοποιητικό HTTPS ή υπηρεσίες παραγωγής. Καλύπτουν το health check, την πληροφορία εφαρμογής, άγνωστη διαδρομή, μη επιτρεπτή μέθοδο και ανακατεύθυνση HTTP σε HTTPS. Τα unit tests του Domain ελέγχουν τους κανόνες επιχειρήσεων και καταστημάτων χωρίς εξωτερικές υπηρεσίες.
 
 ## Εκκίνηση
 
@@ -142,7 +142,7 @@ dotnet test AenaonERP.slnx --configuration Release
 
 - [ ] Το restore ολοκληρώνεται χωρίς σφάλματα.
 - [ ] Το Release build ολοκληρώνεται χωρίς warnings ή errors.
-- [ ] Οι πέντε integration tests περνούν.
+- [ ] Τα πέντε integration tests του API και τα unit tests του Domain περνούν.
 - [ ] Το HTTPS `/health` επιστρέφει `Healthy`.
 - [ ] Το `/api/info` εμφανίζει το όνομα της εφαρμογής.
 - [ ] Το API σταματά με `Ctrl+C`.
