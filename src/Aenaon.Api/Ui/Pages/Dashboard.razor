@@ -132,7 +132,7 @@
                                     <div class="store-entry">
                                         <span class="store-entry__icon" aria-hidden="true">◫</span>
                                         <span class="store-entry__details"><strong>@store.Name</strong><small>Κωδικός: @store.Code</small></span>
-                                        <span class="store-entry__badge">Ενεργό κατάστημα</span>
+                                        <span class="store-entry__badge">Κατάστημα</span>
                                     </div>
                                 }
                             </div>
@@ -178,6 +178,7 @@
         _csrfToken = Antiforgery.GetAndStoreTokens(context).RequestToken;
         context.Response.Headers.CacheControl = "no-store";
 
+        _error = false;
         try
         {
             _tenants = await Authorization.GetAccessibleTenantsAsync(userId, context.RequestAborted);
