@@ -4,7 +4,7 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 ## Τρέχον στάδιο
 
-**Βήμα 5 — Αρχική επιχείρηση και κεντρικό κατάστημα.** Προστίθενται Application service και Development CLI με προεπισκόπηση, επιβεβαίωση βάσης και ατομική καταχώρηση στην ήδη ενημερωμένη βάση. Οι ταυτόχρονες εκτελέσεις και η επανάληψη προστατεύονται από transaction/application lock και έλεγχο υπάρχοντων δεδομένων.
+**Βήμα 6 — Σχήμα χρηστών και συμμετοχών σε επιχειρήσεις.** Προστίθενται το Identity user-store και membership ανά επιχείρηση, με ρόλους `Owner`/`Member`. Η δεύτερη migration διατηρεί τις υπάρχουσες επιχειρήσεις/καταστήματα. Η δημιουργία διαχειριστή και οι ροές σύνδεσης/εξουσιοδότησης θα ακολουθήσουν.
 
 Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
 
@@ -92,6 +92,18 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --initialize-busin
 
 Πλήρης οδηγός, έλεγχοι SQL και ανάκτηση: [Αρχική επιχείρηση](docs/05-initial-business.md).
 
+## Σχήμα χρηστών και συμμετοχών
+
+Με την πρώτη migration ήδη εφαρμοσμένη, έλεγξε τη νέα αναβάθμιση:
+
+```powershell
+dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database --dry-run
+```
+
+Αναμένονται μία εφαρμοσμένη και μία εκκρεμής migration. Η εφαρμογή γίνεται με τη γνωστή εντολή `--migrate-database --apply --confirm-database AenaonERP_Dev`, μετά την επιθεώρηση και τον έλεγχο backup. Η νέα migration προσθέτει πέντε πίνακες, χωρίς λογαριασμούς ή αλλαγή των business IDs.
+
+Πλήρης οδηγός: [Χρήστες και συμμετοχές](docs/06-users-and-memberships.md).
+
 ## Δομή
 
 | Διαδρομή | Περιεχόμενο |
@@ -111,11 +123,13 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --initialize-busin
 | `database/001-initial-tenancy.sql` | Παραγόμενο SQL της πρώτης migration για επιθεώρηση. |
 | `.config/dotnet-tools.json` | Τοπικό, σταθερό εργαλείο `dotnet-ef`. |
 | `docs/05-initial-business.md` | Αρχική καταχώρηση, προεπισκόπηση, προστασίες και έλεγχοι SQL. |
+| `docs/06-users-and-memberships.md` | Schema Identity/memberships, αναβάθμιση και διατήρηση δεδομένων. |
+| `database/002-identity-memberships.sql` | SQL αναβάθμισης από την πρώτη στη δεύτερη migration. |
 | `docs/requirements.md` | Απαιτήσεις και αποφάσεις για τα επόμενα βήματα. |
 | `global.json` | Σταθερή επιλογή SDK χωρίς preview εκδόσεις. |
 | `Directory.Packages.props` | Κεντρικές εκδόσεις NuGet. |
 
-Το Domain διατηρείται χωρίς εξωτερικά packages. Το Infrastructure χρησιμοποιεί τον επίσημο `Microsoft.Data.SqlClient`, EF Core SQL Server και logging abstractions. Το EF Core Design είναι ιδιωτική εξάρτηση εργαλείων του API. Η ρητή έκδοση `System.Security.Cryptography.Pkcs` αντικαθιστά ευάλωτη μεταβατική έκδοση του driver. Τα MSTest και MVC Testing αφορούν τις δοκιμές.
+Το Domain διατηρείται χωρίς εξωτερικά packages. Το Infrastructure χρησιμοποιεί τον επίσημο `Microsoft.Data.SqlClient`, EF Core SQL Server, Identity EF store και logging abstractions. Το EF Core Design είναι ιδιωτική εξάρτηση εργαλείων του API. Η ρητή έκδοση `System.Security.Cryptography.Pkcs` αντικαθιστά ευάλωτη μεταβατική έκδοση του driver. Τα MSTest και MVC Testing αφορούν τις δοκιμές.
 
 ## Ασφάλεια και όρια του σταδίου
 
@@ -130,4 +144,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --initialize-busin
 - [Σύνδεση SQL Server](docs/03-sql-server-connection.md)
 - [Πίνακες επιχειρήσεων και καταστημάτων](docs/04-tenancy-database.md)
 - [Αρχική επιχείρηση και κατάστημα](docs/05-initial-business.md)
+- [Χρήστες και συμμετοχές](docs/06-users-and-memberships.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)

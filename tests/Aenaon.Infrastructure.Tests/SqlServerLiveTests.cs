@@ -23,7 +23,7 @@ public sealed class SqlServerLiveTests
         Assert.AreEqual("master", server.InitialCatalog);
         server.ConnectTimeout = 2;
         server.ConnectRetryCount = 0;
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(120));
         await using var connection = new SqlConnection(server.ConnectionString);
 
         for (int attempt = 0; ; attempt++)
@@ -63,6 +63,14 @@ public sealed class SqlServerLiveTests
         }
         var startup = new SqlConnectionStringBuilder(server.ConnectionString) { InitialCatalog = "AenaonERP_Startup_CI" };
         await SqlServerInitialBusinessAssertions.RunAsync(startup.ConnectionString, timeout.Token);
+
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "CREATE DATABASE [AenaonERP_Identity_CI] COLLATE Greek_CI_AS;";
+            await command.ExecuteNonQueryAsync(timeout.Token);
+        }
+        var identity = new SqlConnectionStringBuilder(server.ConnectionString) { InitialCatalog = "AenaonERP_Identity_CI" };
+        await SqlServerIdentityAssertions.RunAsync(identity.ConnectionString, timeout.Token);
 
         application.Password = "invalid-unit-test-password";
         var rejected = await new SqlServerConnectionProbe(application.ConnectionString, true, logger).CheckAsync(timeout.Token);

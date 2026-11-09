@@ -7,5 +7,6 @@
     <ProjectReference Include="../../src/Aenaon.Infrastructure/Aenaon.Infrastructure.csproj" />
     <PackageReference Include="MSTest" />
     <None Include="../../database/001-initial-tenancy.sql" Link="Fixtures/001-initial-tenancy.sql" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../database/002-identity-memberships.sql" Link="Fixtures/002-identity-memberships.sql" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -86,3 +86,14 @@
 - Δοκιμές SQL για rollback, ταυτόχρονη καταχώρηση και ασφαλή επανάληψη.
 
 Το βήμα χρησιμοποιεί το υπάρχον σχήμα, χωρίς νέα migration. Οι χρήστες, η εξουσιοδότηση και η ασφαλής διαχείριση πρόσθετων επιχειρήσεων από HTTP θα ακολουθήσουν.
+
+## Έκτο βήμα — Σχήμα λογαριασμών και συμμετοχών
+
+- Identity user-only context με GUID accounts και σταθερή έκδοση του επίσημου EF store.
+- Νέα migration με τέσσερις πίνακες Identity και `TenantMemberships`, χωρίς αλλαγή υφιστάμενων business εγγραφών.
+- Σύνθετος primary key `(TenantId, UserId)`, έγκυροι ρόλοι `Owner`/`Member` και foreign keys χωρίς cascade memberships.
+- Ο λογαριασμός μπορεί να συμμετέχει σε πολλές επιχειρήσεις, με ανεξάρτητο ρόλο ανά επιχείρηση.
+- Unique normalized username και unique normalized email όταν υπάρχει τιμή.
+- Πραγματικό SQL upgrade test από την προηγούμενη έκδοση με διατήρηση δεδομένων και έλεγχος του Identity user-store.
+
+Η δημιουργία διαχειριστή, οι ροές authentication/session και η επιβολή εξουσιοδότησης παραμένουν επόμενα βήματα. Τα membership records δεν απονέμουν από μόνα τους πρόσβαση σε HTTP endpoints.

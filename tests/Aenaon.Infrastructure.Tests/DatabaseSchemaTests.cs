@@ -17,16 +17,18 @@ public sealed class DatabaseSchemaTests
             "Server=example.invalid;Database=AenaonERP_Unit;User ID=unit;Password=unit-only;Encrypt=True;", false));
 
         Assert.IsFalse(context.Database.HasPendingModelChanges());
-        Assert.HasCount(1, context.Database.GetMigrations().ToArray());
+        Assert.HasCount(2, context.Database.GetMigrations().ToArray());
     }
 
     [TestMethod]
-    public void ReviewedSqlScript_MatchesTheExecutableMigration()
+    [DataRow("0", "20261109100218_InitialTenancy", "001-initial-tenancy.sql")]
+    [DataRow("20261109100218_InitialTenancy", "20261109110355_IdentityAndTenantMemberships", "002-identity-memberships.sql")]
+    public void ReviewedSqlScript_MatchesTheExecutableMigration(string from, string to, string fileName)
     {
         using var context = new AenaonDbContext(AenaonDbContextOptions.Create(
             "Server=example.invalid;Database=AenaonERP_Unit;User ID=unit;Password=unit-only;Encrypt=True;", false));
-        string generated = context.GetService<IMigrator>().GenerateScript(options: MigrationsSqlGenerationOptions.Idempotent);
-        string reviewed = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "001-initial-tenancy.sql"));
+        string generated = context.GetService<IMigrator>().GenerateScript(from, to, MigrationsSqlGenerationOptions.Idempotent);
+        string reviewed = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", fileName));
 
         Assert.AreEqual(generated.ReplaceLineEndings("\n").Trim(), reviewed.ReplaceLineEndings("\n").Trim());
     }

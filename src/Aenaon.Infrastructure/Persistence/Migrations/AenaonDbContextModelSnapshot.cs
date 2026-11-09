@@ -76,12 +76,219 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     });
             });
 
+        modelBuilder.Entity("Aenaon.Domain.Tenancy.TenantMembership", b =>
+            {
+                b.Property<Guid>("TenantId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<Guid>("UserId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<int>("Role")
+                    .HasColumnType("int");
+
+                b.HasKey("TenantId", "UserId");
+
+                b.HasIndex("UserId");
+
+                b.ToTable("TenantMemberships", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_TenantMemberships_Role", "[Role] IN (1, 2)");
+                    });
+            });
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Identity.AenaonUser", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<int>("AccessFailedCount")
+                    .HasColumnType("int");
+
+                b.Property<string>("ConcurrencyStamp")
+                    .IsConcurrencyToken()
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("Email")
+                    .HasMaxLength(256)
+                    .HasColumnType("nvarchar(256)");
+
+                b.Property<bool>("EmailConfirmed")
+                    .HasColumnType("bit");
+
+                b.Property<bool>("LockoutEnabled")
+                    .HasColumnType("bit");
+
+                b.Property<DateTimeOffset?>("LockoutEnd")
+                    .HasColumnType("datetimeoffset");
+
+                b.Property<string>("NormalizedEmail")
+                    .HasMaxLength(256)
+                    .HasColumnType("nvarchar(256)");
+
+                b.Property<string>("NormalizedUserName")
+                    .IsRequired()
+                    .HasMaxLength(256)
+                    .HasColumnType("nvarchar(256)");
+
+                b.Property<string>("PasswordHash")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("PhoneNumber")
+                    .HasMaxLength(256)
+                    .HasColumnType("nvarchar(256)");
+
+                b.Property<bool>("PhoneNumberConfirmed")
+                    .HasColumnType("bit");
+
+                b.Property<string>("SecurityStamp")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<bool>("TwoFactorEnabled")
+                    .HasColumnType("bit");
+
+                b.Property<string>("UserName")
+                    .IsRequired()
+                    .HasMaxLength(256)
+                    .HasColumnType("nvarchar(256)");
+
+                b.HasKey("Id");
+
+                b.HasIndex("NormalizedEmail")
+                    .IsUnique()
+                    .HasDatabaseName("EmailIndex")
+                    .HasFilter("[NormalizedEmail] IS NOT NULL");
+
+                b.HasIndex("NormalizedUserName")
+                    .IsUnique()
+                    .HasDatabaseName("UserNameIndex");
+
+                b.ToTable("AspNetUsers", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_AspNetUsers_Id", "[Id] <> '00000000-0000-0000-0000-000000000000'");
+
+                        t.HasCheckConstraint("CK_AspNetUsers_NormalizedUserName", "LEN(LTRIM(RTRIM([NormalizedUserName]))) > 0");
+
+                        t.HasCheckConstraint("CK_AspNetUsers_UserName", "LEN(LTRIM(RTRIM([UserName]))) > 0");
+                    });
+            });
+
+        modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
+            {
+                b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int");
+
+                SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                b.Property<string>("ClaimType")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("ClaimValue")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<Guid>("UserId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.HasKey("Id");
+
+                b.HasIndex("UserId");
+
+                b.ToTable("AspNetUserClaims", "dbo");
+            });
+
+        modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
+            {
+                b.Property<string>("LoginProvider")
+                    .HasMaxLength(128)
+                    .HasColumnType("nvarchar(128)");
+
+                b.Property<string>("ProviderKey")
+                    .HasMaxLength(128)
+                    .HasColumnType("nvarchar(128)");
+
+                b.Property<string>("ProviderDisplayName")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<Guid>("UserId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.HasKey("LoginProvider", "ProviderKey");
+
+                b.HasIndex("UserId");
+
+                b.ToTable("AspNetUserLogins", "dbo");
+            });
+
+        modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
+            {
+                b.Property<Guid>("UserId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<string>("LoginProvider")
+                    .HasMaxLength(128)
+                    .HasColumnType("nvarchar(128)");
+
+                b.Property<string>("Name")
+                    .HasMaxLength(128)
+                    .HasColumnType("nvarchar(128)");
+
+                b.Property<string>("Value")
+                    .HasColumnType("nvarchar(max)");
+
+                b.HasKey("UserId", "LoginProvider", "Name");
+
+                b.ToTable("AspNetUserTokens", "dbo");
+            });
+
         modelBuilder.Entity("Aenaon.Domain.Tenancy.Store", b =>
             {
                 b.HasOne("Aenaon.Domain.Tenancy.Tenant", null)
                     .WithMany("Stores")
                     .HasForeignKey("TenantId")
                     .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("Aenaon.Domain.Tenancy.TenantMembership", b =>
+            {
+                b.HasOne("Aenaon.Domain.Tenancy.Tenant", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.HasOne("Aenaon.Infrastructure.Identity.AenaonUser", null)
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
+            {
+                b.HasOne("Aenaon.Infrastructure.Identity.AenaonUser", null)
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
+            {
+                b.HasOne("Aenaon.Infrastructure.Identity.AenaonUser", null)
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
+            {
+                b.HasOne("Aenaon.Infrastructure.Identity.AenaonUser", null)
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired();
             });
 
