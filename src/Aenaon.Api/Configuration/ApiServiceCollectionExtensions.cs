@@ -56,6 +56,8 @@ public static class ApiServiceCollectionExtensions
             provider.GetRequiredService<ICredentialVerifier>(),
             provider.GetRequiredService<ILogger<SqlAdministratorEmailChangeStore>>()));
         services.AddScoped<AdministratorEmailChangeService>();
+        services.AddScoped<ITenantAccessStore, SqlTenantAccessStore>();
+        services.AddScoped<TenantAuthorizationService>();
         services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("sqlserver",
             tags: [DatabaseHealthCheck.Tag], timeout: TimeSpan.FromSeconds(10));
         services.AddProblemDetails(options =>

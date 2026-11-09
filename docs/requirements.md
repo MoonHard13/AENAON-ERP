@@ -124,3 +124,15 @@
 - Καμία νέα migration, κανένα δημόσιο HTTP login endpoint και καμία αυτόματη επιβεβαίωση email.
 
 Τα tenant-aware authorization, cookie authentication, antiforgery, login rate limiting, email verification και MFA αποτελούν επόμενα βήματα.
+
+
+## Βήμα 8.2 — Tenant Authorization
+
+- Εφαρμογή deny-by-default και έλεγχος membership πριν από κάθε επιτρεπόμενη πρόσβαση.
+- Βασικές πολιτικές Read (Owner/Member) και Manage (μόνο Owner).
+- Προαιρετικός έλεγχος StoreId με υποχρεωτική αντιστοίχιση στο TenantId.
+- Ασφαλής λίστα επιχειρήσεων μόνο για χρήστη με ήδη επιβεβαιωμένη ταυτότητα.
+- Ξεχωριστό Application service, EF Core Infrastructure store και Development CLI που ζητά password και επιβεβαίωση βάσης.
+- Χωρίς migration και χωρίς δημόσια endpoints ή session. Η αυθεντικοποίηση πρέπει να προηγείται οποιασδήποτε κλήσης authorization.
+- Unit tests και πραγματική SQL Server integration δοκιμή με δύο επιχειρήσεις, διαφορετικά καταστήματα και ρόλους.
+- **Δεν** υπάρχουν ακόμη store-specific memberships. Οι Owner/Member της επιχείρησης έχουν Read πρόσβαση σε όλα τα δικά της καταστήματα. Οι πιο λεπτομερείς άδειες απαιτούν επόμενη φάση σχεδίασης.
