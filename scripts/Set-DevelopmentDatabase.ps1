@@ -12,6 +12,11 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 Get-Command dotnet -ErrorAction Stop | Out-Null
 $aenaonProject = Join-Path (Split-Path $PSScriptRoot -Parent) 'src/Aenaon.Api'
+# Η ανάγνωση του project ολοκληρώνεται πριν σταλούν τα secrets μέσω stdin.
+$aenaonSecretsId = (& dotnet msbuild (Join-Path $aenaonProject 'Aenaon.Api.csproj') '-getProperty:UserSecretsId' '-nologo' '-m:1' | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($aenaonSecretsId)) {
+    throw 'Δεν εντοπίστηκε το UserSecretsId του API.'
+}
 $aenaonLogin = Read-Host 'SQL login που χρησιμοποιείς στο SSMS'
 if ([string]::IsNullOrWhiteSpace($aenaonLogin)) {
     throw 'Το SQL login είναι υποχρεωτικό.'
@@ -36,8 +41,13 @@ try {
     $aenaonBuilder['TrustServerCertificate'] = $TrustServerCertificate.IsPresent
     $aenaonBuilder['Persist Security Info'] = $false
     $aenaonJson = @{ 'ConnectionStrings:Aenaon' = $aenaonBuilder.ConnectionString } | ConvertTo-Json -Compress
+    # Τα Unicode δεδομένα διατηρούνται και με παλαιότερες κωδικοσελίδες κονσόλας.
+    $aenaonJson = [regex]::Replace($aenaonJson, '[^\x00-\x7F]', [System.Text.RegularExpressions.MatchEvaluator] {
+        param($aenaonMatch)
+        '\u{0:x4}' -f [int][char]$aenaonMatch.Value
+    })
     $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-    $aenaonJson | & dotnet user-secrets set --project $aenaonProject | Out-Null
+    $aenaonJson | & dotnet user-secrets set --id $aenaonSecretsId | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw 'Δεν ολοκληρώθηκε η αποθήκευση στα User Secrets.'
     }
