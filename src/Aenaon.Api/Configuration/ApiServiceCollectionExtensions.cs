@@ -6,6 +6,7 @@ using Aenaon.Infrastructure.Database;
 using Aenaon.Infrastructure.Identity;
 using Aenaon.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
+
 namespace Aenaon.Api.Configuration;
 
 public static class ApiServiceCollectionExtensions
