@@ -76,7 +76,7 @@ public sealed class BlazorUiTests
         await LoginAsync(client);
 
         using var response = await client.GetAsync("/dashboard");
-        string html = await response.Content.ReadAsStringAsync();
+        string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Aenaon Demo", html);
         Assert.Contains("Κεντρικό", html);
