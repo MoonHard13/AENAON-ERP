@@ -107,7 +107,6 @@ internal static class SqlServerFirstAdministratorAssertions
         Assert.AreEqual(1, results.Count(result => result.Status == InitialAdministratorStatus.Created));
         Assert.AreEqual(1, results.Count(result => result.Status == InitialAdministratorStatus.ExistingUsers));
         var created = results.Single(result => result.Status == InitialAdministratorStatus.Created);
-        Assert.AreEqual(tenant.Id, tenant.Id);
         Assert.IsNotNull(created.UserId);
 
         await using var scope = provider.CreateAsyncScope();
