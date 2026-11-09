@@ -97,3 +97,16 @@
 - Πραγματικό SQL upgrade test από την προηγούμενη έκδοση με διατήρηση δεδομένων και έλεγχος του Identity user-store.
 
 Η δημιουργία διαχειριστή, οι ροές authentication/session και η επιβολή εξουσιοδότησης παραμένουν επόμενα βήματα. Τα membership records δεν απονέμουν από μόνα τους πρόσβαση σε HTTP endpoints.
+
+
+## Έβδομο βήμα — Ασφαλής δημιουργία πρώτου διαχειριστή
+
+- Μία αρχική λειτουργία Development CLI με --dry-run και --apply με ρητή επιβεβαίωση βάσης.
+- Χρήση ASP.NET Core Identity για πραγματικό salted password hash· χωρίς plaintext σε αρχεία ή SQL.
+- Έλεγχος TenantId, login/email, schema και κενών λογαριασμών/memberships.
+- Ατομική SQL transaction και application lock για αποτροπή μερικής ή ταυτόχρονης εγγραφής.
+- Μία εγγραφή TenantMembership με ρόλο Owner στην επιλεγμένη επιχείρηση.
+- Διπλή εισαγωγή κωδικού χωρίς εμφάνιση plaintext και άρνηση εκτέλεσης με redirected stdin.
+- Automated tests για επικύρωση, CLI, rollback, Identity hashing, μοναδικότητα και ταυτόχρονη αρχικοποίηση.
+
+Η δημιουργία λογαριασμού **δεν** συνιστά login. Η ασφαλής authentication, η εξουσιοδότηση ανά επιχείρηση/κατάστημα και τα προστατευμένα endpoints παραμένουν επόμενα στάδια.
