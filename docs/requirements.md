@@ -110,3 +110,17 @@
 - Automated tests για επικύρωση, CLI, rollback, Identity hashing, μοναδικότητα και ταυτόχρονη αρχικοποίηση.
 
 Η δημιουργία λογαριασμού **δεν** συνιστά login. Η ασφαλής authentication, η εξουσιοδότηση ανά επιχείρηση/κατάστημα και τα προστατευμένα endpoints παραμένουν επόμενα στάδια.
+
+
+## Βήμα 8.1 — Authentication Services
+
+- Κοινό interface ICredentialVerifier στην Application και κλάση υλοποίησης μέσω ASP.NET Core Identity στην Infrastructure.
+- Αποτέλεσμα επιτυχίας με UserId, χωρίς cookie/session, token ή tenant authorization.
+- Έλεγχος με UserManager, καταγραφή αποτυχιών, lockout μετά από 5 λανθασμένους κωδικούς για 15 λεπτά και reset μετά από επιτυχία.
+- Προστασία από username enumeration με ενιαίο αποτέλεσμα αποτυχίας και τεχνικό dummy hash.
+- Διαδραστικό Development CLI για έλεγχο του πραγματικού κωδικού, με ρητή επιβεβαίωση βάσης.
+- Εφάπαξ, Development-only διόρθωση του αρχικού placeholder email για τον μοναδικό Owner της υπάρχουσας επιχείρησης, μέσω UserManager και μετά από επαλήθευση τρέχοντος κωδικού.
+- Προεπισκόπηση, επιβεβαίωση βάσης, έλεγχοι SQL, logging χωρίς secrets, unit και απομονωμένα SQL integration tests.
+- Καμία νέα migration, κανένα δημόσιο HTTP login endpoint και καμία αυτόματη επιβεβαίωση email.
+
+Τα tenant-aware authorization, cookie authentication, antiforgery, login rate limiting, email verification και MFA αποτελούν επόμενα βήματα.
