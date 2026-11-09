@@ -4,7 +4,6 @@ using Aenaon.Application.Identity;
 using Aenaon.Application.Tenancy;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Aenaon.Api.Authentication;
 
@@ -141,6 +140,7 @@ public static class SessionEndpoints
 
     private static bool TryGetAuthenticatedUserId(HttpContext context, out Guid userId)
     {
+        userId = Guid.Empty;
         return context.User.Identity?.IsAuthenticated == true &&
             Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out userId) &&
             userId != Guid.Empty;
