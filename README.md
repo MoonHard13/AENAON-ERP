@@ -4,7 +4,7 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 ## Τρέχον στάδιο
 
-**Βήμα 7 — Πρώτος διαχειριστής επιχείρησης.** Με εφαρμοσμένες τις δύο migrations και την υπάρχουσα επιχείρηση, το προστατευμένο Development CLI δημιουργεί τον πρώτο Identity χρήστη και ένα Owner membership ατομικά. Οι ροές σύνδεσης και εξουσιοδότησης θα ακολουθήσουν.
+**Βήμα 8.1 — Authentication Services.** Το Identity ελέγχει τους κωδικούς με lockout μετά από 5 αποτυχίες για 15 λεπτά, χωρίς ακόμη HTTP login ή session. Προστίθεται προστατευμένο Development CLI για έλεγχο κωδικού και εφάπαξ διόρθωση του αρχικού ενδεικτικού email του Owner.
 
 Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
 
@@ -122,6 +122,24 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --initialize-admin
 
 Πλήρης οδηγός: [Πρώτος διαχειριστής](docs/07-first-administrator.md).
 
+## Authentication Services (Βήμα 8.1)
+
+Για διαδραστική επαλήθευση του πρώτου Administrator (χωρίς login/session):
+
+~~~powershell
+dotnet run --project src/Aenaon.Api --launch-profile https -- --verify-credentials --username admin --confirm-database AenaonERP_Dev
+~~~
+
+Για ελεγχόμενη διόρθωση του αρχικού email **your-email@example.com**, πρώτα προεπισκόπηση:
+
+~~~powershell
+dotnet run --project src/Aenaon.Api --launch-profile https -- --fix-admin-email --dry-run --tenant-id 9698df79-3c31-41c9-b292-b7240c7265fb --user-id 76d2c37f-2e26-4311-a129-e6073057c8dd --new-email new-address@your-domain.example
+~~~
+
+Μετά από έλεγχο και backup, αντικατάστησε το --dry-run με **--apply --confirm-database AenaonERP_Dev**. Ο υπάρχων κωδικός ζητείται διαδραστικά, όχι από ορίσματα. Η αλλαγή είναι εφάπαξ και δεν επιβεβαιώνει αυτόματα το νέο email.
+
+Πλήρης οδηγός: [Authentication Services και διόρθωση email](docs/08-authentication-services.md).
+
 ## Δομή
 
 | Διαδρομή | Περιεχόμενο |
@@ -143,6 +161,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --initialize-admin
 | `docs/05-initial-business.md` | Αρχική καταχώρηση, προεπισκόπηση, προστασίες και έλεγχοι SQL. |
 | `docs/06-users-and-memberships.md` | Schema Identity/memberships, αναβάθμιση και διατήρηση δεδομένων. |
 | `docs/07-first-administrator.md` | Ασφαλής δημιουργία πρώτου διαχειριστή, έλεγχοι και rollback. |
+| `docs/08-authentication-services.md` | Έλεγχος κωδικών, lockout και ασφαλής διόρθωση αρχικού email. |
 | `database/002-identity-memberships.sql` | SQL αναβάθμισης από την πρώτη στη δεύτερη migration. |
 | `docs/requirements.md` | Απαιτήσεις και αποφάσεις για τα επόμενα βήματα. |
 | `global.json` | Σταθερή επιλογή SDK χωρίς preview εκδόσεις. |
@@ -165,4 +184,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --initialize-admin
 - [Αρχική επιχείρηση και κατάστημα](docs/05-initial-business.md)
 - [Χρήστες και συμμετοχές](docs/06-users-and-memberships.md)
 - [Πρώτος διαχειριστής](docs/07-first-administrator.md)
+- [Authentication Services](docs/08-authentication-services.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
