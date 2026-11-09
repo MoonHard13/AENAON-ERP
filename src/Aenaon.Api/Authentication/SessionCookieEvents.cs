@@ -33,7 +33,15 @@ public sealed class SessionCookieEvents(IServiceScopeFactory scopeFactory) : Coo
 
     public override Task RedirectToLogin(RedirectContext<CookieAuthenticationOptions> context)
     {
-        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        if (context.Request.Path.StartsWithSegments("/dashboard"))
+        {
+            context.Response.Redirect("/login");
+        }
+        else
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        }
+
         return Task.CompletedTask;
     }
 
