@@ -4,7 +4,7 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 ## Τρέχον στάδιο
 
-**Βήμα 8.2 — Tenant Authorization.** Η υπηρεσία επιβεβαιώνει συμμετοχή χρήστη σε επιχείρηση, ρόλο Owner/Member και προέλευση καταστήματος, με deny-by-default. Η νέα Development CLI εντολή επαληθεύει πρώτα Identity password και μετά δικαίωμα Read/Manage χωρίς ακόμη HTTP login ή session.
+**Βήμα 8.3 — Secure HTTP Sessions (Development).** HTTPS cookie-based login/logout, CSRF, rate limiting, session validation και tenant-aware access check. Τα authentication endpoints είναι σκόπιμα διαθέσιμα μόνο σε Development μέχρι να ολοκληρωθεί η παραγωγική υποδομή.
 
 Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
 
@@ -158,6 +158,21 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --check-tenant-acc
 
 Πλήρης οδηγός: [Tenant Authorization](docs/09-tenant-authorization.md).
 
+## HTTPS Login και Logout (Βήμα 8.3)
+
+Σε Development, ξεκίνα το API με το υπάρχον HTTPS launch profile:
+
+~~~powershell
+dotnet dev-certs https --trust
+dotnet run --project src/Aenaon.Api --launch-profile https
+~~~
+
+Είναι διαθέσιμα μόνο στο Development τα GET /api/auth/csrf, POST /api/auth/login, GET /api/auth/me, GET /api/auth/access και POST /api/auth/logout. Οι ενέργειες POST απαιτούν CSRF token στο header X-Aenaon-CSRF. Το session cookie είναι Secure, HttpOnly, SameSite=Strict, έχει διάρκεια 30 λεπτά και επανελέγχεται απέναντι σε Identity security stamp και membership.
+
+Η ενσωματωμένη πολιτική προστασίας επιτρέπει έως 10 αιτήματα auth ανά λεπτό ανά IP, επιπλέον του Identity lockout. Δεν έχουν προστεθεί business endpoints, νέα migration ή public production login.
+
+**Πλήρης οδηγός και ασφαλές PowerShell παράδειγμα:** [Secure Login Sessions](docs/10-secure-login-sessions.md).
+
 ## Δομή
 
 | Διαδρομή | Περιεχόμενο |
@@ -181,6 +196,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --check-tenant-acc
 | `docs/07-first-administrator.md` | Ασφαλής δημιουργία πρώτου διαχειριστή, έλεγχοι και rollback. |
 | `docs/08-authentication-services.md` | Έλεγχος κωδικών, lockout και ασφαλής διόρθωση αρχικού email. |
 | `docs/09-tenant-authorization.md` | Κανόνες πρόσβασης Owner/Member, isolation και CLI έλεγχος. |
+| `docs/10-secure-login-sessions.md` | HTTPS session cookies, CSRF, login/logout και χειροκίνητοι έλεγχοι. |
 | `database/002-identity-memberships.sql` | SQL αναβάθμισης από την πρώτη στη δεύτερη migration. |
 | `docs/requirements.md` | Απαιτήσεις και αποφάσεις για τα επόμενα βήματα. |
 | `global.json` | Σταθερή επιλογή SDK χωρίς preview εκδόσεις. |
@@ -190,7 +206,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --check-tenant-acc
 
 ## Ασφάλεια και όρια του σταδίου
 
-Το τρέχον API εκθέτει αποκλειστικά πληροφορίες λειτουργίας. Δεν υπάρχει ακόμη σύνδεση χρηστών, πρόσβαση σε επιχειρησιακά δεδομένα ή έκδοση παραστατικών. Η απομόνωση επιχειρήσεων και η εξουσιοδότηση αποτελούν προϋποθέσεις πριν προστεθούν αντίστοιχα endpoints.
+Το τρέχον API εκθέτει αποκλειστικά πληροφορίες λειτουργίας. Δεν υπάρχουν ακόμη production login endpoints, πρόσβαση σε επιχειρησιακά δεδομένα ή έκδοση παραστατικών. Σε Development δοκιμάζονται αποκλειστικά ασφαλείς συνεδρίες. Η απομόνωση επιχειρήσεων και η εξουσιοδότηση αποτελούν προϋποθέσεις πριν προστεθούν αντίστοιχα endpoints.
 
 Τα διαπιστευτήρια ανάπτυξης θα αποθηκεύονται με .NET User Secrets. Στο production θα χρησιμοποιούνται ασφαλείς ρυθμίσεις του παρόχου φιλοξενίας. Μην ανεβάζεις κωδικούς, πραγματικά δεδομένα πελατών ή κλειδιά παρόχου στο repository.
 
@@ -205,4 +221,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --check-tenant-acc
 - [Πρώτος διαχειριστής](docs/07-first-administrator.md)
 - [Authentication Services](docs/08-authentication-services.md)
 - [Tenant Authorization](docs/09-tenant-authorization.md)
+- [HTTPS Login Sessions](docs/10-secure-login-sessions.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
