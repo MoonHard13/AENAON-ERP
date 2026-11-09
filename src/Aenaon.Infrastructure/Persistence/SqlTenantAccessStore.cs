@@ -32,9 +32,10 @@ public sealed class SqlTenantAccessStore(AenaonDbContext context) : ITenantAcces
             .Join(context.Tenants.AsNoTracking(),
                 membership => membership.TenantId,
                 tenant => tenant.Id,
-                (membership, tenant) => new AccessibleTenant(tenant.Id, tenant.Name, membership.Role))
+                (membership, tenant) => new { tenant.Id, tenant.Name, membership.Role })
             .OrderBy(item => item.Name)
-            .ThenBy(item => item.TenantId)
+            .ThenBy(item => item.Id)
+            .Select(item => new AccessibleTenant(item.Id, item.Name, item.Role))
             .ToListAsync(cancellationToken);
         return result;
     }
