@@ -148,3 +148,15 @@
 - Καμία μεταβίβαση UserId από μη έμπιστη είσοδο για χρήση σε authorization.
 - Integration tests HTTP, ασφάλειας cookies/CSRF/rate limit και πραγματικό SQL Server CI για ανάκληση.
 - Χωρίς νέα migration και χωρίς δημόσιο production login μέχρι να ρυθμιστούν φιλοξενία, HTTPS proxy, shared Data Protection keys, audit και λοιποί έλεγχοι.
+
+
+## Βήμα 8.4 — Blazor Login UI και πρώτο Dashboard
+
+- Blazor Static SSR UI στο ίδιο origin με το ASP.NET Core API, χωρίς νέα NuGet packages.
+- Ασφαλές HTML POST/redirect/GET με IAntiforgery και το υφιστάμενο Identity cookie χωρίς password σε JavaScript.
+- Responsive οθόνη Login, protected Dashboard και επιλογή πραγματικών επιχειρήσεων/καταστημάτων από SQL.
+- Υποχρεωτικό TenantAuthorizationService πριν από την ανάγνωση καταστημάτων, απόρριψη ξένου TenantId.
+- Επίσημο πράσινο/μεταλλικό Aenaon ERP branding, dark/light theme, προσιτότητα και συντομεύσεις Alt+T/L/D/O.
+- Development-only UI μέχρι production readiness με προστασία keys, HTTPS, proxy και security hardening.
+- GitHub PR κώδικα + ZIP binary branding για προσθήκη στο feature branch πριν από merge.
+- Unit/HTTP integration tests και ελληνικό GitBook manual.
