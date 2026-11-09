@@ -4,6 +4,7 @@ using Aenaon.Api.Commands;
 using Aenaon.Api.Configuration;
 using Aenaon.Api.HealthChecks;
 using Aenaon.Api.Middleware;
+using Aenaon.Api.Ui;
 using Aenaon.Application.Identity;
 using Aenaon.Application.Tenancy;
 using Aenaon.Infrastructure.Database;
@@ -162,14 +163,21 @@ public partial class Program
         }
 
         app.UseHttpsRedirection();
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseStaticFiles();
+        }
         app.UseRouting();
         app.UseRateLimiter();
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseAntiforgery();
         app.MapControllers();
         if (app.Environment.IsDevelopment())
         {
             app.MapSessionEndpoints();
+            app.MapUiSessionEndpoints();
+            app.MapRazorComponents<App>();
         }
         app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
         if (app.Environment.IsDevelopment())
