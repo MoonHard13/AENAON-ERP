@@ -20,6 +20,9 @@ public static class ApiServiceCollectionExtensions
         IConfiguration configuration, IHostEnvironment environment)
     {
         services.AddControllers();
+        services.AddRazorComponents();
+        services.AddCascadingAuthenticationState();
+        services.AddHttpContextAccessor();
         services.AddSingleton<IDatabaseConnectionProbe>(provider => new SqlServerConnectionProbe(
             configuration.GetConnectionString("Aenaon"), environment.IsDevelopment(),
             provider.GetRequiredService<ILogger<SqlServerConnectionProbe>>()));
@@ -62,6 +65,8 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<AdministratorEmailChangeService>();
         services.AddScoped<ITenantAccessStore, SqlTenantAccessStore>();
         services.AddScoped<TenantAuthorizationService>();
+        services.AddScoped<ITenantStoreCatalog, SqlTenantStoreCatalog>();
+        services.AddScoped<TenantWorkspaceService>();
         services.AddScoped<ISessionIdentityService, IdentitySessionService>();
         services.AddScoped<SessionCookieEvents>();
         services.AddAuthentication(SessionAuthenticationOptions.Scheme)
