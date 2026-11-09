@@ -17,7 +17,7 @@ public static class InitialAdministratorCommand
         string? mode = null;
         for (int index = 0; index < args.Length; index++)
         {
-            if (args[index] is "--dry-run" or "--apply" && mode is null)
+            if ((args[index] is "--dry-run" or "--apply") && mode is null)
             {
                 mode = args[index];
             }
