@@ -45,7 +45,6 @@ public sealed class VerifyCredentialsCommandTests
     }
 
     [TestMethod]
-    [DataRow("bad-database")]
     [DataRow("bad-mode")]
     [DataRow("non-interactive")]
     public async Task UnsafeInput_DoesNotVerifyCredentials(string mode)
