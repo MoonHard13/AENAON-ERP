@@ -136,3 +136,15 @@
 - Χωρίς migration και χωρίς δημόσια endpoints ή session. Η αυθεντικοποίηση πρέπει να προηγείται οποιασδήποτε κλήσης authorization.
 - Unit tests και πραγματική SQL Server integration δοκιμή με δύο επιχειρήσεις, διαφορετικά καταστήματα και ρόλους.
 - **Δεν** υπάρχουν ακόμη store-specific memberships. Οι Owner/Member της επιχείρησης έχουν Read πρόσβαση σε όλα τα δικά της καταστήματα. Οι πιο λεπτομερείς άδειες απαιτούν επόμενη φάση σχεδίασης.
+
+
+## Βήμα 8.3 — HTTPS Login/Logout και Secure Sessions
+
+- Development-only HTTP endpoints για CSRF token, login, logout, session identity και tenant access.
+- Ασφαλές Cookie Authentication με host-only Secure HttpOnly cookie, SameSite=Strict, λήξη 30 λεπτών χωρίς sliding renewal.
+- Identity password verification, ενεργό membership, επανέλεγχος security stamp και δυνατότητα ανάκλησης συνεδρίας.
+- ASP.NET Core Antiforgery σε κάθε POST login/logout με ειδικό request header και ανανέωση token μετά login.
+- Rate limiting έως 10 auth requests ανά λεπτό ανά IP, ανεξάρτητα από το υπάρχον account lockout.
+- Καμία μεταβίβαση UserId από μη έμπιστη είσοδο για χρήση σε authorization.
+- Integration tests HTTP, ασφάλειας cookies/CSRF/rate limit και πραγματικό SQL Server CI για ανάκληση.
+- Χωρίς νέα migration και χωρίς δημόσιο production login μέχρι να ρυθμιστούν φιλοξενία, HTTPS proxy, shared Data Protection keys, audit και λοιποί έλεγχοι.

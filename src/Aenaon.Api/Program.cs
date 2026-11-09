@@ -1,4 +1,5 @@
 using System.Reflection;
+using Aenaon.Api.Authentication;
 using Aenaon.Api.Commands;
 using Aenaon.Api.Configuration;
 using Aenaon.Api.HealthChecks;
@@ -161,7 +162,15 @@ public partial class Program
         }
 
         app.UseHttpsRedirection();
+        app.UseRouting();
+        app.UseRateLimiter();
+        app.UseAuthentication();
+        app.UseAuthorization();
         app.MapControllers();
+        if (app.Environment.IsDevelopment())
+        {
+            app.MapSessionEndpoints();
+        }
         app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
         if (app.Environment.IsDevelopment())
         {

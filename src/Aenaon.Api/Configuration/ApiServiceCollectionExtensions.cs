@@ -1,11 +1,15 @@
 using System.Diagnostics;
+using System.Threading.RateLimiting;
+using Aenaon.Api.Authentication;
 using Aenaon.Api.HealthChecks;
 using Aenaon.Application.Identity;
 using Aenaon.Application.Tenancy;
 using Aenaon.Infrastructure.Database;
 using Aenaon.Infrastructure.Identity;
 using Aenaon.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Aenaon.Api.Configuration;
 
@@ -58,6 +62,44 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<AdministratorEmailChangeService>();
         services.AddScoped<ITenantAccessStore, SqlTenantAccessStore>();
         services.AddScoped<TenantAuthorizationService>();
+        services.AddScoped<ISessionIdentityService, IdentitySessionService>();
+        services.AddScoped<SessionCookieEvents>();
+        services.AddAuthentication(SessionAuthenticationOptions.Scheme)
+            .AddCookie(SessionAuthenticationOptions.Scheme, options =>
+            {
+                options.Cookie.Name = "__Host-AenaonERP.Session";
+                options.Cookie.HttpOnly = true;
+                options.Cookie.Path = "/";
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.SameSite = SameSiteMode.Strict;
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+                options.SlidingExpiration = false;
+                options.EventsType = typeof(SessionCookieEvents);
+            });
+        services.AddAuthorization();
+        services.AddAntiforgery(options =>
+        {
+            options.HeaderName = SessionAuthenticationOptions.CsrfHeader;
+            options.Cookie.Name = "__Host-AenaonERP.Antiforgery";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.Path = "/";
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SameSite = SameSiteMode.Strict;
+        });
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy(SessionAuthenticationOptions.RateLimitPolicy, context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(1),
+                        AutoReplenishment = true
+                    }));
+        });
         services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("sqlserver",
             tags: [DatabaseHealthCheck.Tag], timeout: TimeSpan.FromSeconds(10));
         services.AddProblemDetails(options =>
