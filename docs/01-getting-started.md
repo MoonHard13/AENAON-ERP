@@ -97,7 +97,7 @@ dotnet list AenaonERP.slnx package --outdated
 dotnet list AenaonERP.slnx package --vulnerable --include-transitive
 ```
 
-Οι εξαρτήσεις καθορίζονται κεντρικά στο `Directory.Packages.props`, με lock files ανά project. Το SQL Infrastructure χρησιμοποιεί τον επίσημο SqlClient, logging abstractions και ασφαλή έκδοση της μεταβατικής κρυπτογραφικής εξάρτησης. Τα `MSTest` και `Microsoft.AspNetCore.Mvc.Testing` αφορούν τις δοκιμές.
+Οι εξαρτήσεις καθορίζονται κεντρικά στο `Directory.Packages.props`, με lock files ανά project. Το SQL Infrastructure χρησιμοποιεί SqlClient, EF Core SQL Server, logging abstractions και ασφαλή έκδοση της μεταβατικής κρυπτογραφικής εξάρτησης. Οι migrations περιγράφονται στον [οδηγό του τέταρτου βήματος](04-tenancy-database.md). Τα `MSTest` και `Microsoft.AspNetCore.Mvc.Testing` αφορούν τις δοκιμές.
 
 ## Publish για έλεγχο του πακέτου
 

@@ -10,7 +10,7 @@ public sealed class SqlServerLiveTests
 {
     [TestMethod]
     [TestCategory("SqlServer")]
-    public async Task Probe_ConnectsToSql2022AndRedactsLoginFailures()
+    public async Task Sql2022_VerifiesConnectivityMigrationsAndTenancyPersistence()
     {
         string? value = Environment.GetEnvironmentVariable("AENAON_TEST_SQL_CONNECTION");
         if (Environment.GetEnvironmentVariable("AENAON_RUN_SQL_INTEGRATION") != "1" || string.IsNullOrWhiteSpace(value))
@@ -53,6 +53,8 @@ public sealed class SqlServerLiveTests
         var result = await probe.CheckAsync(timeout.Token);
         Assert.AreEqual(DatabaseConnectionStatus.Connected, result.Status);
         Assert.AreEqual(160, result.CompatibilityLevel);
+
+        await SqlServerSchemaAssertions.RunAsync(application.ConnectionString, timeout.Token);
 
         application.Password = "invalid-unit-test-password";
         var rejected = await new SqlServerConnectionProbe(application.ConnectionString, true, logger).CheckAsync(timeout.Token);

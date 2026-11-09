@@ -40,6 +40,8 @@ jobs:
           cache-dependency-path: '**/packages.lock.json'
       - name: Restore and audit packages
         run: dotnet restore AenaonERP.slnx --locked-mode
+      - name: Restore pinned EF tooling
+        run: dotnet tool restore
       - name: Verify formatting
         run: dotnet format AenaonERP.slnx --verify-no-changes --no-restore
       - name: Build Release

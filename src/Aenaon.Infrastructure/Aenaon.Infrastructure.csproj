@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="../Aenaon.Domain/Aenaon.Domain.csproj" />
     <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <!-- Η ρητή έκδοση αντικαθιστά την ευάλωτη μεταβατική εξάρτηση του SQL driver. -->
     <PackageReference Include="System.Security.Cryptography.Pkcs" />

@@ -8,6 +8,13 @@ public sealed class Store
     public const int MaxCodeLength = 30;
     public const int MaxNameLength = 160;
 
+    // Χρησιμοποιείται μόνο για ανασύσταση αποθηκευμένων δεδομένων από το EF Core.
+    private Store()
+    {
+        Code = "";
+        Name = "";
+    }
+
     internal Store(Guid tenantId, string? code, string? name)
     {
         if (tenantId == Guid.Empty)
@@ -21,8 +28,8 @@ public sealed class Store
         TenantId = tenantId;
     }
 
-    public Guid Id { get; }
-    public Guid TenantId { get; }
-    public string Code { get; }
-    public string Name { get; }
+    public Guid Id { get; private set; }
+    public Guid TenantId { get; private set; }
+    public string Code { get; private set; }
+    public string Name { get; private set; }
 }

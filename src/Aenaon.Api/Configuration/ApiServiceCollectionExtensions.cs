@@ -14,6 +14,9 @@ public static class ApiServiceCollectionExtensions
         services.AddSingleton<IDatabaseConnectionProbe>(provider => new SqlServerConnectionProbe(
             configuration.GetConnectionString("Aenaon"), environment.IsDevelopment(),
             provider.GetRequiredService<ILogger<SqlServerConnectionProbe>>()));
+        services.AddSingleton<IDatabaseSchemaManager>(provider => new DatabaseSchemaManager(
+            configuration.GetConnectionString("Aenaon"), environment.IsDevelopment(),
+            provider.GetRequiredService<ILogger<DatabaseSchemaManager>>()));
         services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("sqlserver",
             tags: [DatabaseHealthCheck.Tag], timeout: TimeSpan.FromSeconds(10));
         services.AddProblemDetails(options =>

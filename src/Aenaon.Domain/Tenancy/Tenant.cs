@@ -11,6 +11,13 @@ public sealed class Tenant
     private readonly List<Store> _stores = [];
     private readonly ReadOnlyCollection<Store> _storeView;
 
+    // Χρησιμοποιείται μόνο για ανασύσταση αποθηκευμένων δεδομένων από το EF Core.
+    private Tenant()
+    {
+        Name = "";
+        _storeView = _stores.AsReadOnly();
+    }
+
     private Tenant(string? name)
     {
         Name = OrganizationText.RequiredName(name, MaxNameLength, "Όνομα επιχείρησης", "tenant.name.invalid");
@@ -18,8 +25,8 @@ public sealed class Tenant
         _storeView = _stores.AsReadOnly();
     }
 
-    public Guid Id { get; }
-    public string Name { get; }
+    public Guid Id { get; private set; }
+    public string Name { get; private set; }
     public IReadOnlyList<Store> Stores => _storeView;
 
     public static Tenant Create(string? name)
