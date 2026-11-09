@@ -426,3 +426,13 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+
+
+# Τοπικές ρυθμίσεις και αρχεία με διαπιστευτήρια του Aenaon ERP.
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+appsettings.*.local.json
+*.pem
+*.key

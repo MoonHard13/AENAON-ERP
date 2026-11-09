@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <UserSecretsId>aenaon-erp-api-development</UserSecretsId>
+  </PropertyGroup>
+</Project>
