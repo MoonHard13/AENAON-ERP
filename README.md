@@ -47,18 +47,18 @@ dotnet list AenaonERP.slnx package --vulnerable --include-transitive
 
 Οι ίδιες εντολές build και test εκτελούνται από το GitHub Actions σε Windows και Linux. Η επιτυχία κάθε εκτέλεσης φαίνεται στην καρτέλα **Actions**.
 
-Το CI ελέγχει επιπλέον πραγματικό SQL Server 2022 σε απομονωμένο container Linux και τη ρύθμιση User Secrets σε Windows PowerShell. Δεν χρησιμοποιεί credentials ή βάσεις χρηστών.
+Το CI ελέγχει επιπλέον πραγματικό SQL Server 2022 σε απομονωμένο container Linux και τη ρύθμιση User Secrets μέσω του .NET SDK σε Windows και Linux. Δεν χρησιμοποιεί credentials ή βάσεις χρηστών.
 
 ## Ρύθμιση SQL σε περιβάλλον ανάπτυξης
 
 Με υπάρχουσα ξεχωριστή βάση `AenaonERP_Dev`, από PowerShell στον κεντρικό φάκελο:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\Set-DevelopmentDatabase.ps1 -Server 'localhost\SQL2022' -TrustServerCertificate
+dotnet run --project src/Aenaon.Api --launch-profile https -- --configure-database --server 'localhost\SQL2022' --trust-server-certificate
 dotnet run --project src/Aenaon.Api --launch-profile https -- --check-database
 ```
 
-Η πρώτη εντολή ζητά το SQL login και τον κωδικό τοπικά. Ο κωδικός δεν περιλαμβάνεται στη γραμμή εντολών. Το `TrustServerCertificate` επιτρέπεται από την εφαρμογή μόνο σε Development και διατηρεί την κρυπτογράφηση ενεργή. Το `RemoteSigned` αφορά μόνο τη συγκεκριμένη διεργασία PowerShell και παραμένει υπό τους περιορισμούς τυχόν εταιρικής Group Policy.
+Η πρώτη εντολή ζητά το SQL login και τον κωδικό τοπικά. Ο κωδικός δεν περιλαμβάνεται στη γραμμή εντολών. Το `--trust-server-certificate` επιτρέπεται από την εφαρμογή μόνο σε Development και διατηρεί την κρυπτογράφηση ενεργή.
 
 Πλήρης οδηγός: [Σύνδεση SQL Server](docs/03-sql-server-connection.md).
 

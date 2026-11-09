@@ -32,31 +32,31 @@ dotnet test AenaonERP.slnx --configuration Release --no-restore --filter "TestCa
 Χρησιμοποίησε το πραγματικό όνομα του δικού σου instance στη θέση του παραδείγματος:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\Set-DevelopmentDatabase.ps1 -Server 'localhost\SQL2022' -Database 'AenaonERP_Dev' -TrustServerCertificate
+dotnet run --project src/Aenaon.Api --launch-profile https -- --configure-database --server 'localhost\SQL2022' --database 'AenaonERP_Dev' --trust-server-certificate
 ```
 
-Το script ζητά διαδοχικά:
+Η εντολή ζητά διαδοχικά:
 
 1. **SQL login:** το όνομα σύνδεσης που χρησιμοποιείς στο SSMS.
-2. **Κωδικό SQL login:** εισάγεται ως SecureString τοπικά, με απόκρυψη στην οθόνη.
+2. **Κωδικό SQL login:** εισάγεται τοπικά με αστερίσκους στην οθόνη. Το `Esc` ακυρώνει τη ρύθμιση, ενώ το `Backspace` διορθώνει την εισαγωγή.
 
-Το connection string παράγεται με `DbConnectionStringBuilder`, ώστε να διατηρούνται σωστά ειδικοί χαρακτήρες, εισαγωγικά και ελληνικά στον κωδικό. Μεταφέρεται στο επίσημο `dotnet user-secrets set` μέσω stdin ως JSON. Δεν περνά ως argument στη γραμμή εντολών ούτε γράφεται στο project.
+Το connection string παράγεται με `SqlConnectionStringBuilder`, ώστε να διατηρούνται σωστά ειδικοί χαρακτήρες, εισαγωγικά και ελληνικά στον κωδικό. Μεταφέρεται στο επίσημο `dotnet user-secrets set` μέσω stdin ως JSON. Δεν περνά ως argument στη γραμμή εντολών ούτε γράφεται στο project.
 
-Το `RemoteSigned` ισχύει για τη συγκεκριμένη διεργασία PowerShell, χωρίς μόνιμη αλλαγή της πολιτικής του υπολογιστή. Αν εταιρική Group Policy αποκλείει την εκτέλεση, ακολούθησε τη διαδικασία του διαχειριστή σου· το script δεν παρακάμπτει την Group Policy.
+Η αποθήκευση γίνεται από τη .NET εφαρμογή, με ρητή κωδικοποίηση UTF-8 στο stdin. Δεν απαιτείται αλλαγή πολιτικής εκτέλεσης PowerShell. Το προαιρετικό `scripts/Set-DevelopmentDatabase.ps1` λειτουργεί ως wrapper της ίδιας εντολής και δεν χειρίζεται διαπιστευτήρια.
 
 {% hint style="info" %}
 Τα User Secrets είναι μηχανισμός ανάπτυξης εκτός repository και δεν κρυπτογραφούνται από το .NET. Χρησιμοποίησε λογαριασμό/βάση ανάπτυξης. Τα πραγματικά production secrets θα αποθηκεύονται στον ασφαλή μηχανισμό της πλατφόρμας φιλοξενίας.
 {% endhint %}
 
-## Παράμετροι του script
+## Παράμετροι της εντολής
 
 | Παράμετρος | Περιγραφή |
 | --- | --- |
-| `-Server` | Υποχρεωτικό instance, π.χ. `localhost\SQL2022` ή έγκυρη TCP διεύθυνση. |
-| `-Database` | Βάση εφαρμογής, προεπιλογή `AenaonERP_Dev`. |
-| `-TrustServerCertificate` | Επιτρέπει το τοπικό πιστοποιητικό SQL χωρίς έλεγχο αλυσίδας στο Development. Η κρυπτογράφηση παραμένει ενεργή. |
+| `--server` | Υποχρεωτικό instance, π.χ. `localhost\SQL2022` ή έγκυρη TCP διεύθυνση. |
+| `--database` | Βάση εφαρμογής, προεπιλογή `AenaonERP_Dev`. |
+| `--trust-server-certificate` | Επιτρέπει το τοπικό πιστοποιητικό SQL χωρίς έλεγχο αλυσίδας στο Development. Η κρυπτογράφηση παραμένει ενεργή. |
 
-Όταν ο SQL Server διαθέτει πιστοποιητικό με έγκυρη αλυσίδα και όνομα server, παράλειψε το `-TrustServerCertificate`. Εκτός περιβάλλοντος `Development`, η εφαρμογή απορρίπτει connection strings που το ενεργοποιούν.
+Όταν ο SQL Server διαθέτει πιστοποιητικό με έγκυρη αλυσίδα και όνομα server, παράλειψε το `--trust-server-certificate`. Εκτός περιβάλλοντος `Development`, η εφαρμογή απορρίπτει connection strings που το ενεργοποιούν.
 
 Το κλειδί ρύθμισης είναι `ConnectionStrings:Aenaon`. Για παραγωγική φιλοξενία μπορεί να δοθεί μέσω του αντίστοιχου ασφαλούς configuration provider ή της ρύθμισης περιβάλλοντος `ConnectionStrings__Aenaon`.
 
@@ -135,7 +135,7 @@ dotnet test AenaonERP.slnx --configuration Release --no-restore --filter "TestCa
 
 Αυτό το test απαιτεί ρητές μεταβλητές CI και δέχεται αποκλειστικά `127.0.0.1,14333` ως server αρχικής σύνδεσης. Δεν εκτελείται στην προσωπική βάση του χρήστη. Αν τρέξεις όλα τα tests χωρίς φίλτρο, ο live έλεγχος θα εμφανιστεί ως skipped/inconclusive εκτός CI.
 
-Σε Windows PowerShell το CI ελέγχει και το script User Secrets, με πλασματικά διαπιστευτήρια που περιέχουν ειδικούς χαρακτήρες και ελληνικά.
+Σε Windows και Linux τα tests γράφουν πλασματικά διαπιστευτήρια με ειδικούς χαρακτήρες και ελληνικά μέσω του επίσημου SDK και επαληθεύουν την ανάγνωσή τους από τον User Secrets configuration provider. Χρησιμοποιούν τυχαίο test αναγνωριστικό, ξεχωριστό από της εφαρμογής, και καθαρίζουν τις τιμές στο τέλος. Σε Windows PowerShell ελέγχεται επιπλέον η σύνταξη του προαιρετικού wrapper.
 
 ## Αντιμετώπιση προβλημάτων
 
@@ -146,12 +146,12 @@ dotnet test AenaonERP.slnx --configuration Release --no-restore --filter "TestCa
 | SQL error `18456` | Έλεγξε το SQL login/password και αν επιτρέπεται SQL Authentication. |
 | SQL error `4060` | Έλεγξε την ύπαρξη της βάσης και την πρόσβαση του SQL login σε αυτή. |
 | Timeout / error `-1` | Επιβεβαίωσε ότι λειτουργεί το SQL instance και ότι ο server/instance είναι σωστός. Για TCP συνδέσεις έλεγξε τις αντίστοιχες ρυθμίσεις δικτύου/port. |
-| Πρόβλημα πιστοποιητικού | Για το τοπικό Development επανέλαβε τη ρύθμιση με `-TrustServerCertificate`. Στο production απαιτείται έγκυρο πιστοποιητικό και έλεγχος αλυσίδας/ονόματος. |
+| Πρόβλημα πιστοποιητικού | Για το τοπικό Development επανέλαβε τη ρύθμιση με `--trust-server-certificate`. Στο production απαιτείται έγκυρο πιστοποιητικό και έλεγχος αλυσίδας/ονόματος. |
 | `/health` Healthy, βάση Unhealthy | Το API λειτουργεί αλλά η SQL σύνδεση δεν έχει επαληθευτεί. Τρέξε `--check-database` και έλεγξε τον αριθμό σφάλματος. |
 | `/health/database` επιστρέφει `404` | Η διαδρομή διατίθεται μόνο στο Development. Χρησιμοποίησε το προφίλ `https` τοπικά. |
-| Το script αποκλείεται από εταιρική πολιτική | Ακολούθησε τη διαδικασία του διαχειριστή για εκτέλεση τοπικών scripts. Μην αλλάζεις την Group Policy. |
+| Αποτυχία αποθήκευσης User Secrets | Έλεγξε ότι υπάρχει το .NET SDK στο PATH και δικαιώματα εγγραφής στο προφίλ του τοπικού λογαριασμού. |
 
-Για αλλαγή διαπιστευτηρίων επανεκτέλεσε το script και επανεκκίνησε το API, ώστε να φορτώσει τη νέα σύνδεση. Για αφαίρεση μόνο αυτής της ρύθμισης:
+Για αλλαγή διαπιστευτηρίων επανεκτέλεσε την εντολή `--configure-database` και επανεκκίνησε το API, ώστε να φορτώσει τη νέα σύνδεση. Για αφαίρεση μόνο αυτής της ρύθμισης:
 
 ```powershell
 dotnet user-secrets remove 'ConnectionStrings:Aenaon' --project src/Aenaon.Api
