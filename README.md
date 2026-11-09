@@ -4,7 +4,7 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 ## Τρέχον στάδιο
 
-**Βήμα 6 — Σχήμα χρηστών και συμμετοχών σε επιχειρήσεις.** Προστίθενται το Identity user-store και membership ανά επιχείρηση, με ρόλους `Owner`/`Member`. Η δεύτερη migration διατηρεί τις υπάρχουσες επιχειρήσεις/καταστήματα. Η δημιουργία διαχειριστή και οι ροές σύνδεσης/εξουσιοδότησης θα ακολουθήσουν.
+**Βήμα 7 — Πρώτος διαχειριστής επιχείρησης.** Με εφαρμοσμένες τις δύο migrations και την υπάρχουσα επιχείρηση, το προστατευμένο Development CLI δημιουργεί τον πρώτο Identity χρήστη και ένα Owner membership ατομικά. Οι ροές σύνδεσης και εξουσιοδότησης θα ακολουθήσουν.
 
 Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
 
@@ -104,6 +104,24 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 
 Πλήρης οδηγός: [Χρήστες και συμμετοχές](docs/06-users-and-memberships.md).
 
+## Πρώτος Administrator (Βήμα 7)
+
+Με μηδέν χρήστες και memberships, στην υπάρχουσα βάση Development:
+
+~~~powershell
+dotnet run --project src/Aenaon.Api --launch-profile https -- --initialize-admin --dry-run --tenant-id 9698df79-3c31-41c9-b292-b7240c7265fb --username admin --email owner@your-company.example
+~~~
+
+Αντικατάστησε το email με πραγματική διεύθυνση ανάπτυξης. Έπειτα, μόνο μετά από επιτυχή προεπισκόπηση:
+
+~~~powershell
+dotnet run --project src/Aenaon.Api --launch-profile https -- --initialize-admin --apply --confirm-database AenaonERP_Dev --tenant-id 9698df79-3c31-41c9-b292-b7240c7265fb --username admin --email owner@your-company.example
+~~~
+
+Ο κωδικός εισάγεται **δύο φορές στο διαδραστικό terminal**, ποτέ ως παράμετρος. Απαιτούνται τουλάχιστον 14 χαρακτήρες και συνδυασμός πεζών/κεφαλαίων/αριθμού/συμβόλου. Το CLI αρνείται επανάληψη, production χρήση ή λάθος επιχείρηση/βάση. Δεν δημιουργείται νέα migration.
+
+Πλήρης οδηγός: [Πρώτος διαχειριστής](docs/07-first-administrator.md).
+
 ## Δομή
 
 | Διαδρομή | Περιεχόμενο |
@@ -124,6 +142,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 | `.config/dotnet-tools.json` | Τοπικό, σταθερό εργαλείο `dotnet-ef`. |
 | `docs/05-initial-business.md` | Αρχική καταχώρηση, προεπισκόπηση, προστασίες και έλεγχοι SQL. |
 | `docs/06-users-and-memberships.md` | Schema Identity/memberships, αναβάθμιση και διατήρηση δεδομένων. |
+| `docs/07-first-administrator.md` | Ασφαλής δημιουργία πρώτου διαχειριστή, έλεγχοι και rollback. |
 | `database/002-identity-memberships.sql` | SQL αναβάθμισης από την πρώτη στη δεύτερη migration. |
 | `docs/requirements.md` | Απαιτήσεις και αποφάσεις για τα επόμενα βήματα. |
 | `global.json` | Σταθερή επιλογή SDK χωρίς preview εκδόσεις. |
@@ -145,4 +164,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Πίνακες επιχειρήσεων και καταστημάτων](docs/04-tenancy-database.md)
 - [Αρχική επιχείρηση και κατάστημα](docs/05-initial-business.md)
 - [Χρήστες και συμμετοχές](docs/06-users-and-memberships.md)
+- [Πρώτος διαχειριστής](docs/07-first-administrator.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)

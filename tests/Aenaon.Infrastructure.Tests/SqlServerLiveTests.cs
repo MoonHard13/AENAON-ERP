@@ -72,6 +72,14 @@ public sealed class SqlServerLiveTests
         var identity = new SqlConnectionStringBuilder(server.ConnectionString) { InitialCatalog = "AenaonERP_Identity_CI" };
         await SqlServerIdentityAssertions.RunAsync(identity.ConnectionString, timeout.Token);
 
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "CREATE DATABASE [AenaonERP_Admin_CI] COLLATE Greek_CI_AS;";
+            await command.ExecuteNonQueryAsync(timeout.Token);
+        }
+        var admin = new SqlConnectionStringBuilder(server.ConnectionString) { InitialCatalog = "AenaonERP_Admin_CI" };
+        await SqlServerFirstAdministratorAssertions.RunAsync(admin.ConnectionString, timeout.Token);
+
         application.Password = "invalid-unit-test-password";
         var rejected = await new SqlServerConnectionProbe(application.ConnectionString, true, logger).CheckAsync(timeout.Token);
         Assert.AreEqual(DatabaseConnectionStatus.Unavailable, rejected.Status);
