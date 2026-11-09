@@ -2,4 +2,7 @@
   <PropertyGroup>
     <UserSecretsId>aenaon-erp-api-development</UserSecretsId>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Aenaon.Infrastructure/Aenaon.Infrastructure.csproj" />
+  </ItemGroup>
 </Project>

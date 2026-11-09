@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Aenaon.Infrastructure/Aenaon.Infrastructure.csproj" />
+    <PackageReference Include="MSTest" />
+  </ItemGroup>
+</Project>

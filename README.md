@@ -4,7 +4,7 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 ## Τρέχον στάδιο
 
-**Βήμα 2 — Μοντέλα επιχείρησης και καταστήματος.** Η βάση του API επεκτείνεται με ανεξάρτητο Domain project, κανόνες δημιουργίας επιχειρήσεων/καταστημάτων και unit tests. Η διαχείριση από φόρμες και η αποθήκευση στη βάση θα προστεθούν σε επόμενα βήματα.
+**Βήμα 3 — Έλεγχος σύνδεσης SQL Server.** Προστίθενται ανεξάρτητο Infrastructure project, έλεγχος σύνδεσης από CLI και διαγνωστικό endpoint στο Development. Τα διαπιστευτήρια ορίζονται τοπικά μέσω User Secrets. Η αποθήκευση των επιχειρησιακών μοντέλων και η διαχείριση από φόρμες θα ακολουθήσουν.
 
 Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
 
@@ -12,8 +12,11 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 | --- | --- |
 | `GET /health` | `Healthy`, όταν το API ανταποκρίνεται. |
 | `GET /api/info` | `{"name":"Aenaon ERP API"}`. |
+| `GET /health/database` | `Healthy` ή `Unhealthy`, αποκλειστικά σε Development, για την πραγματική σύνδεση SQL. |
 
 Το `/health` σε αυτό το στάδιο ελέγχει τη διαθεσιμότητα του API. Δεν ελέγχει βάση δεδομένων, πάροχο ή συγχρονισμό.
+
+Ο έλεγχος `/health/database` ανοίγει τη ρυθμισμένη σύνδεση και διαβάζει το compatibility level. Δεν δημιουργεί ή τροποποιεί πίνακες/δεδομένα και δεν αποτελεί έλεγχο ολοκλήρωσης μελλοντικών migrations.
 
 ## Γρήγορη εκκίνηση σε Windows / PowerShell
 
@@ -37,12 +40,27 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 dotnet restore AenaonERP.slnx --locked-mode
 dotnet format AenaonERP.slnx --verify-no-changes --no-restore
 dotnet build AenaonERP.slnx --configuration Release --no-restore
-dotnet test AenaonERP.slnx --configuration Release --no-build --no-restore
+dotnet test AenaonERP.slnx --configuration Release --no-build --no-restore --filter "TestCategory!=SqlServer"
 dotnet list AenaonERP.slnx package --outdated
 dotnet list AenaonERP.slnx package --vulnerable --include-transitive
 ```
 
 Οι ίδιες εντολές build και test εκτελούνται από το GitHub Actions σε Windows και Linux. Η επιτυχία κάθε εκτέλεσης φαίνεται στην καρτέλα **Actions**.
+
+Το CI ελέγχει επιπλέον πραγματικό SQL Server 2022 σε απομονωμένο container Linux και τη ρύθμιση User Secrets σε Windows PowerShell. Δεν χρησιμοποιεί credentials ή βάσεις χρηστών.
+
+## Ρύθμιση SQL σε περιβάλλον ανάπτυξης
+
+Με υπάρχουσα ξεχωριστή βάση `AenaonERP_Dev`, από PowerShell στον κεντρικό φάκελο:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\Set-DevelopmentDatabase.ps1 -Server 'localhost\SQL2022' -TrustServerCertificate
+dotnet run --project src/Aenaon.Api --launch-profile https -- --check-database
+```
+
+Η πρώτη εντολή ζητά το SQL login και τον κωδικό τοπικά. Ο κωδικός δεν περιλαμβάνεται στη γραμμή εντολών. Το `TrustServerCertificate` επιτρέπεται από την εφαρμογή μόνο σε Development και διατηρεί την κρυπτογράφηση ενεργή. Το `RemoteSigned` αφορά μόνο τη συγκεκριμένη διεργασία PowerShell και παραμένει υπό τους περιορισμούς τυχόν εταιρικής Group Policy.
+
+Πλήρης οδηγός: [Σύνδεση SQL Server](docs/03-sql-server-connection.md).
 
 ## Δομή
 
@@ -50,15 +68,18 @@ dotnet list AenaonERP.slnx package --vulnerable --include-transitive
 | --- | --- |
 | `src/Aenaon.Api` | API, controllers, συμβόλαια και κοινή υποδομή HTTP. |
 | `src/Aenaon.Domain` | Μοντέλα και επιχειρησιακοί κανόνες, χωρίς εξάρτηση από web, βάση ή επιπλέον packages. |
+| `src/Aenaon.Infrastructure` | SQL connection probe, πολιτική σύνδεσης και περιορισμένο logging. |
 | `tests/Aenaon.Api.Tests` | Integration tests του HTTP pipeline με απομονωμένο test server. |
 | `tests/Aenaon.Domain.Tests` | Unit tests ιδιοκτησίας, μοναδικότητας κωδικών και επικύρωσης πεδίων. |
+| `tests/Aenaon.Infrastructure.Tests` | Έλεγχοι διαπιστευτηρίων/TLS, ακύρωσης, logging και απομονωμένο SQL integration test. |
 | `docs/01-getting-started.md` | Αναλυτικές οδηγίες εγκατάστασης, CLI, logs και αντιμετώπισης προβλημάτων. |
 | `docs/02-tenants-and-stores.md` | Οδηγός του δεύτερου βήματος και παραδείγματα των νέων κανόνων. |
+| `docs/03-sql-server-connection.md` | Ρύθμιση User Secrets και διάγνωση πραγματικής σύνδεσης. |
 | `docs/requirements.md` | Απαιτήσεις και αποφάσεις για τα επόμενα βήματα. |
 | `global.json` | Σταθερή επιλογή SDK χωρίς preview εκδόσεις. |
-| `Directory.Packages.props` | Κεντρικές εκδόσεις των πακέτων δοκιμών. |
+| `Directory.Packages.props` | Κεντρικές εκδόσεις NuGet. |
 
-Το παραγωγικό API χρησιμοποιεί τα ενσωματωμένα στοιχεία του ASP.NET Core, χωρίς επιπλέον NuGet packages. Τα πακέτα MSTest και MVC Testing αφορούν τις δοκιμές.
+Το Domain διατηρείται χωρίς εξωτερικά packages. Το Infrastructure χρησιμοποιεί τον επίσημο `Microsoft.Data.SqlClient` και logging abstractions. Η ρητή έκδοση `System.Security.Cryptography.Pkcs` αντικαθιστά ευάλωτη μεταβατική έκδοση του driver. Τα MSTest και MVC Testing αφορούν τις δοκιμές.
 
 ## Ασφάλεια και όρια του σταδίου
 
@@ -70,4 +91,5 @@ dotnet list AenaonERP.slnx package --vulnerable --include-transitive
 
 - [Πρώτη εκκίνηση](docs/01-getting-started.md)
 - [Επιχειρήσεις και καταστήματα](docs/02-tenants-and-stores.md)
+- [Σύνδεση SQL Server](docs/03-sql-server-connection.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)

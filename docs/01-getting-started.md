@@ -46,12 +46,12 @@ dotnet dev-certs https --trust
 dotnet restore AenaonERP.slnx --locked-mode
 dotnet format AenaonERP.slnx --verify-no-changes --no-restore
 dotnet build AenaonERP.slnx --configuration Release --no-restore
-dotnet test AenaonERP.slnx --configuration Release --no-build --no-restore
+dotnet test AenaonERP.slnx --configuration Release --no-build --no-restore --filter "TestCategory!=SqlServer"
 ```
 
 Το `--locked-mode` χρησιμοποιεί τις καταγεγραμμένες εκδόσεις των `packages.lock.json`. Αλλαγή εξαρτήσεων γίνεται συνειδητά με νέο restore και έλεγχο των διαφορών. Το restore εκτελεί και NuGet security audit· τα warnings αντιμετωπίζονται ως σφάλματα.
 
-Τα integration tests εκκινούν απομονωμένο HTTP test server. Δεν απαιτούν βάση δεδομένων, πιστοποιητικό HTTPS ή υπηρεσίες παραγωγής. Καλύπτουν το health check, την πληροφορία εφαρμογής, άγνωστη διαδρομή, μη επιτρεπτή μέθοδο και ανακατεύθυνση HTTP σε HTTPS. Τα unit tests του Domain ελέγχουν τους κανόνες επιχειρήσεων και καταστημάτων χωρίς εξωτερικές υπηρεσίες.
+Τα tests της παραπάνω εντολής χρησιμοποιούν απομονωμένο HTTP test server ή αντικείμενα στη μνήμη. Δεν απαιτούν πραγματική βάση, πιστοποιητικό HTTPS ή υπηρεσίες παραγωγής. Ελέγχουν το API, τους κανόνες επιχειρήσεων/καταστημάτων και την πολιτική σύνδεσης SQL. Η κατηγορία `SqlServer` εκτελείται χωριστά από το CI σε προσωρινό container· χωρίς τις ειδικές ρυθμίσεις CI το αντίστοιχο test παραλείπεται.
 
 ## Εκκίνηση
 
@@ -97,7 +97,7 @@ dotnet list AenaonERP.slnx package --outdated
 dotnet list AenaonERP.slnx package --vulnerable --include-transitive
 ```
 
-Οι άμεσες εξαρτήσεις δοκιμών είναι τα επίσημα `MSTest` και `Microsoft.AspNetCore.Mvc.Testing`. Οι εκδόσεις τους καθορίζονται κεντρικά στο `Directory.Packages.props`. Το API δεν προσθέτει εξωτερικό package παραγωγής.
+Οι εξαρτήσεις καθορίζονται κεντρικά στο `Directory.Packages.props`, με lock files ανά project. Το SQL Infrastructure χρησιμοποιεί τον επίσημο SqlClient, logging abstractions και ασφαλή έκδοση της μεταβατικής κρυπτογραφικής εξάρτησης. Τα `MSTest` και `Microsoft.AspNetCore.Mvc.Testing` αφορούν τις δοκιμές.
 
 ## Publish για έλεγχο του πακέτου
 
@@ -142,7 +142,7 @@ dotnet test AenaonERP.slnx --configuration Release
 
 - [ ] Το restore ολοκληρώνεται χωρίς σφάλματα.
 - [ ] Το Release build ολοκληρώνεται χωρίς warnings ή errors.
-- [ ] Τα πέντε integration tests του API και τα unit tests του Domain περνούν.
+- [ ] Τα tests του API, του Domain και του Infrastructure περνούν.
 - [ ] Το HTTPS `/health` επιστρέφει `Healthy`.
 - [ ] Το `/api/info` εμφανίζει το όνομα της εφαρμογής.
 - [ ] Το API σταματά με `Ctrl+C`.
