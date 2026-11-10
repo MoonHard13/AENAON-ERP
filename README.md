@@ -196,6 +196,14 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 
 Οδηγός: [UI/UX Hardening](docs/12-ui-ux-hardening.md).
 
+## Διόρθωση SVG & Browser Cache (Βήμα 8.4.6)
+
+Τα SVG icons έχουν πλέον ρητές εγγενείς διαστάσεις 20×20, ακόμη κι αν το CSS του browser είναι παλιό. Τα CSS, JavaScript και favicon URLs αποκτούν fingerprint SHA-256 από το πραγματικό περιεχόμενο, ώστε μετά από update να φορτώνεται η σωστή έκδοση των static assets.
+
+Μετά το merge, σταμάτησε το ενεργό API, ενημέρωσε το main και εκκίνησε ξανά το HTTPS Development API. Επανέλεγξε το Login και Dashboard σε Light/Dark· δεν χρειάζεται νέα migration.
+
+Οδηγός: [SVG Icons & Static Asset Cache](docs/13-static-assets-svg-cache.md).
+
 ## Δομή
 
 | Διαδρομή | Περιεχόμενο |
@@ -222,6 +230,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 | `docs/10-secure-login-sessions.md` | HTTPS session cookies, CSRF, login/logout και χειροκίνητοι έλεγχοι. |
 | `docs/11-blazor-login-ui.md` | Blazor SSR Login, Dashboard, branding και εγκατάσταση εικόνων. |
 | `docs/12-ui-ux-hardening.md` | Ενεργό πλαίσιο Tenant/Store, UX διορθώσεις και ασφάλεια. |
+| `docs/13-static-assets-svg-cache.md` | Διόρθωση υπερμεγέθων SVG, fingerprints CSS/JS και browser troubleshooting. |
 | `database/002-identity-memberships.sql` | SQL αναβάθμισης από την πρώτη στη δεύτερη migration. |
 | `docs/requirements.md` | Απαιτήσεις και αποφάσεις για τα επόμενα βήματα. |
 | `global.json` | Σταθερή επιλογή SDK χωρίς preview εκδόσεις. |
@@ -249,4 +258,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 - [HTTPS Login Sessions](docs/10-secure-login-sessions.md)
 - [Blazor Login UI και Dashboard](docs/11-blazor-login-ui.md)
 - [UI/UX Hardening](docs/12-ui-ux-hardening.md)
+- [SVG Icons & Static Asset Cache](docs/13-static-assets-svg-cache.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
