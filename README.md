@@ -8,6 +8,10 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Δες το [myDATA & IMPACT Compatibility Gate](docs/18-mydata-impact-compatibility.md) και το υποχρεωτικό GitHub PR checklist. Το Product Catalog 9.1/9.2 δεν περιλαμβάνει ακόμη φορολογικό mapping ή έκδοση παραστατικών.
 
+## Βήμα 9.3 — Fiscal Catalog Design Gate
+
+Η [φορολογική θεμελίωση καταλόγου](docs/19-fiscal-catalog-design.md) καταγράφει το αποδεκτό μοντέλο χαρτογράφησης **myDATA / IMPACT** πριν από αλλαγές σε ΦΠΑ, χαρακτηρισμούς, μονάδες μέτρησης, SQL ή τιμολόγηση. **Design-only**: δεν υλοποιούνται ακόμη φορολογικοί υπολογισμοί ούτε εκδίδονται παραστατικά.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
@@ -316,4 +320,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Product Catalog Domain Foundation](docs/16-product-catalog-domain.md)
 - [Product Catalog SQL Persistence](docs/17-product-catalog-sql.md)
 - [myDATA & IMPACT Compatibility Gate](docs/18-mydata-impact-compatibility.md)
+- [Fiscal Catalog Design Gate](docs/19-fiscal-catalog-design.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
