@@ -40,6 +40,10 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Το [read-only εργαλείο επιθεώρησης επίσημου XLSX](docs/25-official-xlsx-structure-inspection.md) διαβάζει πραγματική OOXML δομή, φύλλα, κελιά και SHA-256 χωρίς εξωτερικά πακέτα ή νέα migration. **Δεν επαληθεύει ακόμη φορολογικούς συνδυασμούς** και δεν επιτρέπει έκδοση.
 
+## Βήμα 9.3C.3B.2 — Complete AADE XLSX Evidence Export
+
+Το [εργαλείο πλήρους, read-only εξαγωγής XLSX σε JSON](docs/26-complete-xlsx-evidence-export.md) κρατά όλα τα μη κενά κελιά, συγχωνευμένες περιοχές και δείκτες μορφοποίησης, επιβάλλει πλήρη συμφωνία counts και διαχωρίζει υποψήφιες κατηγορίες εσόδων/εξόδων από ειδικές οδηγίες προς έλεγχο. Η προεπισκόπηση συνεχίζει να δείχνει 30 δείγματα ανά φύλλο, **με ρητή επισήμανση** της περικοπής· `--all` και `--export-json` εμφανίζουν/αποθηκεύουν ολόκληρα τα δεδομένα. Χωρίς migrations, SQL writes, tax approval ή έκδοση.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
@@ -355,4 +359,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Fiscal Staging & Independent Source Review](docs/23-fiscal-staging-review.md)
 - [Candidate myDATA Classification Matrix Preview](docs/24-classification-matrix-preview.md)
 - [Official XLSX Structure Inspection](docs/25-official-xlsx-structure-inspection.md)
+- [Complete XLSX Evidence Export](docs/26-complete-xlsx-evidence-export.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
