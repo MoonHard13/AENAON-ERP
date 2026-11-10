@@ -278,7 +278,7 @@ public sealed class BlazorUiTests
             "<svg class=\"app-icon\"[^>]*width=\"20\" height=\"20\"",
             RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)).Count;
 
-        Assert.IsGreaterThan(5, icons);
+        Assert.IsTrue(icons > 5, "Το Dashboard πρέπει να περιλαμβάνει πραγματικά SVG icons.");
         Assert.AreEqual(icons, bounded, "Κάθε SVG πρέπει να έχει intrinsic διαστάσεις 20x20.");
     }
 
