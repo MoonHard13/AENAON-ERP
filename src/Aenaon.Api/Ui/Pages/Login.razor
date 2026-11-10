@@ -17,7 +17,7 @@
             </div>
             <div class="presentation__copy">
                 <span class="eyebrow">THE NEXT GENERATION ERP</span>
-                <h2>Η επιχείρησή σου.<br />Στο επόμενο επίπεδο.</h2>
+                <h2>Η επιχείρησή σας.<br />Στο επόμενο επίπεδο.</h2>
                 <p>Ενιαία εικόνα. Ασφαλής διαχείριση. Απεριόριστες δυνατότητες.</p>
             </div>
         </div>
@@ -28,19 +28,23 @@
         <div class="login-panel__toolbar">
             <span class="environment-pill">DEVELOPMENT</span>
             <button type="button" class="theme-toggle" data-theme-toggle aria-label="Εναλλαγή φωτεινού και σκούρου θέματος">
-                <span aria-hidden="true">◐</span> <span data-theme-label>Θέμα</span>
+                <AppIcon Name="sun-moon" /> <span data-theme-label>Θέμα</span>
             </button>
         </div>
         <div class="login-panel__content">
             <div class="login-mobile-brand"><img class="logo-for-light" src="/images/aenaon-logo-light.webp" alt="Aenaon ERP" width="180" height="180" /><img class="logo-for-dark" src="/images/aenaon-logo-dark.webp" alt="Aenaon ERP" width="180" height="180" /></div>
             <div class="login-panel__headline">
-                <span class="eyebrow eyebrow--green">ΚΑΛΩΣ ΗΡΘΕΣ</span>
+                <span class="eyebrow eyebrow--green">ΚΑΛΩΣ ΗΡΘΑΤΕ</span>
                 <h1>Σύνδεση στο Aenaon</h1>
-                <p>Εισάγετε τα στοιχεία του λογαριασμού σας για να συνεχίσετε.</p>
+                <p>Εισάγετε τα στοιχεία σας για να συνεχίσετε.</p>
             </div>
             @if (Error == "invalid")
             {
                 <div class="form-alert" role="alert">Η σύνδεση δεν ολοκληρώθηκε. Ελέγξτε τα στοιχεία σας και δοκιμάστε ξανά.</div>
+            }
+            else if (Error == "rate-limited")
+            {
+                <div class="form-alert" role="alert">Έγιναν πολλές προσπάθειες σύνδεσης. Δοκιμάστε ξανά σε περίπου ένα λεπτό.</div>
             }
             @if (HttpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated == true)
             {
@@ -56,7 +60,7 @@
                     <div class="field">
                         <label for="login-username">Όνομα χρήστη</label>
                         <input id="login-username" name="username" type="text" autocomplete="username"
-                               placeholder="Εισάγετε το όνομα χρήστη" minlength="1" maxlength="128" required autofocus />
+                               placeholder="Εισάγετε το όνομα χρήστη" minlength="1" maxlength="128" autocapitalize="none" spellcheck="false" required autofocus />
                     </div>
                     <div class="field">
                         <div class="field__label-row"><label for="login-password">Κωδικός πρόσβασης</label></div>
@@ -67,7 +71,7 @@
                                     aria-label="Εμφάνιση κωδικού">Εμφάνιση</button>
                         </div>
                     </div>
-                    <button class="button button--primary button--full" type="submit">Σύνδεση <span aria-hidden="true">→</span></button>
+                    <button class="button button--primary button--full" type="submit">Σύνδεση <AppIcon Name="arrow" /></button>
                 </form>
             }
             else
@@ -76,7 +80,7 @@
             }
             <p class="login-panel__footnote"><span aria-hidden="true">●</span> Ασφαλής σύνδεση με προστασία δεδομένων</p>
         </div>
-        <div class="login-panel__footer"><span>Aenaon ERP · by MoonHard</span><span>Version 0.8.4 · Development</span></div>
+        <div class="login-panel__footer"><span>Aenaon ERP · by MoonHard</span><span>Build @UiAppInfo.Version · Development</span></div>
     </section>
 </main>
 
