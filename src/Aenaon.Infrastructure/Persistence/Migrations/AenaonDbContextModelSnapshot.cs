@@ -359,6 +359,7 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
 
                 b.Property<byte[]>("RowVersion")
                     .IsConcurrencyToken()
+                    .IsRequired()
                     .ValueGeneratedOnAddOrUpdate()
                     .HasColumnType("rowversion");
 
