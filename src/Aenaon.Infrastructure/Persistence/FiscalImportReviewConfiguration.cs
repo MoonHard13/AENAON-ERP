@@ -24,7 +24,7 @@ internal sealed class FiscalImportReviewConfiguration : IEntityTypeConfiguration
         builder.Property(value => value.Decision).HasConversion<int>().IsRequired();
         builder.Property(value => value.ContentSha256).HasMaxLength(64).IsUnicode(false).IsRequired();
         builder.Property(value => value.Reason).HasMaxLength(500).IsRequired();
-        builder.HasIndex(value => value.BatchId).IsUnique();
+        builder.HasIndex(value => new { value.BatchId, value.SubmittedByUserId }).IsUnique();
         builder.HasOne<FiscalImportBatch>().WithMany()
             .HasForeignKey(value => new { value.BatchId, value.SubmittedByUserId })
             .HasPrincipalKey(value => new { value.Id, value.SubmittedByUserId })
