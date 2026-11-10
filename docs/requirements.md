@@ -173,3 +173,12 @@
 - Ανάκτηση κουμπιού login σε stalled navigation και επίσημη έκδοση από .NET assembly.
 - Unit και HTTP integration tests για ενεργό Tenant/Store, άκυρους πόρους, rate limiting, theme και ανακατεύθυνση.
 - Καμία migration ή αλλαγή στην AenaonERP_Dev· UI παραμένει μόνο σε Development.
+
+
+## Βήμα 8.4.6 — SVG sizing και Static Asset Cache
+
+- Εγγενείς SVG διαστάσεις width=20/height=20 στο κοινό AppIcon για ασφάλεια εμφάνισης ακόμη και χωρίς νέο CSS.
+- Singleton UiAssetVersions με SHA-256 fingerprint από τα πραγματικά CSS/JS/favicon αρχεία.
+- Versioned HTML URLs για aenaon.css, aenaon.js, aenaon-theme-init.js και favicon ώστε νέα αρχεία να μη συγχέονται με παλιότερα του browser cache.
+- HTTP regression tests για πραγματικό περιεχόμενο static assets και διαστάσεις SVG.
+- Ελληνικό GitBook manual, χωρίς νέα migrations, NuGet packages ή αλλαγή της AenaonERP_Dev.

@@ -234,6 +234,54 @@ public sealed class BlazorUiTests
         Assert.IsTrue(cssIndex > themeIndex);
     }
 
+    [TestMethod]
+    public async Task LoginPage_UsesHashedStaticAssetsAndBoundedSvgDimensions()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+
+        string html = await client.GetStringAsync("/login");
+        Assert.Contains("width=\"20\" height=\"20\" viewBox=\"0 0 24 24\"", html);
+
+        foreach (string path in new[]
+        {
+            "/css/aenaon.css",
+            "/js/aenaon.js",
+            "/js/aenaon-theme-init.js",
+            "/images/aenaon-favicon.png"
+        })
+        {
+            Match match = Regex.Match(html,
+                Regex.Escape(path) + @"\?v=([0-9a-f]{16})",
+                RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+            Assert.IsTrue(match.Success, $"Λείπει fingerprint για {path}.");
+
+            byte[] fileContent = await client.GetByteArrayAsync(path + "?v=" + match.Groups[1].Value);
+            string expectedVersion = Convert.ToHexString(
+                System.Security.Cryptography.SHA256.HashData(fileContent))
+                .ToLowerInvariant()[..16];
+            Assert.AreEqual(expectedVersion, match.Groups[1].Value);
+        }
+    }
+
+    [TestMethod]
+    public async Task Dashboard_RendersAllIconsWithBoundedIntrinsicDimensions()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = await client.GetStringAsync("/dashboard");
+        int icons = Regex.Matches(html, "<svg class=\"app-icon\"",
+            RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)).Count;
+        int bounded = Regex.Matches(html,
+            "<svg class=\"app-icon\"[^>]*width=\"20\" height=\"20\"",
+            RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)).Count;
+
+        Assert.IsTrue(icons > 5, "Το Dashboard πρέπει να περιλαμβάνει πραγματικά SVG icons.");
+        Assert.AreEqual(icons, bounded, "Κάθε SVG πρέπει να έχει intrinsic διαστάσεις 20x20.");
+    }
+
     private static async Task LoginAsync(HttpClient client)
     {
         string csrf = await RequestUiTokenAsync(client, "/login");

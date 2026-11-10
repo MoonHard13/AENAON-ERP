@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Threading.RateLimiting;
 using Aenaon.Api.Authentication;
 using Aenaon.Api.HealthChecks;
+using Aenaon.Api.Ui;
 using Aenaon.Application.Identity;
 using Aenaon.Application.Tenancy;
 using Aenaon.Infrastructure.Database;
@@ -21,6 +22,7 @@ public static class ApiServiceCollectionExtensions
     {
         services.AddControllers();
         services.AddRazorComponents();
+        services.AddSingleton<UiAssetVersions>();
         services.AddCascadingAuthenticationState();
         services.AddHttpContextAccessor();
         services.AddSingleton<IDatabaseConnectionProbe>(provider => new SqlServerConnectionProbe(
