@@ -63,11 +63,11 @@ public sealed class FiscalXlsxClassificationEvidenceAnalyzer
         List<FiscalXlsxReviewObservation> observations)
     {
         var cells = sheet.AllCells.Select(cell => new
-            {
-                Cell = cell,
-                Column = CellColumn(cell.Address),
-                Row = CellRow(cell.Address)
-            })
+        {
+            Cell = cell,
+            Column = CellColumn(cell.Address),
+            Row = CellRow(cell.Address)
+        })
             .Where(item => item.Row >= 7 &&
                 (item.Column == categoryColumn || item.Column == codeColumn))
             .GroupBy(item => item.Row)
