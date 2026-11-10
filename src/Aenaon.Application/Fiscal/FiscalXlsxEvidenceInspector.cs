@@ -330,7 +330,7 @@ public sealed class FiscalXlsxEvidenceInspector
         if (type == "inlineStr")
         {
             return string.Concat(cell.Descendants(Spreadsheet + "is")
-                .Descendants(Spreadsheet + "t").Select(value => value.Value)).Trim();
+                .Descendants(Spreadsheet + "t").Select(value => value.Value));
         }
 
         string raw = cell.Element(Spreadsheet + "v")?.Value ?? string.Empty;
@@ -342,14 +342,14 @@ public sealed class FiscalXlsxEvidenceInspector
                 throw Invalid("Άκυρο shared string index σε κελί.");
             }
 
-            return strings[index].Trim();
+            return strings[index];
         }
 
         return type switch
         {
             "b" => raw == "1" ? "TRUE" : "FALSE",
             "e" => "[EXCEL ERROR]",
-            _ => raw.Trim()
+            _ => raw
         };
     }
 
@@ -361,17 +361,21 @@ public sealed class FiscalXlsxEvidenceInspector
         }
 
         int index = 0;
+        int column = 0;
         while (index < address.Length && index < 3 && address[index] is >= 'A' and <= 'Z')
         {
+            column = column * 26 + address[index] - 'A' + 1;
             index++;
         }
 
-        if (index == 0 || index == address.Length || address[index] == '0')
+        if (index == 0 || column > 16384 || index == address.Length ||
+            address[index] == '0' || !address[index..].All(char.IsAsciiDigit))
         {
             return false;
         }
 
-        return address[index..].All(char.IsAsciiDigit);
+        return int.TryParse(address[index..], NumberStyles.None,
+            CultureInfo.InvariantCulture, out int row) && row is >= 1 and <= 1048576;
     }
 
     private static DomainRuleException Invalid(string message) =>
