@@ -285,3 +285,141 @@ img { display: block; max-width: 100%; }
     :root:not([data-theme]) .logo-for-dark { display: block; }
     :root:not([data-theme]) .logo-for-light { display: none; }
 }
+
+
+/* Βήμα 8.4.5: σταθερή αντίθεση σε φωτεινό θέμα και ομοιόμορφα διανυσματικά εικονίδια. */
+:root {
+    --muted: #53645e;
+    --muted-strong: #425a52;
+    --positive: #087452;
+}
+.app-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    stroke: currentColor;
+    vertical-align: middle;
+}
+.button .app-icon { width: 18px; height: 18px; flex-basis: 18px; }
+.theme-toggle .app-icon { width: 18px; height: 18px; flex-basis: 18px; }
+.theme-toggle [aria-hidden] { font-size: inherit; }
+.sidebar__logo { width: 48px; flex: 0 0 48px; }
+.sidebar__logo img { width: 48px; height: 48px; object-fit: contain; }
+.sidebar__brand { gap: 13px; }
+.sidebar__link .app-icon { width: 19px; height: 19px; flex-basis: 19px; }
+.sidebar__link--disabled { opacity: .78; }
+.sidebar__section-title { font-size: 11px; }
+.sidebar__foot { font-size: 10px; }
+.login-panel__footnote { font-size: 13px; }
+.login-panel__footer { font-size: 12px; }
+.stat-card { min-height: 133px; padding: 21px 22px; }
+.stat-card__value { margin: 6px 0 2px; }
+.stat-card__label .app-icon { width: 19px; height: 19px; }
+.workspace-grid { align-items: start; }
+.surface-card { min-height: 188px; padding: 23px 22px; }
+.tenant-entry__icon .app-icon, .store-entry__icon .app-icon { width: 20px; height: 20px; }
+.tenant-entry__chevron .app-icon { width: 17px; height: 17px; }
+.next-steps__symbol .app-icon { width: 25px; height: 25px; }
+
+/* Το autofill του Chromium δεν πρέπει να επιβάλλει μπλε φόντο ή ασύμβατο χρώμα κειμένου. */
+.field input:autofill,
+.field input:-webkit-autofill,
+.field input:-webkit-autofill:hover,
+.field input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text) !important;
+    caret-color: var(--text);
+    -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset !important;
+    box-shadow: 0 0 0 1000px var(--input-bg) inset !important;
+    border-color: var(--border);
+}
+.field input:focus-visible,
+.field input:-webkit-autofill:focus-visible {
+    border-color: var(--positive);
+    outline: 2px solid var(--positive);
+    outline-offset: 2px;
+}
+
+/* Ενεργή επιχείρηση και ενεργό κατάστημα ορίζονται ως σαφές, αναγνωστικό πλαίσιο εργασίας. */
+.active-workspace {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 21px;
+    margin-bottom: 23px;
+    background: var(--positive-soft);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+.active-workspace__icon {
+    width: 43px;
+    height: 43px;
+    flex: 0 0 43px;
+    display: grid;
+    place-items: center;
+    color: var(--positive);
+    background: var(--surface);
+    border-radius: 11px;
+}
+.active-workspace__details { min-width: 0; display: grid; gap: 3px; }
+.active-workspace__details > span {
+    color: var(--positive);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+.active-workspace__details strong { color: var(--text); font-size: 15px; overflow-wrap: anywhere; }
+.active-workspace__details small { color: var(--muted-strong); font-size: 12px; }
+.active-workspace__status {
+    margin-left: auto;
+    padding: 5px 11px;
+    color: var(--positive);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    font-size: 11px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+.workspace-alert {
+    color: var(--text);
+    background: var(--positive-soft);
+    border: 1px solid var(--positive);
+    padding: 15px 18px;
+    margin-bottom: 22px;
+    border-radius: 11px;
+    font-size: 14px;
+}
+.store-selector__help { font-size: 12px; color: var(--muted); margin: 0 0 9px; }
+.tenant-entry, .store-entry { transition: background-color .16s ease, box-shadow .16s ease; }
+.tenant-entry:hover, .store-entry:hover { background: var(--surface-alt); }
+.store-entry--active {
+    background: var(--surface-alt);
+    box-shadow: inset 3px 0 0 var(--positive);
+}
+.store-entry--active .store-entry__badge { color: var(--positive); font-weight: 800; }
+.store-entry:not(.store-entry--active) .store-entry__badge {
+    color: var(--muted-strong);
+    background: var(--surface-alt);
+}
+.tenant-entry:focus-visible, .store-entry:focus-visible {
+    outline: 3px solid var(--positive);
+    outline-offset: 3px;
+}
+.stat-card__caption, .next-steps p, .tenant-entry__details small,
+.store-entry__details small, .login-panel__headline p { font-size: 13px; }
+
+@media (max-width: 850px) {
+    .sidebar__logo { width: 43px; flex-basis: 43px; }
+    .sidebar__logo img { width: 43px; height: 43px; }
+    .active-workspace { flex-wrap: wrap; }
+    .active-workspace__status { margin-left: 59px; }
+}
+@media (max-width: 540px) {
+    .active-workspace { padding: 14px; gap: 11px; }
+    .active-workspace__status { margin-left: 0; width: 100%; text-align: center; }
+    .active-workspace__details strong { font-size: 14px; }
+    .store-entry { padding: 14px 8px; }
+    .store-entry__badge { margin-left: 55px; }
+    .surface-card { min-height: 0; }
+}

@@ -67,6 +67,7 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<TenantAuthorizationService>();
         services.AddScoped<ITenantStoreCatalog, SqlTenantStoreCatalog>();
         services.AddScoped<TenantWorkspaceService>();
+        services.AddScoped<TenantWorkspaceResolver>();
         services.AddScoped<ISessionIdentityService, IdentitySessionService>();
         services.AddScoped<SessionCookieEvents>();
         services.AddAuthentication(SessionAuthenticationOptions.Scheme)
@@ -94,6 +95,27 @@ public static class ApiServiceCollectionExtensions
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.OnRejected = (context, cancellationToken) =>
+            {
+                // Εμφανίζουμε φιλικό σφάλμα μόνο στην HTML φόρμα, διατηρώντας 429 στα API.
+                var response = context.HttpContext.Response;
+                if (context.HttpContext.Request.Path.StartsWithSegments(
+                    "/ui/session/login", StringComparison.OrdinalIgnoreCase))
+                {
+                    response.Redirect("/login?error=rate-limited");
+                }
+                else
+                {
+                    response.StatusCode = StatusCodes.Status429TooManyRequests;
+                    if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out TimeSpan retryAfter))
+                    {
+                        response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds))
+                            .ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    }
+                }
+
+                return ValueTask.CompletedTask;
+            };
             options.AddPolicy(SessionAuthenticationOptions.RateLimitPolicy, context =>
                 RateLimitPartition.GetFixedWindowLimiter(
                     context.Connection.RemoteIpAddress?.ToString() ?? "unknown",

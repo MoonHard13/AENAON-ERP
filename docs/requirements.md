@@ -160,3 +160,16 @@
 - Development-only UI μέχρι production readiness με προστασία keys, HTTPS, proxy και security hardening.
 - GitHub PR κώδικα + ZIP binary branding για προσθήκη στο feature branch πριν από merge.
 - Unit/HTTP integration tests και ελληνικό GitBook manual.
+
+
+## Βήμα 8.4.5 — UI/UX Hardening
+
+- Σαφής ενεργή επιχείρηση και ενεργό κατάστημα με επιλογή μέσω HTTPS link.
+- TenantWorkspaceResolver στο Application layer: μη επιτρεπόμενο tenant/store απορρίπτεται χωρίς σιωπηλό fallback, κάθε query συνεχίζει να ελέγχει membership.
+- Responsive βελτιώσεις, ενιαία SVG icons και light/dark theme χωρίς flash.
+- Σωστή εμφάνιση Chrome/Edge autofill και βελτιωμένη αντίθεση Light Mode.
+- Φιλικό σφάλμα για υπέρβαση rate limit στη SSR φόρμα και Retry-After στο API.
+- Επαλήθευση request size 8192 bytes στα POST login/logout.
+- Ανάκτηση κουμπιού login σε stalled navigation και επίσημη έκδοση από .NET assembly.
+- Unit και HTTP integration tests για ενεργό Tenant/Store, άκυρους πόρους, rate limiting, theme και ανακατεύθυνση.
+- Καμία migration ή αλλαγή στην AenaonERP_Dev· UI παραμένει μόνο σε Development.

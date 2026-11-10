@@ -171,6 +171,10 @@ public partial class Program
         app.UseRateLimiter();
         app.UseAuthentication();
         app.UseAuthorization();
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseMiddleware<AuthenticatedWelcomeRedirectMiddleware>();
+        }
         app.UseAntiforgery();
         app.MapControllers();
         if (app.Environment.IsDevelopment())
