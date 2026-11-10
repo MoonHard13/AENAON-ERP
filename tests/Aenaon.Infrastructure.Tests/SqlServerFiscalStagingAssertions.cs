@@ -1,3 +1,4 @@
+using System.Data;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -69,6 +70,7 @@ internal static class SqlServerFiscalStagingAssertions
             var service = new FiscalStagingService(context, inspection, policy, clock,
                 NullLogger<FiscalStagingService>.Instance);
 
+            int referencesBefore = await context.FiscalReferenceCodes.CountAsync(cancellationToken);
             Guid batchId = await service.StageAsync(manifestPath, evidencePath, submitter.Id, cancellationToken);
             context.ChangeTracker.Clear();
 
@@ -80,8 +82,8 @@ internal static class SqlServerFiscalStagingAssertions
             loaded.VerifyContentFingerprint();
             Assert.AreEqual(64, loaded.ContentSha256.Length);
             Assert.AreEqual(0, await context.FiscalImportReviews.CountAsync(cancellationToken));
-            Assert.AreEqual(0, await context.FiscalReferenceCodes.CountAsync(cancellationToken)
-                - 3);
+            Assert.AreEqual(referencesBefore,
+                await context.FiscalReferenceCodes.CountAsync(cancellationToken));
 
             DomainRuleException self = await Assert.ThrowsExactlyAsync<DomainRuleException>(() =>
                 service.ReviewAsync(batchId, submitter.Id, true, "Απόπειρα αυτοέγκρισης",
@@ -111,7 +113,7 @@ internal static class SqlServerFiscalStagingAssertions
                 SET ReviewedByUserId = SubmittedByUserId
                 WHERE Id = @batch;
                 """;
-            command.Parameters.AddWithValue("@batch", batchId);
+            command.Parameters.Add("@batch", SqlDbType.UniqueIdentifier).Value = batchId;
             SqlException rejected = await Assert.ThrowsExactlyAsync<SqlException>(async () =>
                 await command.ExecuteNonQueryAsync(cancellationToken));
             Assert.AreEqual(547, rejected.Number);
