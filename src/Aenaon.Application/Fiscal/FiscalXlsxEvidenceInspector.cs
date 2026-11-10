@@ -156,7 +156,7 @@ public sealed class FiscalXlsxEvidenceInspector
         foreach (ZipArchiveEntry entry in archive.Entries)
         {
             string path = entry.FullName;
-            if (path.StartsWith('/', StringComparison.Ordinal) ||
+            if (path.StartsWith('/') ||
                 path.Contains('\\') || path.Contains("../", StringComparison.Ordinal) ||
                 path.Contains("/..", StringComparison.Ordinal) ||
                 !names.Add(path) || entry.Length > MaximumEntryBytes ||
@@ -223,13 +223,13 @@ public sealed class FiscalXlsxEvidenceInspector
 
         string target = (string?)relationship.Attribute("Target") ?? string.Empty;
         if (target.Contains('\\') || target.Contains("..", StringComparison.Ordinal) ||
-            target.Contains('?', StringComparison.Ordinal) ||
-            target.Contains('#', StringComparison.Ordinal))
+            target.Contains('?') ||
+            target.Contains('#'))
         {
             throw Invalid("Μη ασφαλές worksheet relationship.");
         }
 
-        string path = target.StartsWith('/', StringComparison.Ordinal)
+        string path = target.StartsWith('/')
             ? target.TrimStart('/')
             : "xl/" + target;
 
