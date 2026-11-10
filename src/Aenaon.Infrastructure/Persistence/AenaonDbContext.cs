@@ -1,5 +1,6 @@
 using Aenaon.Domain.Catalog;
 using Aenaon.Domain.Tenancy;
+using Aenaon.Infrastructure.Fiscal;
 using Aenaon.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,9 @@ public sealed class AenaonDbContext(DbContextOptions<AenaonDbContext> options) :
     public DbSet<CatalogItem> CatalogItems => Set<CatalogItem>();
     public DbSet<FiscalReferenceRecord> FiscalReferenceCodes => Set<FiscalReferenceRecord>();
     public DbSet<FiscalTaxMappingRecord> FiscalTaxMappings => Set<FiscalTaxMappingRecord>();
+    public DbSet<FiscalImportBatch> FiscalImportBatches => Set<FiscalImportBatch>();
+    public DbSet<FiscalImportBatchRow> FiscalImportBatchRows => Set<FiscalImportBatchRow>();
+    public DbSet<FiscalImportReviewRecord> FiscalImportReviews => Set<FiscalImportReviewRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,5 +31,8 @@ public sealed class AenaonDbContext(DbContextOptions<AenaonDbContext> options) :
         modelBuilder.ApplyConfiguration(new CatalogItemConfiguration());
         modelBuilder.ApplyConfiguration(new FiscalReferenceConfiguration());
         modelBuilder.ApplyConfiguration(new FiscalTaxMappingConfiguration());
+        modelBuilder.ApplyConfiguration(new FiscalImportBatchConfiguration());
+        modelBuilder.ApplyConfiguration(new FiscalImportBatchRowConfiguration());
+        modelBuilder.ApplyConfiguration(new FiscalImportReviewConfiguration());
     }
 }
