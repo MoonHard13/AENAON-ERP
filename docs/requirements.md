@@ -182,3 +182,16 @@
 - Versioned HTML URLs για aenaon.css, aenaon.js, aenaon-theme-init.js και favicon ώστε νέα αρχεία να μη συγχέονται με παλιότερα του browser cache.
 - HTTP regression tests για πραγματικό περιεχόμενο static assets και διαστάσεις SVG.
 - Ελληνικό GitBook manual, χωρίς νέα migrations, NuGet packages ή αλλαγή της AenaonERP_Dev.
+
+
+## Βήμα 8.4.7 — UI Refinement & Workspace Persistence
+
+- Πλήρες Light/Dark Login (και στις δύο πλευρές), χρήση του σωστού επίσημου logo.
+- User Menu στο avatar/username, ασφαλές POST/CSRF logout εντός του μενού, χωρίς νέα μη λειτουργικά account links.
+- Responsive mobile navigation με προσβάσιμο details/summary, κλείσιμο με Escape ή click έξω.
+- Authenticated CSRF-protected POST για επιλογή Tenant/Store, server-side έλεγχος membership και catalog.
+- User-bound, Data Protection encrypted, Secure HttpOnly SameSite=Strict workspace cookie, διάρκειας 30 λεπτών.
+- Διατήρηση επιλογής σε Sidebar/refresh/Alt+D, όχι σιωπηλό fallback σε ξένους πόρους.
+- Διαγραφή workspace preference στο Login/Logout (αφορά και την JSON session ροή).
+- HTTP regression tests για persistence, CSRF, ξένο Tenant/Store, user menu και logout.
+- Development-only, χωρίς migrations ή νέα εξωτερικά NuGet packages.

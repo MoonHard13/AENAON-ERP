@@ -180,7 +180,7 @@ public sealed class BlazorUiTests
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("ΕΝΕΡΓΟ ΠΛΑΙΣΙΟ ΕΡΓΑΣΙΑΣ", html);
         Assert.Contains("Aenaon Demo / Κεντρικό", html);
-        Assert.Contains($"tenantId={tenantId:D}&storeId={storeId:D}", html);
+        Assert.Contains($"name=\"storeId\" value=\"{storeId:D}\"", html);
         Assert.Contains("store-entry store-entry--active", html);
     }
 
@@ -280,6 +280,152 @@ public sealed class BlazorUiTests
 
         Assert.IsTrue(icons > 5, "Το Dashboard πρέπει να περιλαμβάνει πραγματικά SVG icons.");
         Assert.AreEqual(icons, bounded, "Κάθε SVG πρέπει να έχει intrinsic διαστάσεις 20x20.");
+    }
+
+    [TestMethod]
+    public async Task WorkspaceSelection_PostPersistsAcrossDashboardNavigation()
+    {
+        await using var factory = new SessionApiFactory();
+        Guid secondaryStoreId = Guid.NewGuid();
+        factory.Stores.AdditionalStoreId = secondaryStoreId;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        Guid tenantId = Guid.Parse("9698df79-3c31-41c9-b292-b7240c7265fb");
+        string csrf = await RequestUiTokenAsync(client, "/dashboard");
+
+        using var selected = await SubmitFormAsync(client, "/ui/workspace/select",
+            ["__RequestVerificationToken", csrf,
+             "tenantId", tenantId.ToString("D"),
+             "storeId", secondaryStoreId.ToString("D")]);
+
+        Assert.AreEqual(HttpStatusCode.Redirect, selected.StatusCode);
+        Assert.AreEqual("/dashboard", selected.Headers.Location?.OriginalString);
+        Assert.IsTrue(selected.Headers.TryGetValues("Set-Cookie", out var cookies));
+        string cookie = Assert.ContainsSingle(cookies.Where(value =>
+            value.StartsWith("__Host-AenaonERP.Workspace=", StringComparison.Ordinal)));
+        Assert.IsTrue(cookie.Contains("Secure", StringComparison.OrdinalIgnoreCase));
+        Assert.IsTrue(cookie.Contains("HttpOnly", StringComparison.OrdinalIgnoreCase));
+        Assert.IsTrue(cookie.Contains("SameSite=Strict", StringComparison.OrdinalIgnoreCase));
+
+        using var dashboard = await client.GetAsync("/dashboard");
+        string html = WebUtility.HtmlDecode(await dashboard.Content.ReadAsStringAsync());
+        Assert.Contains("Aenaon Demo / Υποκατάστημα", html);
+        Assert.Contains("Κωδικός καταστήματος: BRANCH", html);
+
+        using var again = await client.GetAsync("/dashboard");
+        Assert.Contains("Aenaon Demo / Υποκατάστημα",
+            WebUtility.HtmlDecode(await again.Content.ReadAsStringAsync()));
+    }
+
+    [TestMethod]
+    public async Task WorkspaceSelection_RejectsForgeryAndForeignStoreWithoutChangingPreference()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.Stores.AdditionalStoreId = Guid.NewGuid();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        Guid tenantId = Guid.Parse("9698df79-3c31-41c9-b292-b7240c7265fb");
+        using var missingCsrf = await SubmitFormAsync(client, "/ui/workspace/select",
+            ["tenantId", tenantId.ToString("D"), "storeId", Guid.NewGuid().ToString("D")]);
+        Assert.AreEqual(HttpStatusCode.BadRequest, missingCsrf.StatusCode);
+
+        string csrf = await RequestUiTokenAsync(client, "/dashboard");
+        using var forbidden = await SubmitFormAsync(client, "/ui/workspace/select",
+            ["__RequestVerificationToken", csrf,
+             "tenantId", tenantId.ToString("D"),
+             "storeId", Guid.NewGuid().ToString("D")]);
+        Assert.AreEqual(HttpStatusCode.Forbidden, forbidden.StatusCode);
+        Assert.IsFalse(forbidden.Headers.TryGetValues("Set-Cookie", out _));
+
+        using var wrongTenant = await SubmitFormAsync(client, "/ui/workspace/select",
+            ["__RequestVerificationToken", csrf,
+             "tenantId", Guid.NewGuid().ToString("D")]);
+        Assert.AreEqual(HttpStatusCode.Forbidden, wrongTenant.StatusCode);
+
+        using var dashboard = await client.GetAsync("/dashboard");
+        Assert.Contains("Aenaon Demo / Κεντρικό",
+            WebUtility.HtmlDecode(await dashboard.Content.ReadAsStringAsync()));
+    }
+
+    [TestMethod]
+    public async Task WorkspaceSelection_ExplicitInvalidLinkDoesNotOverridePersistedContext()
+    {
+        await using var factory = new SessionApiFactory();
+        Guid storeId = Guid.NewGuid();
+        factory.Stores.AdditionalStoreId = storeId;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        Guid tenantId = Guid.Parse("9698df79-3c31-41c9-b292-b7240c7265fb");
+        string csrf = await RequestUiTokenAsync(client, "/dashboard");
+        using var selection = await SubmitFormAsync(client, "/ui/workspace/select",
+            ["__RequestVerificationToken", csrf,
+             "tenantId", tenantId.ToString("D"), "storeId", storeId.ToString("D")]);
+        Assert.AreEqual(HttpStatusCode.Redirect, selection.StatusCode);
+
+        using var invalid = await client.GetAsync($"/dashboard?tenantId={Guid.NewGuid():D}");
+        Assert.Contains("Η επιλεγμένη επιχείρηση δεν είναι διαθέσιμη",
+            WebUtility.HtmlDecode(await invalid.Content.ReadAsStringAsync()));
+
+        using var restored = await client.GetAsync("/dashboard");
+        Assert.Contains("Aenaon Demo / Υποκατάστημα",
+            WebUtility.HtmlDecode(await restored.Content.ReadAsStringAsync()));
+    }
+
+    [TestMethod]
+    public async Task UserMenu_ProvidesProtectedLogoutWithoutMainHeadingButton()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = await client.GetStringAsync("/dashboard");
+        Assert.Contains("class=\"user-menu\"", html);
+        Assert.Contains("class=\"mobile-navigation\"", html);
+        Assert.Contains("action=\"/ui/session/logout\"", html);
+        Assert.Contains("action=\"/ui/workspace/select\"", html);
+        Assert.Contains("name=\"__RequestVerificationToken\"", html);
+        Assert.DoesNotContain("class=\"button button--outline\" type=\"submit\"", html);
+    }
+
+    [TestMethod]
+    public async Task UiLogout_ClearsWorkspacePreferenceCookie()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        Guid tenantId = Guid.Parse("9698df79-3c31-41c9-b292-b7240c7265fb");
+        string csrf = await RequestUiTokenAsync(client, "/dashboard");
+        using var selection = await SubmitFormAsync(client, "/ui/workspace/select",
+            ["__RequestVerificationToken", csrf, "tenantId", tenantId.ToString("D")]);
+        Assert.AreEqual(HttpStatusCode.Redirect, selection.StatusCode);
+
+        csrf = await RequestUiTokenAsync(client, "/dashboard");
+        using var logout = await SubmitFormAsync(client, "/ui/session/logout",
+            ["__RequestVerificationToken", csrf]);
+        Assert.AreEqual(HttpStatusCode.Redirect, logout.StatusCode);
+        Assert.IsTrue(logout.Headers.TryGetValues("Set-Cookie", out var values));
+        Assert.IsTrue(values.Any(value =>
+            value.StartsWith("__Host-AenaonERP.Workspace=", StringComparison.Ordinal) &&
+            value.Contains("expires=", StringComparison.OrdinalIgnoreCase)));
+
+        using var dashboard = await client.GetAsync("/dashboard");
+        Assert.AreEqual(HttpStatusCode.Redirect, dashboard.StatusCode);
+        Assert.AreEqual("/login", dashboard.Headers.Location?.OriginalString);
+    }
+
+    [TestMethod]
+    public async Task Production_DoesNotExposeWorkspaceSelection()
+    {
+        await using var factory = new SessionApiFactory("Production");
+        using var client = factory.CreateHttpsClient();
+
+        using var response = await SubmitFormAsync(client, "/ui/workspace/select",
+            ["tenantId", Guid.NewGuid().ToString("D")]);
+        Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     private static async Task LoginAsync(HttpClient client)

@@ -4,6 +4,7 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @inject TenantWorkspaceResolver WorkspaceResolver
+@inject WorkspacePreferenceService Preference
 @inject ILogger<Dashboard> Logger
 
 <PageTitle>Επισκόπηση | Aenaon ERP</PageTitle>
@@ -42,13 +43,44 @@
 
     <div class="dashboard__content">
         <header class="topbar">
+            <details class="mobile-navigation">
+                <summary aria-label="Άνοιγμα πλοήγησης"><AppIcon Name="menu" /> Μενού</summary>
+                <nav aria-label="Πλοήγηση μικρής οθόνης">
+                    <a href="/dashboard" aria-current="page"><AppIcon Name="overview" /> Επισκόπηση</a>
+                    <span><AppIcon Name="sales" /> Εμπορική διαχείριση · Σύντομα</span>
+                    <span><AppIcon Name="warehouse" /> Αποθήκη · Σύντομα</span>
+                    <span><AppIcon Name="settings" /> Ρυθμίσεις · Σύντομα</span>
+                </nav>
+            </details>
             <div class="breadcrumb">Εφαρμογή <span>/</span> <strong>Επισκόπηση</strong></div>
             <div class="topbar__actions">
                 <button type="button" class="theme-toggle" data-theme-toggle aria-label="Εναλλαγή θέματος">
                     <AppIcon Name="sun-moon" /> <span data-theme-label>Θέμα</span>
                 </button>
-                <div class="topbar__avatar" aria-label="Συνδεδεμένος χρήστης">@_initials</div>
-                <span class="topbar__username">@_userName</span>
+                <details class="user-menu">
+                    <summary aria-label="Μενού χρήστη @_userName">
+                        <span class="topbar__avatar" aria-hidden="true">@_initials</span>
+                        <span class="topbar__username">@_userName</span>
+                        <AppIcon Name="chevron" />
+                    </summary>
+                    <div class="user-menu__panel">
+                        <div class="user-menu__identity">
+                            <span class="user-menu__avatar">@_initials</span>
+                            <div>
+                                <strong>@_userName</strong>
+                                <small>@(_workspace?.Tenant?.Name ?? "Aenaon ERP")</small>
+                            </div>
+                        </div>
+                        <div class="user-menu__section-label">ΛΟΓΑΡΙΑΣΜΟΣ</div>
+                        @if (!string.IsNullOrWhiteSpace(_csrfToken))
+                        {
+                            <form method="post" action="/ui/session/logout" class="logout-form user-menu__logout">
+                                <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
+                                <button type="submit"><AppIcon Name="logout" /> Αποσύνδεση</button>
+                            </form>
+                        }
+                    </div>
+                </details>
             </div>
         </header>
 
@@ -59,15 +91,7 @@
                     <h1>Καλώς ήρθατε, @_userName.</h1>
                     <p>Διαχειριστείτε με ασφάλεια τις επιχειρήσεις και τα καταστήματά σας.</p>
                 </div>
-                @if (!string.IsNullOrWhiteSpace(_csrfToken))
-                {
-                    <form method="post" action="/ui/session/logout" class="logout-form">
-                        <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
-                        <button class="button button--outline" type="submit">
-                            <AppIcon Name="logout" /> Αποσύνδεση
-                        </button>
-                    </form>
-                }
+
             </div>
 
             @if (_error)
@@ -155,9 +179,11 @@
                                 @foreach (var tenant in _workspace.Tenants)
                                 {
                                     bool selected = tenant.TenantId == _workspace.Tenant?.TenantId;
-                                    <a class="tenant-entry @(selected ? "tenant-entry--active" : "")"
-                                       href="@($"/dashboard?tenantId={tenant.TenantId:D}")"
-                                       aria-current="@(selected ? "location" : null)">
+                                    <form method="post" action="/ui/workspace/select" class="workspace-choice-form">
+                                        <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
+                                        <input type="hidden" name="tenantId" value="@tenant.TenantId" />
+                                        <button type="submit" class="tenant-entry @(selected ? "tenant-entry--active" : "")"
+                                                aria-current="@(selected ? "location" : null)">
                                         <span class="tenant-entry__icon"><AppIcon Name="building" /></span>
                                         <span class="tenant-entry__details">
                                             <strong>@tenant.Name</strong>
@@ -165,7 +191,8 @@
                                                 ? "Διαχειριστής επιχείρησης" : "Μέλος επιχείρησης")</small>
                                         </span>
                                         <span class="tenant-entry__chevron"><AppIcon Name="chevron" /></span>
-                                    </a>
+                                        </button>
+                                    </form>
                                 }
                             </div>
                         }
@@ -190,16 +217,20 @@
                                 @foreach (var store in _workspace.Stores)
                                 {
                                     bool selected = store.StoreId == _workspace.Store?.StoreId;
-                                    <a class="store-entry @(selected ? "store-entry--active" : "")"
-                                       href="@($"/dashboard?tenantId={store.TenantId:D}&storeId={store.StoreId:D}")"
-                                       aria-current="@(selected ? "location" : null)">
+                                    <form method="post" action="/ui/workspace/select" class="workspace-choice-form">
+                                        <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
+                                        <input type="hidden" name="tenantId" value="@store.TenantId" />
+                                        <input type="hidden" name="storeId" value="@store.StoreId" />
+                                        <button type="submit" class="store-entry @(selected ? "store-entry--active" : "")"
+                                                aria-current="@(selected ? "location" : null)">
                                         <span class="store-entry__icon"><AppIcon Name="store" /></span>
                                         <span class="store-entry__details">
                                             <strong>@store.Name</strong>
                                             <small>Κωδικός: @store.Code</small>
                                         </span>
                                         <span class="store-entry__badge">@(selected ? "Επιλεγμένο" : "Επιλογή")</span>
-                                    </a>
+                                        </button>
+                                    </form>
                                 }
                             </div>
                         }
@@ -253,8 +284,19 @@
 
         try
         {
+            Guid? selectedTenantId = TenantId;
+            Guid? selectedStoreId = StoreId;
+
+            // Το cookie επιλογής χρησιμοποιείται μόνο όταν δεν υπάρχει ρητή επιλογή στο URL.
+            if (!TenantId.HasValue && !StoreId.HasValue &&
+                Preference.TryRead(context, userId, out Guid preferredTenantId, out Guid? preferredStoreId))
+            {
+                selectedTenantId = preferredTenantId;
+                selectedStoreId = preferredStoreId;
+            }
+
             _workspace = await WorkspaceResolver.ResolveAsync(
-                userId, TenantId, StoreId, context.RequestAborted);
+                userId, selectedTenantId, selectedStoreId, context.RequestAborted);
         }
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {

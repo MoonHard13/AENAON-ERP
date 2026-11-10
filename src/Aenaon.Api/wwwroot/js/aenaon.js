@@ -87,7 +87,26 @@
         }
     });
 
+    // Κλείνουμε τα αναδυόμενα μενού με Escape ή κλικ έξω από αυτά.
+    document.addEventListener("pointerdown", event => {
+        document.querySelectorAll("details.user-menu[open], details.mobile-navigation[open]")
+            .forEach(menu => {
+                if (!menu.contains(event.target)) {
+                    menu.open = false;
+                }
+            });
+    });
+
     document.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            document.querySelectorAll("details.user-menu[open], details.mobile-navigation[open]")
+                .forEach(menu => {
+                    menu.open = false;
+                    menu.querySelector("summary")?.focus({ preventScroll: true });
+                });
+            return;
+        }
+
         if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
             return;
         }

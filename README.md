@@ -204,6 +204,16 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 
 Οδηγός: [SVG Icons & Static Asset Cache](docs/13-static-assets-svg-cache.md).
 
+## Βήμα 8.4.7 — UI Refinement & Workspace Persistence
+
+Το Light Mode χρησιμοποιεί και στις δύο πλευρές του Login ανοιχτά χρώματα και την επίσημη έκδοση logo για φωτεινό φόντο· το Dark Mode διατηρεί την αντίστοιχη σκοτεινή οπτική ταυτότητα.
+
+Το Logout βρίσκεται στο User Menu επάνω δεξιά. Η πλοήγηση λειτουργεί και σε κινητά, με πλήκτρο «Μενού».
+
+Η επιλογή Tenant/Store πραγματοποιείται με CSRF-protected POST και αποθηκεύεται σε κρυπτογραφημένο HttpOnly/Secure cookie δεμένο με τον χρήστη. Επιστροφή στο Dashboard και ανανέωση σελίδας διατηρούν την επιλογή, αλλά **δεν παρέχουν πρόσθετα δικαιώματα**. Το Login/Logout διαγράφει την προηγούμενη προτίμηση και κάθε ERP business operation πρέπει να κάνει δική του authorization.
+
+Πλήρης ελληνικός οδηγός: [UI Refinement & Workspace Persistence](docs/14-ui-refinement-workspace-persistence.md).
+
 ## Δομή
 
 | Διαδρομή | Περιεχόμενο |
@@ -231,6 +241,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 | `docs/11-blazor-login-ui.md` | Blazor SSR Login, Dashboard, branding και εγκατάσταση εικόνων. |
 | `docs/12-ui-ux-hardening.md` | Ενεργό πλαίσιο Tenant/Store, UX διορθώσεις και ασφάλεια. |
 | `docs/13-static-assets-svg-cache.md` | Διόρθωση υπερμεγέθων SVG, fingerprints CSS/JS και browser troubleshooting. |
+| `docs/14-ui-refinement-workspace-persistence.md` | Full light/dark, User Menu, responsive πλοήγηση και ασφαλές workspace preference. |
 | `database/002-identity-memberships.sql` | SQL αναβάθμισης από την πρώτη στη δεύτερη migration. |
 | `docs/requirements.md` | Απαιτήσεις και αποφάσεις για τα επόμενα βήματα. |
 | `global.json` | Σταθερή επιλογή SDK χωρίς preview εκδόσεις. |
@@ -259,4 +270,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 - [Blazor Login UI και Dashboard](docs/11-blazor-login-ui.md)
 - [UI/UX Hardening](docs/12-ui-ux-hardening.md)
 - [SVG Icons & Static Asset Cache](docs/13-static-assets-svg-cache.md)
+- [UI Refinement & Workspace Persistence](docs/14-ui-refinement-workspace-persistence.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
