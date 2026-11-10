@@ -42,10 +42,17 @@ internal static class SqlServerFiscalAssertions
         context.ChangeTracker.Clear();
 
         var service = new FiscalMappingPreviewService(context, NullLogger<FiscalMappingPreviewService>.Instance);
+        Guid ownStoreId = await context.Stores.AsNoTracking().Where(value => value.TenantId == tenantId)
+            .Select(value => value.Id).FirstAsync(cancellationToken);
+        Guid foreignStoreId = await context.Stores.AsNoTracking()
+            .Where(value => value.TenantId == foreignTenantId)
+            .Select(value => value.Id).FirstAsync(cancellationToken);
         FiscalTransactionContext MakeContext(Guid tenant, FiscalCustomerChannel channel,
-            FiscalOperationKind operation = FiscalOperationKind.FiscalDocument) =>
-            FiscalTransactionContext.Create(tenant, Guid.NewGuid(), catalogItem.Id,
-                CatalogItemKind.Product, transactionDate, channel, operation);
+            FiscalOperationKind operation = FiscalOperationKind.FiscalDocument,
+            Guid? selectedStoreId = null, CatalogItemKind kind = CatalogItemKind.Product) =>
+            FiscalTransactionContext.Create(tenant,
+                selectedStoreId ?? (tenant == tenantId ? ownStoreId : foreignStoreId),
+                catalogItem.Id, kind, transactionDate, channel, operation);
 
         var result = await service.PreviewAsync(MakeContext(tenantId, FiscalCustomerChannel.B2C),
             cancellationToken);
@@ -55,7 +62,17 @@ internal static class SqlServerFiscalAssertions
 
         var foreign = await Assert.ThrowsExactlyAsync<DomainRuleException>(() =>
             service.PreviewAsync(MakeContext(foreignTenantId, FiscalCustomerChannel.B2C), cancellationToken));
-        Assert.AreEqual("fiscal.mapping.not_found", foreign.Code);
+        Assert.AreEqual("fiscal.mapping.item.invalid", foreign.Code);
+
+        var foreignStore = await Assert.ThrowsExactlyAsync<DomainRuleException>(() =>
+            service.PreviewAsync(MakeContext(tenantId, FiscalCustomerChannel.B2C,
+                selectedStoreId: foreignStoreId), cancellationToken));
+        Assert.AreEqual("fiscal.mapping.store.invalid", foreignStore.Code);
+
+        var wrongItemKind = await Assert.ThrowsExactlyAsync<DomainRuleException>(() =>
+            service.PreviewAsync(MakeContext(tenantId, FiscalCustomerChannel.B2C,
+                kind: CatalogItemKind.Service), cancellationToken));
+        Assert.AreEqual("fiscal.mapping.item.invalid", wrongItemKind.Code);
 
         var order = await Assert.ThrowsExactlyAsync<DomainRuleException>(() =>
             service.PreviewAsync(MakeContext(tenantId, FiscalCustomerChannel.B2C, FiscalOperationKind.Order),
