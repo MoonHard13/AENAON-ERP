@@ -5,15 +5,6 @@
     const storageKey = "aenaon-theme";
     const root = document.documentElement;
 
-    function readTheme() {
-        try {
-            const value = window.localStorage.getItem(storageKey);
-            return value === "dark" || value === "light" ? value : null;
-        } catch {
-            return null;
-        }
-    }
-
     function saveTheme(value) {
         try {
             window.localStorage.setItem(storageKey, value);
@@ -27,9 +18,10 @@
     }
 
     function updateThemeLabels() {
-        const nextName = currentTheme() === "dark" ? "Φωτεινό" : "Σκούρο";
+        const nextName = currentTheme() === "dark" ? "Φωτεινό θέμα" : "Σκούρο θέμα";
         document.querySelectorAll("[data-theme-label]").forEach(element => {
             element.textContent = nextName;
+            element.closest("[data-theme-toggle]")?.setAttribute("aria-label", "Ενεργοποίηση: " + nextName);
         });
     }
 
@@ -38,11 +30,6 @@
         root.dataset.theme = nextTheme;
         saveTheme(nextTheme);
         updateThemeLabels();
-    }
-
-    const saved = readTheme();
-    if (saved) {
-        root.dataset.theme = saved;
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -70,13 +57,33 @@
 
         const loginForm = document.querySelector(".login-form");
         if (loginForm) {
-            loginForm.addEventListener("submit", () => {
-                const button = loginForm.querySelector('button[type="submit"]');
-                if (button) {
-                    button.disabled = true;
-                    button.textContent = "Γίνεται σύνδεση…";
+            const button = loginForm.querySelector('button[type="submit"]');
+            const originalText = button?.innerHTML;
+            let recoveryTimer;
+
+            function restoreSubmit() {
+                clearTimeout(recoveryTimer);
+                if (!button) {
+                    return;
                 }
+
+                button.disabled = false;
+                button.removeAttribute("aria-busy");
+                button.innerHTML = originalText;
+            }
+
+            loginForm.addEventListener("submit", () => {
+                if (!button) {
+                    return;
+                }
+
+                button.disabled = true;
+                button.setAttribute("aria-busy", "true");
+                button.textContent = "Γίνεται σύνδεση…";
+                // Επιτρέπουμε νέα προσπάθεια αν το HTTP αίτημα δεν ολοκληρωθεί.
+                recoveryTimer = window.setTimeout(restoreSubmit, 15000);
             });
+            window.addEventListener("pageshow", restoreSubmit);
         }
     });
 
