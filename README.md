@@ -36,6 +36,10 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Το [μη φορολογικά ενεργό, τοπικό inspector συνδυασμών](docs/24-classification-matrix-preview.md) ελέγχει JSON αποδελτίωση έναντι του SHA-256 του πρωτότυπου XLS της ΑΑΔΕ. Δεν αντιπαραβάλλει αυτόματα τα πραγματικά κελιά Excel, δεν εγκρίνει κανόνες, δεν γράφει στη SQL και δεν αλλάζει τις 5 εφαρμοσμένες migrations.
 
+## Βήμα 9.3C.3B.1 — Official XLSX Structure Inspection
+
+Το [read-only εργαλείο επιθεώρησης επίσημου XLSX](docs/25-official-xlsx-structure-inspection.md) διαβάζει πραγματική OOXML δομή, φύλλα, κελιά και SHA-256 χωρίς εξωτερικά πακέτα ή νέα migration. **Δεν επαληθεύει ακόμη φορολογικούς συνδυασμούς** και δεν επιτρέπει έκδοση.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
@@ -350,4 +354,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Offline Fiscal Reference Evidence Inspection](docs/22-fiscal-import-evidence-inspection.md)
 - [Fiscal Staging & Independent Source Review](docs/23-fiscal-staging-review.md)
 - [Candidate myDATA Classification Matrix Preview](docs/24-classification-matrix-preview.md)
+- [Official XLSX Structure Inspection](docs/25-official-xlsx-structure-inspection.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
