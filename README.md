@@ -4,7 +4,7 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 ## Τρέχον στάδιο
 
-**Βήμα 8.4 — Blazor SSR Login UI και Dashboard (Development).** Επαγγελματικό responsive interface με επίσημο Aenaon ERP branding, light/dark theme, προστατευμένα HTML login/logout και tenant-aware κατάλογο καταστημάτων. Τα UI endpoints είναι διαθέσιμα μόνο σε Development.
+**Βήμα 8.4.5 — UI/UX Hardening (Development).** Σαφής επιλογή ενεργού Tenant/Store με deny-by-default, βελτίωση autofill/contrast/light-dark, κοινά SVG icons και ασφαλέστερα μηνύματα Login. Το UI παραμένει Development-only.
 
 Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
 
@@ -188,6 +188,14 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 
 Πλήρης οδηγός: [Blazor Login UI και Dashboard](docs/11-blazor-login-ui.md).
 
+## UI/UX Hardening (Βήμα 8.4.5)
+
+Το Blazor Dashboard προβάλλει το ενεργό πλαίσιο επιχείρησης/καταστήματος μετά από server-side έλεγχο συμμετοχής. Ο χρήστης αλλάζει κατάστημα μέσω του πίνακα καταστημάτων. Μη επιτρεπόμενο TenantId ή StoreId δεν προκαλεί σιωπηλή επιλογή διαφορετικού πόρου.
+
+Στη νέα εμφάνιση διορθώνονται το Chrome autofill, η αντίθεση Light Theme, η πυκνότητα καρτών και τα κοινά SVG icons χωρίς third-party dependencies. Το Login εμφανίζει φιλικό μήνυμα rate limit. Το θέμα αποκαθίσταται πριν από τη φόρτωση CSS.
+
+Οδηγός: [UI/UX Hardening](docs/12-ui-ux-hardening.md).
+
 ## Δομή
 
 | Διαδρομή | Περιεχόμενο |
@@ -213,6 +221,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 | `docs/09-tenant-authorization.md` | Κανόνες πρόσβασης Owner/Member, isolation και CLI έλεγχος. |
 | `docs/10-secure-login-sessions.md` | HTTPS session cookies, CSRF, login/logout και χειροκίνητοι έλεγχοι. |
 | `docs/11-blazor-login-ui.md` | Blazor SSR Login, Dashboard, branding και εγκατάσταση εικόνων. |
+| `docs/12-ui-ux-hardening.md` | Ενεργό πλαίσιο Tenant/Store, UX διορθώσεις και ασφάλεια. |
 | `database/002-identity-memberships.sql` | SQL αναβάθμισης από την πρώτη στη δεύτερη migration. |
 | `docs/requirements.md` | Απαιτήσεις και αποφάσεις για τα επόμενα βήματα. |
 | `global.json` | Σταθερή επιλογή SDK χωρίς preview εκδόσεις. |
@@ -239,4 +248,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 - [Tenant Authorization](docs/09-tenant-authorization.md)
 - [HTTPS Login Sessions](docs/10-secure-login-sessions.md)
 - [Blazor Login UI και Dashboard](docs/11-blazor-login-ui.md)
+- [UI/UX Hardening](docs/12-ui-ux-hardening.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
