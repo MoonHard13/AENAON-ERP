@@ -46,12 +46,6 @@ jobs:
         run: dotnet format AenaonERP.slnx --verify-no-changes --no-restore
       - name: Build Release
         run: dotnet build AenaonERP.slnx --configuration Release --no-restore
-      - name: Diagnose generated EF model delta (temporary)
-        if: matrix.os == 'ubuntu-latest'
-        shell: bash
-        run: |
-          dotnet ef migrations add ScratchInspect --project src/Aenaon.Infrastructure --startup-project src/Aenaon.Api --context AenaonDbContext --output-dir Persistence/Migrations --configuration Release --no-build
-          git diff -- src/Aenaon.Infrastructure/Persistence/Migrations/AenaonDbContextModelSnapshot.cs
       - name: Run integration tests
         run: dotnet test AenaonERP.slnx --configuration Release --no-build --no-restore --filter "TestCategory!=SqlServer"
       - name: Verify Windows PowerShell wrapper syntax
