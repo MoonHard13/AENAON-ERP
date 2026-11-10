@@ -35,10 +35,18 @@ public sealed record FiscalImportInspection(
     string ArtifactSha256,
     int CandidateCount)
 {
+    // Οι εγγραφές είναι αντίγραφο της επιθεωρημένης μνήμης, όχι το ανεξέλεγκτο JSON.
+    public string SourceUrl { get; init; } = string.Empty;
+    public DateTimeOffset VerifiedAtUtc { get; init; }
+    public IReadOnlyList<FiscalInspectedRow> InspectedRows { get; init; } = [];
+
     public bool CanImportToDatabase => false;
     public bool IsTaxRuleApproved => false;
     public bool CanIssueFiscalDocument => false;
 }
+
+/// <summary>Στιγμιότυπο υποψήφιας εγγραφής μετά τον έλεγχο του manifest.</summary>
+public sealed record FiscalInspectedRow(FiscalReferenceCode Reference, string Description);
 
 /// <summary>
 /// Επιθεωρεί τοπικό manifest με πρωτότυπο αρχείο και SHA-256 χωρίς δικτυακή κλήση ή αποθήκευση.
@@ -139,6 +147,7 @@ public sealed class FiscalImportInspectionService(TimeProvider timeProvider)
         }
 
         var intervals = new Dictionary<string, List<FiscalReferenceCode>>(StringComparer.Ordinal);
+        var inspectedRows = new List<FiscalInspectedRow>(manifest.Rows.Count);
         foreach (FiscalImportRow? row in manifest.Rows)
         {
             if (row is null || string.IsNullOrWhiteSpace(row.Description) ||
@@ -168,10 +177,16 @@ public sealed class FiscalImportInspectionService(TimeProvider timeProvider)
             }
 
             existing.Add(reference);
+            inspectedRows.Add(new FiscalInspectedRow(reference, row.Description.Trim()));
         }
 
         return new FiscalImportInspection(source, system, manifest.SourceVersion,
-            calculatedHash, manifest.Rows.Count);
+            calculatedHash, inspectedRows.Count)
+        {
+            SourceUrl = sourceUri.AbsoluteUri,
+            VerifiedAtUtc = manifest.VerifiedAtUtc,
+            InspectedRows = Array.AsReadOnly(inspectedRows.ToArray())
+        };
     }
 
     private static bool IsAllowedSystem(FiscalReferenceSource source, FiscalCodeSystem system) =>
