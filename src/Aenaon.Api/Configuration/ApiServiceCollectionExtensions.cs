@@ -110,7 +110,7 @@ public static class ApiServiceCollectionExtensions
                     if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out TimeSpan retryAfter))
                     {
                         response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds))
-                            .ToString(System.Globalization.CultureInfo.InvariantInfo);
+                            .ToString(System.Globalization.CultureInfo.InvariantCulture);
                     }
                 }
 
