@@ -254,3 +254,16 @@
 - Το παρόν είναι design-only PR, χωρίς αλλαγές σε SQL, API, UI ή φορολογικές αποστολές. Η υλοποίηση ακολουθεί σε επόμενη ελεγχόμενη φάση.
 
 Αναλυτική περιγραφή: [Βήμα 9.3 — Fiscal Catalog Design Gate](19-fiscal-catalog-design.md).
+
+## Βήμα 9.3A — Fiscal Domain Contracts & Tests
+
+- Αμετάβλητο `FiscalReferenceCode` με ρητά χωριστά `FiscalCodeSystem`, `FiscalReferenceSource`, `SourceVersion` και χρονική ισχύ.
+- Αμετάβλητο `FiscalTransactionContext` για Tenant/Store/Item, τύπο είδους, ημερομηνία, B2C/B2B/B2G και διάκριση απλής παραγγελίας από φορολογικό έγγραφο.
+- `FiscalProfileCandidate`: **προσωρινή, μη εγκεκριμένη** αντιστοίχιση VAT category, income category/type, προαιρετικής απαλλαγής και μονάδων μέτρησης.
+- Validation δομής/ταυτοποίησης/χρονικής ισχύος με σταθερά domain error codes, αποτροπή χρήσης προφίλ ξένου Tenant/Item και προστασία από χρήση σε παραγγελία.
+- Αποφυγή προεπιλεγμένου ΦΠΑ, hardcoded έγκυρων συνδυασμών ή αυτόματης μετατροπής Product/Service σε χαρακτηρισμό.
+- Χωρίς SQL migration, HTTP endpoints, αποθήκευση στοιχείων, διαβίβαση σε IMPACT ή αλλαγή του `AenaonERP_Dev`.
+- MSTest για εγκυρότητα codes, διαχωρισμό namespaces, περιόδους, tenant scope, order-vs-invoice.
+- Συμβατότητα: σχεδιάστηκε βάσει myDATA v2.0.2 και επίσημων IMPACT VAT/classification/measurement unit/conditional field pages, με επανέλεγχο κατά την υλοποίηση.
+
+**Οι συμβάσεις δεν αποτελούν φορολογική πιστοποίηση ούτε έλεγχο επιτρεπόμενων κωδικών ή συνδυασμών.** Αυτά απαιτούν versioned reference catalog και ειδική policy/contract tests στα επόμενα βήματα.

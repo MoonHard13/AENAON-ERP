@@ -12,6 +12,14 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Η [φορολογική θεμελίωση καταλόγου](docs/19-fiscal-catalog-design.md) καταγράφει το αποδεκτό μοντέλο χαρτογράφησης **myDATA / IMPACT** πριν από αλλαγές σε ΦΠΑ, χαρακτηρισμούς, μονάδες μέτρησης, SQL ή τιμολόγηση. **Design-only**: δεν υλοποιούνται ακόμη φορολογικοί υπολογισμοί ούτε εκδίδονται παραστατικά.
 
+## Βήμα 9.3A — Fiscal Domain Contracts & Tests
+
+Τα Domain contracts `FiscalReferenceCode`, `FiscalTransactionContext`, `FiscalProfileCandidate` διαχωρίζουν **συστήματα φορολογικών κωδικών**, πηγές/εκδόσεις/περιόδους, **παραγγελίες από φορολογικά παραστατικά** και φορολογικά προφίλ ανά επιχείρηση. Περιλαμβάνονται MSTest regression tests.
+
+**Δεν υπολογίζουν νόμιμο ΦΠΑ ούτε επικυρώνουν επιτρεπόμενους φορολογικούς συνδυασμούς.** Δεν προστέθηκε migration, UI, HTTP ή IMPACT call. Ο έλεγχος `ValidateScope` εξασφαλίζει μόνο σωστή ταυτοποίηση/χρονική ισχύ, όχι έγκριση έκδοσης.
+
+Οδηγίες: [Fiscal Domain Contracts](docs/20-fiscal-domain-contracts.md).
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
@@ -321,4 +329,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Product Catalog SQL Persistence](docs/17-product-catalog-sql.md)
 - [myDATA & IMPACT Compatibility Gate](docs/18-mydata-impact-compatibility.md)
 - [Fiscal Catalog Design Gate](docs/19-fiscal-catalog-design.md)
+- [Fiscal Domain Contracts & Tests](docs/20-fiscal-domain-contracts.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
