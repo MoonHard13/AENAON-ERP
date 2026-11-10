@@ -362,6 +362,7 @@ partial class FiscalImportStagingReview
 
                 b.Property<byte[]>("RowVersion")
                     .IsConcurrencyToken()
+                    .IsRequired()
                     .ValueGeneratedOnAddOrUpdate()
                     .HasColumnType("rowversion");
 
