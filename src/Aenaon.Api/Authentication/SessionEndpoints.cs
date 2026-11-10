@@ -3,7 +3,6 @@ using Aenaon.Api.Contracts;
 using Aenaon.Application.Identity;
 using Aenaon.Application.Tenancy;
 using Microsoft.AspNetCore.Antiforgery;
-using Microsoft.AspNetCore.Authentication;
 
 namespace Aenaon.Api.Authentication;
 
@@ -58,20 +57,7 @@ public static class SessionEndpoints
             return Results.Unauthorized();
         }
 
-        var claims = new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, account.UserId.ToString()),
-            new Claim(ClaimTypes.Name, account.UserName),
-            new Claim(SessionAuthenticationOptions.SecurityStampClaim, account.SecurityStamp)
-        };
-        var identity = new ClaimsIdentity(claims, SessionAuthenticationOptions.Scheme);
-        await context.SignInAsync(SessionAuthenticationOptions.Scheme, new ClaimsPrincipal(identity),
-            new AuthenticationProperties
-            {
-                IsPersistent = false,
-                AllowRefresh = false,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(30)
-            });
+        await SessionCookieIssuer.SignInAsync(context, account);
 
         loggerFactory.CreateLogger("Aenaon.Api.Authentication")
             .LogInformation("User signed in: {UserId}", account.UserId);
@@ -87,8 +73,7 @@ public static class SessionEndpoints
         }
 
         string? userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        await context.SignOutAsync(SessionAuthenticationOptions.Scheme);
-        context.Response.Headers.CacheControl = "no-store";
+        await SessionCookieIssuer.SignOutAsync(context);
         loggerFactory.CreateLogger("Aenaon.Api.Authentication")
             .LogInformation("User signed out: {UserId}", userId);
         return Results.NoContent();

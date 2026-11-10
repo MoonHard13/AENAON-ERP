@@ -4,7 +4,7 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 ## Τρέχον στάδιο
 
-**Βήμα 8.3 — Secure HTTP Sessions (Development).** HTTPS cookie-based login/logout, CSRF, rate limiting, session validation και tenant-aware access check. Τα authentication endpoints είναι σκόπιμα διαθέσιμα μόνο σε Development μέχρι να ολοκληρωθεί η παραγωγική υποδομή.
+**Βήμα 8.4 — Blazor SSR Login UI και Dashboard (Development).** Επαγγελματικό responsive interface με επίσημο Aenaon ERP branding, light/dark theme, προστατευμένα HTML login/logout και tenant-aware κατάλογο καταστημάτων. Τα UI endpoints είναι διαθέσιμα μόνο σε Development.
 
 Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
 
@@ -173,6 +173,21 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 
 **Πλήρης οδηγός και ασφαλές PowerShell παράδειγμα:** [Secure Login Sessions](docs/10-secure-login-sessions.md).
 
+## Blazor Login UI / Dashboard (Βήμα 8.4)
+
+Το Blazor Static SSR UI εκτελείται από το ίδιο HTTPS API, χωρίς ξεχωριστό host ή τρίτες βιβλιοθήκες.
+
+~~~powershell
+dotnet dev-certs https --trust
+dotnet run --project src/Aenaon.Api --launch-profile https
+~~~
+
+Άνοιξε τη διεύθυνση **https://localhost:7140/login** και συνδέσου με τον υπάρχοντα λογαριασμό admin. Μετά το login μεταφέρεσαι στο **/dashboard**, όπου προβάλλονται μόνο επιχειρήσεις στις οποίες ανήκεις και καταστήματα της επιλεγμένης επιχείρησης.
+
+**Λογότυπα:** Το GitHub connector υποστηρίζει μόνο εγγραφή text files. Οι αυθεντικές PNG και οι optimized WebP εικόνες παραδίδονται σε συμπληρωματικό ZIP. Αποσυμπίεσέ το στο root του repository και κάνε commit τον φάκελο εικόνων στο feature branch πριν από το merge του PR.
+
+Πλήρης οδηγός: [Blazor Login UI και Dashboard](docs/11-blazor-login-ui.md).
+
 ## Δομή
 
 | Διαδρομή | Περιεχόμενο |
@@ -197,6 +212,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 | `docs/08-authentication-services.md` | Έλεγχος κωδικών, lockout και ασφαλής διόρθωση αρχικού email. |
 | `docs/09-tenant-authorization.md` | Κανόνες πρόσβασης Owner/Member, isolation και CLI έλεγχος. |
 | `docs/10-secure-login-sessions.md` | HTTPS session cookies, CSRF, login/logout και χειροκίνητοι έλεγχοι. |
+| `docs/11-blazor-login-ui.md` | Blazor SSR Login, Dashboard, branding και εγκατάσταση εικόνων. |
 | `database/002-identity-memberships.sql` | SQL αναβάθμισης από την πρώτη στη δεύτερη migration. |
 | `docs/requirements.md` | Απαιτήσεις και αποφάσεις για τα επόμενα βήματα. |
 | `global.json` | Σταθερή επιλογή SDK χωρίς preview εκδόσεις. |
@@ -222,4 +238,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 - [Authentication Services](docs/08-authentication-services.md)
 - [Tenant Authorization](docs/09-tenant-authorization.md)
 - [HTTPS Login Sessions](docs/10-secure-login-sessions.md)
+- [Blazor Login UI και Dashboard](docs/11-blazor-login-ui.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)

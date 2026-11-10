@@ -35,11 +35,14 @@ internal static class SqlServerTenantAuthorizationAssertions
             .AddEntityFrameworkStores<AenaonDbContext>();
         services.AddScoped<ITenantAccessStore, SqlTenantAccessStore>();
         services.AddScoped<TenantAuthorizationService>();
+        services.AddScoped<ITenantStoreCatalog, SqlTenantStoreCatalog>();
+        services.AddScoped<TenantWorkspaceService>();
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AenaonDbContext>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AenaonUser>>();
         var authorization = scope.ServiceProvider.GetRequiredService<TenantAuthorizationService>();
+        var workspace = scope.ServiceProvider.GetRequiredService<TenantWorkspaceService>();
 
         var tenantA = Tenant.Create("Alpha Company");
         Store alphaStore = tenantA.AddStore("MAIN", "Alpha Main");
@@ -97,6 +100,20 @@ internal static class SqlServerTenantAuthorizationAssertions
         Assert.AreEqual(tenantB.Id, onlyBeta.TenantId);
         Assert.AreEqual(TenantMembershipRole.Owner, onlyBeta.Role);
         Assert.HasCount(0, await authorization.GetAccessibleTenantsAsync(outsider.Id, cancellationToken));
+
+        // Τα πραγματικά SQL queries πρέπει να επιστρέφουν μόνο καταστήματα του εξουσιοδοτημένου TenantId.
+        var alphaStores = await workspace.ListAuthorizedStoresAsync(owner.Id, tenantA.Id, cancellationToken);
+        Assert.HasCount(2, alphaStores);
+        Assert.IsTrue(alphaStores.All(store => store.TenantId == tenantA.Id));
+        Assert.IsTrue(alphaStores.Any(store => store.StoreId == alphaStore.Id));
+        Assert.IsTrue(alphaStores.Any(store => store.StoreId == alphaSecond.Id));
+
+        var betaStores = await workspace.ListAuthorizedStoresAsync(betaOwner.Id, tenantB.Id, cancellationToken);
+        var onlyBetaStore = Assert.ContainsSingle(betaStores);
+        Assert.AreEqual(betaStore.Id, onlyBetaStore.StoreId);
+
+        Assert.HasCount(0, await workspace.ListAuthorizedStoresAsync(owner.Id, tenantB.Id, cancellationToken));
+        Assert.HasCount(0, await workspace.ListAuthorizedStoresAsync(outsider.Id, tenantA.Id, cancellationToken));
 
         // Οι read-only έλεγχοι δεν τροποποιούν συμμετοχές ή άλλα δεδομένα.
         Assert.AreEqual(2, await db.Tenants.CountAsync(cancellationToken));

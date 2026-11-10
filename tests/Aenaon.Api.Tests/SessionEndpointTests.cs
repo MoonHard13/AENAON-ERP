@@ -222,6 +222,8 @@ internal sealed class SessionApiFactory(string environment = "Development") : We
             services.AddSingleton<ISessionIdentityService>(Identity);
             services.RemoveAll<ITenantAccessStore>();
             services.AddSingleton<ITenantAccessStore, SessionTenancyFixture>();
+            services.RemoveAll<ITenantStoreCatalog>();
+            services.AddSingleton<ITenantStoreCatalog, SessionStoreCatalogFixture>();
         });
     }
 
@@ -286,5 +288,20 @@ internal sealed class SessionTenancyFixture : ITenantAccessStore
             ? [new AccessibleTenant(TenantId, "Aenaon Demo", TenantMembershipRole.Owner)]
             : [];
         return Task.FromResult(tenants);
+    }
+}
+
+internal sealed class SessionStoreCatalogFixture : ITenantStoreCatalog
+{
+    private static readonly Guid TenantId = Guid.Parse("9698df79-3c31-41c9-b292-b7240c7265fb");
+    private static readonly Guid StoreId = Guid.Parse("c697b9c3-e221-4156-b533-f54dee27d979");
+
+    public Task<IReadOnlyList<TenantStoreSummary>> ListStoresAsync(Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<TenantStoreSummary> result = tenantId == TenantId
+            ? [new TenantStoreSummary(StoreId, TenantId, "MAIN", "Κεντρικό")]
+            : [];
+        return Task.FromResult(result);
     }
 }
