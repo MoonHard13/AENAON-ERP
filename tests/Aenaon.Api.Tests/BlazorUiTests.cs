@@ -180,7 +180,7 @@ public sealed class BlazorUiTests
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("ΕΝΕΡΓΟ ΠΛΑΙΣΙΟ ΕΡΓΑΣΙΑΣ", html);
         Assert.Contains("Aenaon Demo / Κεντρικό", html);
-        Assert.Contains($"tenantId={tenantId:D}&storeId={storeId:D}", html);
+        Assert.Contains($"name=\"storeId\" value=\"{storeId:D}\"", html);
         Assert.Contains("store-entry store-entry--active", html);
     }
 
