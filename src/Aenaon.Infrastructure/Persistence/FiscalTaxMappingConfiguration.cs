@@ -29,7 +29,10 @@ internal sealed class FiscalTaxMappingConfiguration : IEntityTypeConfiguration<F
 
         builder.HasIndex(value => new
         {
-            value.TenantId, value.CatalogItemId, value.CustomerChannel, value.EffectiveFrom
+            value.TenantId,
+            value.CatalogItemId,
+            value.CustomerChannel,
+            value.EffectiveFrom
         }).IsUnique();
 
         builder.HasOne<CatalogItem>().WithMany()
