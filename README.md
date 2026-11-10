@@ -2,6 +2,12 @@
 
 Cloud σύστημα εστίασης για πολλές ανεξάρτητες επιχειρήσεις, με POS, Back office και υποστήριξη υπηρεσιών.
 
+## Υποχρεωτική συμβατότητα ΑΑΔΕ myDATA / IMPACT
+
+Όλες οι σχετικές υλοποιήσεις του Aenaon ERP πρέπει να ελέγχονται ως προς τις ισχύουσες **επίσημες τεχνικές προδιαγραφές myDATA** και το **API/τεκμηρίωση του παρόχου IMPACT**. Αυτή είναι οριζόντια αρχιτεκτονική απαίτηση, όχι προαιρετική μεταγενέστερη ενσωμάτωση.
+
+Δες το [myDATA & IMPACT Compatibility Gate](docs/18-mydata-impact-compatibility.md) και το υποχρεωτικό GitHub PR checklist. Το Product Catalog 9.1/9.2 δεν περιλαμβάνει ακόμη φορολογικό mapping ή έκδοση παραστατικών.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
@@ -277,6 +283,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 | `database/002-identity-memberships.sql` | SQL αναβάθμισης από την πρώτη στη δεύτερη migration. |
 | `docs/16-product-catalog-domain.md` | Domain κατηγοριών, ειδών και υπηρεσιών, κανόνες, tests και προετοιμασία SQL. |
 | `docs/17-product-catalog-sql.md` | Migration, SQL constraints, έλεγχοι, preview/apply και rollback του καταλόγου. |
+| `docs/18-mydata-impact-compatibility.md` | Υποχρεωτικό compliance gate με επίσημες πηγές, fiscal mappings και ελέγχους. |
 | `docs/requirements.md` | Απαιτήσεις και αποφάσεις για τα επόμενα βήματα. |
 | `global.json` | Σταθερή επιλογή SDK χωρίς preview εκδόσεις. |
 | `Directory.Packages.props` | Κεντρικές εκδόσεις NuGet. |
@@ -308,4 +315,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Visual Consistency Polish](docs/15-visual-consistency-polish.md)
 - [Product Catalog Domain Foundation](docs/16-product-catalog-domain.md)
 - [Product Catalog SQL Persistence](docs/17-product-catalog-sql.md)
+- [myDATA & IMPACT Compatibility Gate](docs/18-mydata-impact-compatibility.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
