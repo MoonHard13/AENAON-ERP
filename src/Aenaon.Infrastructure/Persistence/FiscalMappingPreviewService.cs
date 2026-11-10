@@ -27,6 +27,26 @@ public sealed class FiscalMappingPreviewService(AenaonDbContext dbContext,
                 "Η φορολογική αξιολόγηση B2G δεν έχει ακόμη πιστοποιηθεί.");
         }
 
+        // Το κατάστημα και το είδος ελέγχονται από τη βάση, όχι μόνο από τα αναγνωριστικά του αιτήματος.
+        bool ownsStore = await dbContext.Stores.AsNoTracking()
+            .AnyAsync(value => value.Id == context.StoreId && value.TenantId == context.TenantId,
+                cancellationToken);
+        if (!ownsStore)
+        {
+            throw new DomainRuleException("fiscal.mapping.store.invalid",
+                "Το κατάστημα δεν ανήκει στην επιχείρηση.");
+        }
+
+        var item = await dbContext.CatalogItems.AsNoTracking()
+            .Where(value => value.Id == context.CatalogItemId && value.TenantId == context.TenantId)
+            .Select(value => new { value.Kind, value.IsActive })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (item is null || !item.IsActive || item.Kind != context.ItemKind)
+        {
+            throw new DomainRuleException("fiscal.mapping.item.invalid",
+                "Το είδος είναι ανενεργό, διαφορετικού τύπου ή ξένης επιχείρησης.");
+        }
+
         var matched = await dbContext.FiscalTaxMappings.AsNoTracking()
             .Where(value => value.TenantId == context.TenantId &&
                 value.CatalogItemId == context.CatalogItemId &&
