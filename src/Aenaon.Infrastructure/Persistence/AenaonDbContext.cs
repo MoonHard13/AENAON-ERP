@@ -1,3 +1,4 @@
+using Aenaon.Domain.Catalog;
 using Aenaon.Domain.Tenancy;
 using Aenaon.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -10,6 +11,8 @@ public sealed class AenaonDbContext(DbContextOptions<AenaonDbContext> options) :
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<Store> Stores => Set<Store>();
     public DbSet<TenantMembership> TenantMemberships => Set<TenantMembership>();
+    public DbSet<CatalogCategory> CatalogCategories => Set<CatalogCategory>();
+    public DbSet<CatalogItem> CatalogItems => Set<CatalogItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -18,5 +21,7 @@ public sealed class AenaonDbContext(DbContextOptions<AenaonDbContext> options) :
         modelBuilder.ApplyConfiguration(new TenantConfiguration());
         modelBuilder.ApplyConfiguration(new StoreConfiguration());
         modelBuilder.ApplyConfiguration(new TenantMembershipConfiguration());
+        modelBuilder.ApplyConfiguration(new CatalogCategoryConfiguration());
+        modelBuilder.ApplyConfiguration(new CatalogItemConfiguration());
     }
 }

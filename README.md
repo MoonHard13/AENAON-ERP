@@ -4,7 +4,7 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 ## Τρέχον στάδιο
 
-**Βήμα 9.1 — Product Catalog Domain Foundation (Development).** Πρώτο ανεξάρτητο επιχειρησιακό μοντέλο για κατηγορίες, προϊόντα και υπηρεσίες ανά επιχείρηση, με έλεγχο μοναδικότητας, ασφαλείς μεταβολές και χωρίς παρακολούθηση αποθέματος για υπηρεσίες. Το υπάρχον Login/Dashboard παραμένει Development-only. Δεν προστέθηκε SQL persistence, migration, UI ειδών ή CLI καταχώρησης.
+**Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
 
 Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
 
@@ -232,6 +232,20 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 
 Αναλυτικές οδηγίες: [Product Catalog Domain Foundation](docs/16-product-catalog-domain.md).
 
+## Βήμα 9.2 — SQL Server Catalog Persistence
+
+- Τρίτη migration: `20261110123500_ProductCatalogPersistence`.
+- Νέοι πίνακες: `dbo.CatalogCategories`, `dbo.CatalogItems`.
+- Μοναδικοί κωδικοί ανά Tenant, composite category foreign key, υπηρεσίες χωρίς stock.
+- Μη καταστροφική επέκταση schema: η εφαρμογή δεν εφαρμόζει migration αυτόματα.
+- **Δεν ενεργοποιούνται ακόμη HTTP/CLI λειτουργίες CRUD καταλόγου**.
+
+```powershell
+dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database --dry-run
+```
+
+Η εφαρμογή της migration επιτρέπεται **μόνο αφού** δημιουργηθεί αντίγραφο ασφαλείας και επιθεωρηθεί το SQL script, σύμφωνα με το [SQL Catalog Manual](docs/17-product-catalog-sql.md).
+
 ## Δομή
 
 | Διαδρομή | Περιεχόμενο |
@@ -262,6 +276,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 | `docs/14-ui-refinement-workspace-persistence.md` | Full light/dark, User Menu, responsive πλοήγηση και ασφαλές workspace preference. |
 | `database/002-identity-memberships.sql` | SQL αναβάθμισης από την πρώτη στη δεύτερη migration. |
 | `docs/16-product-catalog-domain.md` | Domain κατηγοριών, ειδών και υπηρεσιών, κανόνες, tests και προετοιμασία SQL. |
+| `docs/17-product-catalog-sql.md` | Migration, SQL constraints, έλεγχοι, preview/apply και rollback του καταλόγου. |
 | `docs/requirements.md` | Απαιτήσεις και αποφάσεις για τα επόμενα βήματα. |
 | `global.json` | Σταθερή επιλογή SDK χωρίς preview εκδόσεις. |
 | `Directory.Packages.props` | Κεντρικές εκδόσεις NuGet. |
@@ -292,4 +307,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 - [UI Refinement & Workspace Persistence](docs/14-ui-refinement-workspace-persistence.md)
 - [Visual Consistency Polish](docs/15-visual-consistency-polish.md)
 - [Product Catalog Domain Foundation](docs/16-product-catalog-domain.md)
+- [Product Catalog SQL Persistence](docs/17-product-catalog-sql.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
