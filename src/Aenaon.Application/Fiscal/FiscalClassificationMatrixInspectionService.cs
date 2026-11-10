@@ -170,7 +170,7 @@ public sealed class FiscalClassificationMatrixInspectionService(TimeProvider tim
             manifest.SourceVersion.Length > FiscalReferenceCode.MaxSourceVersionLength ||
             manifest.VerifiedAtUtc == default || manifest.VerifiedAtUtc.Offset != TimeSpan.Zero ||
             manifest.VerifiedAtUtc > timeProvider.GetUtcNow() ||
-            manifest.ArtifactSha256.Length != 64 || !manifest.ArtifactSha256.All(Uri.IsHexDigit) ||
+            manifest.ArtifactSha256 is not { Length: 64 } || !manifest.ArtifactSha256.All(Uri.IsHexDigit) ||
             manifest.Rows is not { Count: > 0 and <= MaximumRows })
         {
             throw Invalid("Η επίσημη πηγή, η έκδοση, το UTC timestamp ή το αποτύπωμα δεν είναι έγκυρα.");
