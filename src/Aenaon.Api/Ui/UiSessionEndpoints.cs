@@ -1,6 +1,7 @@
 using Aenaon.Api.Authentication;
 using Aenaon.Application.Identity;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Aenaon.Api.Ui;
 
@@ -11,8 +12,10 @@ public static class UiSessionEndpoints
     {
         var group = endpoints.MapGroup("/ui/session");
         group.MapPost("/login", LoginAsync)
+            .WithMetadata(new RequestSizeLimitAttribute(8192))
             .RequireRateLimiting(SessionAuthenticationOptions.RateLimitPolicy);
         group.MapPost("/logout", LogoutAsync)
+            .WithMetadata(new RequestSizeLimitAttribute(8192))
             .RequireAuthorization()
             .RequireRateLimiting(SessionAuthenticationOptions.RateLimitPolicy);
         return group;
