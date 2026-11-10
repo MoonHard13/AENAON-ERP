@@ -24,6 +24,10 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Το [Fiscal Reference Data & Tax Mapping](docs/21-fiscal-reference-mapping.md) εισάγει versioned registry φορολογικών αναφορών και προσωρινά tenant-safe mappings με τέταρτη EF Core migration, περιορισμούς SQL και read-only preview. Καμία φορολογική πρόταση δεν επιτρέπεται να εκδώσει παραστατικό, δεν υπάρχουν πραγματικά seed δεδομένα ή κλήσεις σε ΑΑΔΕ/IMPACT.
 
+## Βήμα 9.3C.1 — Offline Fiscal Reference Evidence Inspection
+
+Η [τοπική προεπισκόπηση τεκμηρίων φορολογικών κωδικών](docs/22-fiscal-import-evidence-inspection.md) ελέγχει JSON manifests έναντι των πραγματικών bytes του πρωτοτύπου αρχείου με SHA-256, namespaces, πηγές, εκδόσεις και περιόδους, χωρίς εισαγωγή SQL, ενεργοποίηση mapping ή δυνατότητα τιμολόγησης. Δεν υπάρχει νέα migration και δεν θεωρείται φορολογική έγκριση.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
@@ -335,4 +339,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Fiscal Catalog Design Gate](docs/19-fiscal-catalog-design.md)
 - [Fiscal Domain Contracts & Tests](docs/20-fiscal-domain-contracts.md)
 - [Fiscal Reference Data & Tax Mapping](docs/21-fiscal-reference-mapping.md)
+- [Offline Fiscal Reference Evidence Inspection](docs/22-fiscal-import-evidence-inspection.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
