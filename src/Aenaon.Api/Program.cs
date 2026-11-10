@@ -181,6 +181,7 @@ public partial class Program
         {
             app.MapSessionEndpoints();
             app.MapUiSessionEndpoints();
+            app.MapWorkspaceSelectionEndpoints();
             app.MapRazorComponents<App>();
         }
         app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
