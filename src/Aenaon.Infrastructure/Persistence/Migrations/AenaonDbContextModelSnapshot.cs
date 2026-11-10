@@ -326,6 +326,179 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     });
             });
 
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Fiscal.FiscalImportBatch", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<string>("ArtifactSha256")
+                    .IsRequired()
+                    .HasMaxLength(64)
+                    .IsUnicode(false)
+                    .HasColumnType("varchar(64)");
+
+                b.Property<int>("CodeSystem")
+                    .HasColumnType("int");
+
+                b.Property<string>("ContentSha256")
+                    .IsRequired()
+                    .HasMaxLength(64)
+                    .IsUnicode(false)
+                    .HasColumnType("varchar(64)");
+
+                b.Property<DateTimeOffset?>("ReviewedAtUtc")
+                    .HasColumnType("datetimeoffset");
+
+                b.Property<Guid?>("ReviewedByUserId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<string>("ReviewReason")
+                    .HasMaxLength(500)
+                    .HasColumnType("nvarchar(500)");
+
+                b.Property<byte[]>("RowVersion")
+                    .IsConcurrencyToken()
+                    .ValueGeneratedOnAddOrUpdate()
+                    .HasColumnType("rowversion");
+
+                b.Property<int>("Source")
+                    .HasColumnType("int");
+
+                b.Property<string>("SourceUrl")
+                    .IsRequired()
+                    .HasMaxLength(500)
+                    .HasColumnType("nvarchar(500)");
+
+                b.Property<string>("SourceVersion")
+                    .IsRequired()
+                    .HasMaxLength(80)
+                    .HasColumnType("nvarchar(80)");
+
+                b.Property<int>("Status")
+                    .HasColumnType("int");
+
+                b.Property<DateTimeOffset>("SubmittedAtUtc")
+                    .HasColumnType("datetimeoffset");
+
+                b.Property<Guid>("SubmittedByUserId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<DateTimeOffset>("VerifiedAtUtc")
+                    .HasColumnType("datetimeoffset");
+
+                b.HasKey("Id");
+
+                b.HasAlternateKey("Id", "SubmittedByUserId");
+
+                b.HasIndex("ReviewedByUserId");
+
+                b.HasIndex("SubmittedByUserId");
+
+                b.HasIndex("Source", "CodeSystem", "SourceVersion");
+
+                b.ToTable("FiscalImportBatches", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_FiscalImportBatches_Status", "[Status] IN (1, 2, 3)");
+
+                        t.HasCheckConstraint("CK_FiscalImportBatches_Source", "[Source] IN (1, 2)");
+
+                        t.HasCheckConstraint("CK_FiscalImportBatches_CodeSystem", "[CodeSystem] BETWEEN 1 AND 8");
+
+                        t.HasCheckConstraint("CK_FiscalImportBatches_Evidence", "LEN([ArtifactSha256]) = 64 AND LEN([ContentSha256]) = 64 AND [VerifiedAtUtc] <= [SubmittedAtUtc]");
+
+                        t.HasCheckConstraint("CK_FiscalImportBatches_Review", "([Status] = 1 AND [ReviewedByUserId] IS NULL AND [ReviewedAtUtc] IS NULL AND [ReviewReason] IS NULL)\nOR ([Status] IN (2, 3) AND [ReviewedByUserId] IS NOT NULL\n    AND [ReviewedByUserId] <> [SubmittedByUserId]\n    AND [ReviewedAtUtc] >= [SubmittedAtUtc] AND [ReviewReason] IS NOT NULL)");
+                    });
+            });
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Fiscal.FiscalImportBatchRow", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<Guid>("BatchId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<string>("Code")
+                    .IsRequired()
+                    .HasMaxLength(64)
+                    .HasColumnType("nvarchar(64)")
+                    .UseCollation("Latin1_General_100_BIN2");
+
+                b.Property<string>("Description")
+                    .IsRequired()
+                    .HasMaxLength(250)
+                    .HasColumnType("nvarchar(250)");
+
+                b.Property<DateOnly>("EffectiveFrom")
+                    .HasColumnType("date");
+
+                b.Property<DateOnly?>("EffectiveUntil")
+                    .HasColumnType("date");
+
+                b.HasKey("Id");
+
+                b.HasIndex("BatchId", "Code", "EffectiveFrom")
+                    .IsUnique();
+
+                b.ToTable("FiscalImportBatchRows", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_FiscalImportBatchRows_Period", "[EffectiveUntil] IS NULL OR [EffectiveUntil] >= [EffectiveFrom]");
+
+                        t.HasCheckConstraint("CK_FiscalImportBatchRows_Code", "LEN(LTRIM(RTRIM([Code]))) > 0");
+                    });
+            });
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Fiscal.FiscalImportReviewRecord", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<Guid>("BatchId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<string>("ContentSha256")
+                    .IsRequired()
+                    .HasMaxLength(64)
+                    .IsUnicode(false)
+                    .HasColumnType("varchar(64)");
+
+                b.Property<int>("Decision")
+                    .HasColumnType("int");
+
+                b.Property<string>("Reason")
+                    .IsRequired()
+                    .HasMaxLength(500)
+                    .HasColumnType("nvarchar(500)");
+
+                b.Property<DateTimeOffset>("ReviewedAtUtc")
+                    .HasColumnType("datetimeoffset");
+
+                b.Property<Guid>("ReviewerUserId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<Guid>("SubmittedByUserId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.HasKey("Id");
+
+                b.HasIndex("BatchId", "SubmittedByUserId")
+                    .IsUnique();
+
+                b.HasIndex("ReviewerUserId");
+
+                b.ToTable("FiscalImportReviews", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_FiscalImportReviews_Decision", "[Decision] IN (2, 3)");
+
+                        t.HasCheckConstraint("CK_FiscalImportReviews_Reviewer", "[ReviewerUserId] <> [SubmittedByUserId]");
+
+                        t.HasCheckConstraint("CK_FiscalImportReviews_Hash", "LEN([ContentSha256]) = 64");
+
+                        t.HasCheckConstraint("CK_FiscalImportReviews_Reason", "LEN(LTRIM(RTRIM([Reason]))) > 0");
+                    });
+            });
+
         modelBuilder.Entity("Aenaon.Infrastructure.Identity.AenaonUser", b =>
             {
                 b.Property<Guid>("Id")
@@ -539,6 +712,46 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Fiscal.FiscalImportBatch", b =>
+            {
+                b.HasOne("Aenaon.Infrastructure.Identity.AenaonUser", null)
+                    .WithMany()
+                    .HasForeignKey("SubmittedByUserId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.HasOne("Aenaon.Infrastructure.Identity.AenaonUser", null)
+                    .WithMany()
+                    .HasForeignKey("ReviewedByUserId")
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Fiscal.FiscalImportBatchRow", b =>
+            {
+                b.HasOne("Aenaon.Infrastructure.Fiscal.FiscalImportBatch", null)
+                    .WithMany("Rows")
+                    .HasForeignKey("BatchId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Fiscal.FiscalImportReviewRecord", b =>
+            {
+                b.HasOne("Aenaon.Infrastructure.Fiscal.FiscalImportBatch", null)
+                    .WithMany()
+                    .HasForeignKey("BatchId", "SubmittedByUserId")
+                    .HasPrincipalKey("Id", "SubmittedByUserId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.HasOne("Aenaon.Infrastructure.Identity.AenaonUser", null)
+                    .WithMany()
+                    .HasForeignKey("ReviewerUserId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
+
         modelBuilder.Entity("Aenaon.Domain.Tenancy.Store", b =>
             {
                 b.HasOne("Aenaon.Domain.Tenancy.Tenant", null)
@@ -588,6 +801,11 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     .HasForeignKey("UserId")
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired();
+            });
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Fiscal.FiscalImportBatch", b =>
+            {
+                b.Navigation("Rows");
             });
 
         modelBuilder.Entity("Aenaon.Domain.Tenancy.Tenant", b =>
