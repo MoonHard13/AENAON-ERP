@@ -127,6 +127,113 @@ public sealed class BlazorUiTests
         Assert.AreEqual(HttpStatusCode.NotFound, post.StatusCode);
     }
 
+    [TestMethod]
+    public async Task Dashboard_ExplicitUnknownTenant_DoesNotSilentlySwitchToAnotherTenant()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        using var response = await client.GetAsync($"/dashboard?tenantId={Guid.NewGuid():D}");
+        string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Η επιλεγμένη επιχείρηση δεν είναι διαθέσιμη", html);
+        Assert.DoesNotContain("ΕΝΕΡΓΟ ΠΛΑΙΣΙΟ ΕΡΓΑΣΙΑΣ", html);
+        Assert.DoesNotContain("Κεντρικό", html);
+        Assert.Contains("Aenaon Demo", html);
+    }
+
+    [TestMethod]
+    public async Task Dashboard_ExplicitUnknownStore_DoesNotMarkAnyStoreActive()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        var tenantId = Guid.Parse("9698df79-3c31-41c9-b292-b7240c7265fb");
+        using var response = await client.GetAsync(
+            $"/dashboard?tenantId={tenantId:D}&storeId={Guid.NewGuid():D}");
+        string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Το επιλεγμένο κατάστημα δεν είναι διαθέσιμο", html);
+        Assert.DoesNotContain("ΕΝΕΡΓΟ ΠΛΑΙΣΙΟ ΕΡΓΑΣΙΑΣ", html);
+        Assert.Contains("Κεντρικό", html);
+        Assert.DoesNotContain("store-entry store-entry--active", html);
+    }
+
+    [TestMethod]
+    public async Task Dashboard_SelectedStore_IsVisibleAndUsesExplicitTenantStoreUrl()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        var tenantId = Guid.Parse("9698df79-3c31-41c9-b292-b7240c7265fb");
+        var storeId = Guid.Parse("c697b9c3-e221-4156-b533-f54dee27d979");
+
+        using var response = await client.GetAsync(
+            $"/dashboard?tenantId={tenantId:D}&storeId={storeId:D}");
+        string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("ΕΝΕΡΓΟ ΠΛΑΙΣΙΟ ΕΡΓΑΣΙΑΣ", html);
+        Assert.Contains("Aenaon Demo / Κεντρικό", html);
+        Assert.Contains($"tenantId={tenantId:D}&storeId={storeId:D}", html);
+        Assert.Contains("store-entry store-entry--active", html);
+    }
+
+    [TestMethod]
+    public async Task LoggedInUser_VisitingWelcome_IsRedirectedToDashboard()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        using var anonymous = await client.GetAsync("/");
+        Assert.AreEqual(HttpStatusCode.OK, anonymous.StatusCode);
+
+        await LoginAsync(client);
+        using var response = await client.GetAsync("/");
+
+        Assert.AreEqual(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.AreEqual("/dashboard", response.Headers.Location?.OriginalString);
+    }
+
+    [TestMethod]
+    public async Task ExcessHtmlLoginRequests_DisplayRateLimitGuidance()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+
+        for (int index = 0; index < 10; index++)
+        {
+            using var response = await client.PostAsync("/ui/session/login",
+                new FormUrlEncodedContent([]));
+            Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+
+        using var limited = await client.PostAsync("/ui/session/login", new FormUrlEncodedContent([]));
+        Assert.AreEqual(HttpStatusCode.Redirect, limited.StatusCode);
+        Assert.AreEqual("/login?error=rate-limited", limited.Headers.Location?.OriginalString);
+
+        using var notice = await client.GetAsync("/login?error=rate-limited");
+        Assert.AreEqual(HttpStatusCode.OK, notice.StatusCode);
+        Assert.Contains("πολλές προσπάθειες σύνδεσης", await notice.Content.ReadAsStringAsync());
+    }
+
+    [TestMethod]
+    public async Task LoginPage_LoadsThemePreferenceBeforeCss()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+
+        string html = await client.GetStringAsync("/login");
+        int themeIndex = html.IndexOf("aenaon-theme-init.js", StringComparison.Ordinal);
+        int cssIndex = html.IndexOf("aenaon.css", StringComparison.Ordinal);
+        Assert.IsTrue(themeIndex >= 0);
+        Assert.IsTrue(cssIndex > themeIndex);
+    }
+
     private static async Task LoginAsync(HttpClient client)
     {
         string csrf = await RequestUiTokenAsync(client, "/login");
