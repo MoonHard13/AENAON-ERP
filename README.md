@@ -4,7 +4,7 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 ## Τρέχον στάδιο
 
-**Βήμα 8.4.8 — Visual Consistency Polish (Development).** Κοινός 960×960 διαφανής καμβάς light/dark logos, ομοιόμορφο οπτικό μέγεθος, βελτιωμένη σκιά του User Menu και ευανάγνωστα βοηθητικά labels. Login, Logout και Tenant/Store παραμένουν αμετάβλητα. Το UI εξακολουθεί να είναι Development-only.
+**Βήμα 9.1 — Product Catalog Domain Foundation (Development).** Πρώτο ανεξάρτητο επιχειρησιακό μοντέλο για κατηγορίες, προϊόντα και υπηρεσίες ανά επιχείρηση, με έλεγχο μοναδικότητας, ασφαλείς μεταβολές και χωρίς παρακολούθηση αποθέματος για υπηρεσίες. Το υπάρχον Login/Dashboard παραμένει Development-only. Δεν προστέθηκε SQL persistence, migration, UI ειδών ή CLI καταχώρησης.
 
 Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
 
@@ -222,6 +222,16 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 
 Οδηγίες: [Visual Consistency Polish](docs/15-visual-consistency-polish.md).
 
+## Βήμα 9.1 — Product Catalog Domain Foundation
+
+Προστέθηκαν τα Domain μοντέλα `ProductCatalog`, `CatalogCategory`, `CatalogItem`, `CatalogItemKind` στο `src/Aenaon.Domain/Catalog/`, με αυστηρή απομόνωση ανά Tenant, κωδικούς μοναδικούς ανά επιχείρηση, διαχείριση ενεργής κατάστασης και διακριτό stock tracking (απαγορεύεται για υπηρεσίες).
+
+Το βήμα λειτουργεί **μόνο στη μνήμη**. Δεν τροποποιεί τη βάση `AenaonERP_Dev`, δεν εκθέτει endpoints ή νέα οθόνη, δεν προσθέτει NuGet packages. Οι SQL constraints και το persistence σχεδιάζονται για το Βήμα 9.2.
+
+Εκτέλεση tests: `dotnet test tests/Aenaon.Domain.Tests --configuration Release --filter "FullyQualifiedName~ProductCatalogTests"`.
+
+Αναλυτικές οδηγίες: [Product Catalog Domain Foundation](docs/16-product-catalog-domain.md).
+
 ## Δομή
 
 | Διαδρομή | Περιεχόμενο |
@@ -251,6 +261,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 | `docs/13-static-assets-svg-cache.md` | Διόρθωση υπερμεγέθων SVG, fingerprints CSS/JS και browser troubleshooting. |
 | `docs/14-ui-refinement-workspace-persistence.md` | Full light/dark, User Menu, responsive πλοήγηση και ασφαλές workspace preference. |
 | `database/002-identity-memberships.sql` | SQL αναβάθμισης από την πρώτη στη δεύτερη migration. |
+| `docs/16-product-catalog-domain.md` | Domain κατηγοριών, ειδών και υπηρεσιών, κανόνες, tests και προετοιμασία SQL. |
 | `docs/requirements.md` | Απαιτήσεις και αποφάσεις για τα επόμενα βήματα. |
 | `global.json` | Σταθερή επιλογή SDK χωρίς preview εκδόσεις. |
 | `Directory.Packages.props` | Κεντρικές εκδόσεις NuGet. |
@@ -280,4 +291,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 - [SVG Icons & Static Asset Cache](docs/13-static-assets-svg-cache.md)
 - [UI Refinement & Workspace Persistence](docs/14-ui-refinement-workspace-persistence.md)
 - [Visual Consistency Polish](docs/15-visual-consistency-polish.md)
+- [Product Catalog Domain Foundation](docs/16-product-catalog-domain.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
