@@ -83,6 +83,8 @@ dotnet run --project src/Aenaon.Api -- --check-database
 | --- | --- |
 | `fiscal.registry.evidence.invalid` | Λείπει αξιόπιστη HTTPS πηγή, περιγραφή ή UTC timestamp. |
 | `fiscal.mapping.invalid` | Λείπουν IDs, σωστό κανάλι ή περίοδος. |
+| `fiscal.mapping.store.invalid` | Το κατάστημα δεν ανήκει στον Tenant του αιτήματος. |
+| `fiscal.mapping.item.invalid` | Το είδος είναι ανενεργό, ξένης επιχείρησης ή άλλου τύπου. |
 | `fiscal.mapping.not_found` | Δεν υπάρχει πρόταση για τη συγκεκριμένη επιχείρηση/είδος/ημερομηνία/κανάλι. |
 | `fiscal.mapping.ambiguous` | Δύο προτάσεις καλύπτουν την ίδια ημερομηνία. |
 | `fiscal.mapping.reference.invalid` | Λείπει έκδοση κωδικού ή αναφέρεται λάθος φορολογικό namespace. |
