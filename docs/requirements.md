@@ -195,3 +195,14 @@
 - Διαγραφή workspace preference στο Login/Logout (αφορά και την JSON session ροή).
 - HTTP regression tests για persistence, CSRF, ξένο Tenant/Store, user menu και logout.
 - Development-only, χωρίς migrations ή νέα εξωτερικά NuGet packages.
+
+
+## Βήμα 8.4.8 — Visual Consistency Polish
+
+- Κανονικοποίηση αυθεντικών light/dark MoonHard logo PNG σε δύο WebP ίδιου 960×960 transparent canvas.
+- Διατήρηση αναλογιών, οπτικού κέντρου και παρόμοιου οπτικού εμβαδού χωρίς stretching του artwork.
+- Μικρότερη σκιά User Menu στο Light Mode και σωστή ένταση στο Dark Mode.
+- Βελτίωση μικρών labels σε Sidebar, footer, store badge και account menu.
+- HTTP regression test που ελέγχει τις πραγματικές διαστάσεις των δυαδικών branding assets (θα αποτύχει μέχρι να ανέβουν στο feature branch).
+- Ελληνικό GitBook manual, binary asset ZIP και χειροκίνητος έλεγχος σε Light/Dark.
+- Χωρίς νέες migrations, NuGet packages ή αλλαγές authentication / Tenant / Store.
