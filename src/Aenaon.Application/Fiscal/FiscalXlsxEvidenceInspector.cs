@@ -8,16 +8,32 @@ using Aenaon.Domain.Exceptions;
 namespace Aenaon.Application.Fiscal;
 
 /// <summary>Πραγματική τιμή κελιού από πρωτότυπο XLSX, χωρίς αξιολόγηση φορολογικού κανόνα.</summary>
-public sealed record FiscalXlsxCellSample(string Address, string Text, bool IsFormula);
+public sealed record FiscalXlsxCellSample(string Address, string Text, bool IsFormula)
+{
+    // Διατηρούμε τον index μορφοποίησης χωρίς ερμηνεία σημασίας ή χρωματικών κανόνων.
+    public int? StyleIndex { get; init; }
+}
 
 /// <summary>Συνοπτική εικόνα πραγματικού φύλλου του επίσημου αρχείου.</summary>
 public sealed record FiscalXlsxSheetOverview(string Name, int NonEmptyCellCount,
-    IReadOnlyList<FiscalXlsxCellSample> SampleCells);
+    IReadOnlyList<FiscalXlsxCellSample> SampleCells)
+{
+    /// <summary>Όλα τα μη κενά κελιά, χωρίς περικοπή σε 30 δείγματα.</summary>
+    public IReadOnlyList<FiscalXlsxCellSample> AllCells { get; init; } = [];
+    /// <summary>Πραγματικές διευθύνσεις συγχωνεύσεων για ανεξάρτητο έλεγχο.</summary>
+    public IReadOnlyList<string> MergedRanges { get; init; } = [];
+    public bool HasStyledCells => AllCells.Any(cell => cell.StyleIndex is not null);
+    public bool ExportIsComplete => AllCells.Count == NonEmptyCellCount;
+}
 
 /// <summary>Ασφαλής δομική επιθεώρηση τεκμηρίου· δεν εγκρίνει συνδυασμούς χαρακτηρισμών.</summary>
 public sealed record FiscalXlsxEvidenceInspection(string ArtifactSha256, long FileSizeBytes,
     IReadOnlyList<FiscalXlsxSheetOverview> Sheets)
 {
+    public int TotalNonEmptyCellCount => Sheets.Sum(sheet => sheet.NonEmptyCellCount);
+    public int TotalExportedCellCount => Sheets.Sum(sheet => sheet.AllCells.Count);
+    public bool ExportIsComplete => Sheets.All(sheet => sheet.ExportIsComplete) &&
+        TotalNonEmptyCellCount == TotalExportedCellCount;
     public bool IsClassificationMatrixVerified => false;
     public bool IsFiscalRuleApproved => false;
     public bool CanIssueFiscalDocument => false;
@@ -37,6 +53,9 @@ public sealed class FiscalXlsxEvidenceInspector
     private const int MaximumSharedStrings = 200000;
     private const int MaximumSamples = 30;
     private const int MaximumCellText = 180;
+    private const int MaximumExportCellText = 8192;
+    private const int MaximumWorkbookCells = 500000;
+    private const int MaximumMergedRanges = 100000;
 
     private static readonly XNamespace Spreadsheet =
         "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
@@ -90,6 +109,7 @@ public sealed class FiscalXlsxEvidenceInspector
             }
 
             var output = new List<FiscalXlsxSheetOverview>(sheets.Length);
+            int totalCells = 0;
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (XElement sheet in sheets)
             {
@@ -105,6 +125,8 @@ public sealed class FiscalXlsxEvidenceInspector
 
                 XDocument worksheet = ReadXml(Required(archive, path), cancellationToken);
                 var samples = new List<FiscalXlsxCellSample>(MaximumSamples);
+                var allCells = new List<FiscalXlsxCellSample>();
+                var seenAddresses = new HashSet<string>(StringComparer.Ordinal);
                 int count = 0;
                 foreach (XElement cell in worksheet.Descendants(Spreadsheet + "sheetData")
                     .Elements(Spreadsheet + "row").Elements(Spreadsheet + "c"))
@@ -116,23 +138,76 @@ public sealed class FiscalXlsxEvidenceInspector
                         throw Invalid("Βρέθηκε κελί με μη έγκυρη διεύθυνση A1.");
                     }
 
+                    if (!seenAddresses.Add(address))
+                    {
+                        throw Invalid("Εντοπίστηκε διπλή διεύθυνση κελιού στο ίδιο φύλλο.");
+                    }
+
                     bool formula = cell.Element(Spreadsheet + "f") is not null;
                     string value = ReadCellText(cell, strings, formula);
+                    if (value.Length > MaximumExportCellText)
+                    {
+                        throw Invalid("Πολύ μεγάλο περιεχόμενο κελιού για ασφαλή πλήρη εξαγωγή.");
+                    }
+
                     if (value.Length == 0 && !formula)
                     {
                         continue;
                     }
 
+                    int? styleIndex = null;
+                    if (cell.Attribute("s") is XAttribute style)
+                    {
+                        if (!int.TryParse(style.Value, NumberStyles.None,
+                            CultureInfo.InvariantCulture, out int parsedStyle) ||
+                            parsedStyle is < 0 or > 100000)
+                        {
+                            throw Invalid("Μη έγκυρος δείκτης μορφοποίησης κελιού.");
+                        }
+
+                        styleIndex = parsedStyle;
+                    }
+
+                    var item = new FiscalXlsxCellSample(address, value, formula)
+                    {
+                        StyleIndex = styleIndex
+                    };
                     count++;
+                    totalCells++;
+                    if (totalCells > MaximumWorkbookCells)
+                    {
+                        throw Invalid("Υπέρβαση μέγιστου αριθμού κελιών workbook.");
+                    }
+
+                    allCells.Add(item);
                     if (samples.Count < MaximumSamples)
                     {
-                        samples.Add(new FiscalXlsxCellSample(address,
-                            value.Length > MaximumCellText ? value[..MaximumCellText] : value,
-                            formula));
+                        samples.Add(item with
+                        {
+                            Text = value.Length > MaximumCellText ? value[..MaximumCellText] : value
+                        });
                     }
                 }
 
-                output.Add(new FiscalXlsxSheetOverview(name, count, samples.AsReadOnly()));
+                var merged = new List<string>();
+                foreach (XElement range in worksheet.Descendants(Spreadsheet + "mergeCell"))
+                {
+                    string value = (string?)range.Attribute("ref") ?? string.Empty;
+                    string[] parts = value.Split(':', StringSplitOptions.None);
+                    if (parts.Length != 2 || !IsCellAddress(parts[0]) ||
+                        !IsCellAddress(parts[1]) || merged.Count >= MaximumMergedRanges)
+                    {
+                        throw Invalid("Μη έγκυρη συγχώνευση ή υπέρβαση ορίου περιοχών.");
+                    }
+
+                    merged.Add(value);
+                }
+
+                output.Add(new FiscalXlsxSheetOverview(name, count, samples.AsReadOnly())
+                {
+                    AllCells = allCells.AsReadOnly(),
+                    MergedRanges = merged.AsReadOnly()
+                });
             }
 
             return new FiscalXlsxEvidenceInspection(sha256, stream.Length, output.AsReadOnly());
@@ -255,7 +330,7 @@ public sealed class FiscalXlsxEvidenceInspector
         if (type == "inlineStr")
         {
             return string.Concat(cell.Descendants(Spreadsheet + "is")
-                .Descendants(Spreadsheet + "t").Select(value => value.Value)).Trim();
+                .Descendants(Spreadsheet + "t").Select(value => value.Value));
         }
 
         string raw = cell.Element(Spreadsheet + "v")?.Value ?? string.Empty;
@@ -267,14 +342,14 @@ public sealed class FiscalXlsxEvidenceInspector
                 throw Invalid("Άκυρο shared string index σε κελί.");
             }
 
-            return strings[index].Trim();
+            return strings[index];
         }
 
         return type switch
         {
             "b" => raw == "1" ? "TRUE" : "FALSE",
             "e" => "[EXCEL ERROR]",
-            _ => raw.Trim()
+            _ => raw
         };
     }
 
@@ -286,17 +361,21 @@ public sealed class FiscalXlsxEvidenceInspector
         }
 
         int index = 0;
+        int column = 0;
         while (index < address.Length && index < 3 && address[index] is >= 'A' and <= 'Z')
         {
+            column = column * 26 + address[index] - 'A' + 1;
             index++;
         }
 
-        if (index == 0 || index == address.Length || address[index] == '0')
+        if (index == 0 || column > 16384 || index == address.Length ||
+            address[index] == '0' || !address[index..].All(char.IsAsciiDigit))
         {
             return false;
         }
 
-        return address[index..].All(char.IsAsciiDigit);
+        return int.TryParse(address[index..], NumberStyles.None,
+            CultureInfo.InvariantCulture, out int row) && row is >= 1 and <= 1048576;
     }
 
     private static DomainRuleException Invalid(string message) =>
