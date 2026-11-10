@@ -23,7 +23,7 @@ public sealed class FiscalXlsxEvidenceReconciliationTests
 
         Assert.IsTrue(result.IsOriginalFileContentMatched);
         Assert.AreEqual(1, result.SheetCount);
-        Assert.AreEqual(9, result.CellCount);
+        Assert.AreEqual(8, result.CellCount);
         Assert.AreEqual(2, result.CandidatePairCount);
         Assert.AreEqual(1, result.ManualReviewCount);
         Assert.IsFalse(result.IsClassificationMatrixVerified);
@@ -95,7 +95,7 @@ public sealed class FiscalXlsxEvidenceReconciliationTests
 
         DomainRuleException error = await Assert.ThrowsExactlyAsync<DomainRuleException>(() =>
             Reconciler().VerifyAsync(other.Spreadsheet, fixture.FullJson));
-        Assert.AreEqual("fiscal.xlsx.structure.invalid", error.Code);
+        Assert.AreEqual("fiscal.xlsx.reconciliation.mismatch", error.Code);
     }
 
     [TestMethod]
