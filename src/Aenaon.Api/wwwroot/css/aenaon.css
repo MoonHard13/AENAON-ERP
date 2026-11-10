@@ -540,7 +540,7 @@ img { display: block; max-width: 100%; }
     border: 1px solid var(--border);
     border-radius: 14px;
     background: var(--surface-raised);
-    box-shadow: 0 22px 50px rgb(0 0 0 / 18%);
+    box-shadow: var(--menu-shadow);
 }
 .user-menu__identity {
     display: flex;
@@ -630,4 +630,38 @@ img { display: block; max-width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
     .workspace-choice-form button, .user-menu summary { transition: none; }
+}
+
+
+/* Βήμα 8.4.8 — Ίδιος οπτικός καμβάς logo και διακριτικότερη σκιά μενού. */
+:root {
+    --menu-shadow: 0 14px 35px rgb(13 62 46 / 10%), 0 3px 9px rgb(13 62 46 / 5%);
+}
+:root[data-theme="dark"] {
+    --menu-shadow: 0 17px 36px rgb(0 0 0 / 24%), 0 3px 10px rgb(0 0 0 / 11%);
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+        --menu-shadow: 0 17px 36px rgb(0 0 0 / 24%), 0 3px 10px rgb(0 0 0 / 11%);
+    }
+}
+
+/* Το πλαίσιο δεν αλλάζει διαστάσεις όταν εναλλάσσονται οι δύο 960x960 WebP εκδόσεις. */
+.presentation__logo { aspect-ratio: 1 / 1; }
+.presentation__logo img { width: 100%; height: 100%; object-fit: contain; }
+.login-mobile-brand { aspect-ratio: 1 / 1; }
+.login-mobile-brand img { width: 100%; height: 100%; object-fit: contain; }
+
+/* Αναγνώσιμες βοηθητικές ετικέτες σε Sidebar, popovers και μικρές οθόνες. */
+.sidebar__link small { font-size: 11px; font-weight: 650; }
+.sidebar__foot { font-size: 11px; }
+.sidebar__version { font-size: 11px; }
+.presentation__bottom { font-size: 12px; }
+.user-menu__section-label { font-size: 11px; }
+.store-entry__badge { font-size: 11px; }
+
+/* Το κοινό σύστημα focus παραμένει ορατό σε dropdowns χωρίς να αλλάζει η διάταξη. */
+.user-menu summary:focus-visible {
+    outline: 3px solid var(--positive);
+    outline-offset: 2px;
 }

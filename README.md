@@ -4,7 +4,7 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 ## Τρέχον στάδιο
 
-**Βήμα 8.4.5 — UI/UX Hardening (Development).** Σαφής επιλογή ενεργού Tenant/Store με deny-by-default, βελτίωση autofill/contrast/light-dark, κοινά SVG icons και ασφαλέστερα μηνύματα Login. Το UI παραμένει Development-only.
+**Βήμα 8.4.8 — Visual Consistency Polish (Development).** Κοινός 960×960 διαφανής καμβάς light/dark logos, ομοιόμορφο οπτικό μέγεθος, βελτιωμένη σκιά του User Menu και ευανάγνωστα βοηθητικά labels. Login, Logout και Tenant/Store παραμένουν αμετάβλητα. Το UI εξακολουθεί να είναι Development-only.
 
 Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
 
@@ -214,6 +214,14 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 
 Πλήρης ελληνικός οδηγός: [UI Refinement & Workspace Persistence](docs/14-ui-refinement-workspace-persistence.md).
 
+## Βήμα 8.4.8 — Visual Consistency Polish
+
+Τα δύο WebP λογότυπα αντικαθίστανται από ακριβώς ευθυγραμμισμένες εκδόσεις ίδιου καμβά 960×960, προερχόμενες από τα αυθεντικά MoonHard PNG. Διορθώνεται η έντονη σκιά του User Menu σε Light Mode και η αναγνωσιμότητα μικρών ετικετών, χωρίς λειτουργικές αλλαγές.
+
+**Απαιτείται προσθήκη binary assets πριν από το merge:** Κατέβασε το AenaonERP_VisualConsistency_Assets.zip από τη συνομιλία, αποσυμπίεσέ το στον φάκελο του repository και κάνε commit τα δύο αρχεία στο ίδιο feature branch. Τα νέα HTTP tests ελέγχουν τις πραγματικές διαστάσεις WebP και αποτυγχάνουν έως ότου ανέβουν οι σωστές εικόνες.
+
+Οδηγίες: [Visual Consistency Polish](docs/15-visual-consistency-polish.md).
+
 ## Δομή
 
 | Διαδρομή | Περιεχόμενο |
@@ -271,4 +279,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 - [UI/UX Hardening](docs/12-ui-ux-hardening.md)
 - [SVG Icons & Static Asset Cache](docs/13-static-assets-svg-cache.md)
 - [UI Refinement & Workspace Persistence](docs/14-ui-refinement-workspace-persistence.md)
+- [Visual Consistency Polish](docs/15-visual-consistency-polish.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
