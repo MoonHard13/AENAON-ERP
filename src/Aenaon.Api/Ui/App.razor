@@ -1,3 +1,5 @@
+@inject UiAssetVersions Assets
+
 <!DOCTYPE html>
 <html lang="el">
 <head>
@@ -6,12 +8,12 @@
     <meta name="color-scheme" content="dark light" />
     <base href="/" />
     <title>Aenaon ERP | by MoonHard</title>
-    <link rel="icon" type="image/png" href="/images/aenaon-favicon.png" />
-    <script src="/js/aenaon-theme-init.js"></script>
-    <link rel="stylesheet" href="/css/aenaon.css" />
+    <link rel="icon" type="image/png" href="@($"/images/aenaon-favicon.png?v={Assets.Favicon}")" />
+    <script src="@($"/js/aenaon-theme-init.js?v={Assets.ThemeInitialization}")"></script>
+    <link rel="stylesheet" href="@($"/css/aenaon.css?v={Assets.Css}")" />
 </head>
 <body>
     <Routes />
-    <script src="/js/aenaon.js" defer></script>
+    <script src="@($"/js/aenaon.js?v={Assets.JavaScript}")" defer></script>
 </body>
 </html>
