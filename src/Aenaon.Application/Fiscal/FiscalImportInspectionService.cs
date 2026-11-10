@@ -96,8 +96,11 @@ public sealed class FiscalImportInspectionService(TimeProvider timeProvider)
         }
 
         if (!Enum.TryParse(manifest.Source, ignoreCase: false, out FiscalReferenceSource source) ||
-            !Enum.IsDefined(source) || !Enum.TryParse(manifest.CodeSystem, ignoreCase: false,
-                out FiscalCodeSystem system) || !Enum.IsDefined(system) ||
+            !Enum.IsDefined(source) ||
+            !string.Equals(manifest.Source, source.ToString(), StringComparison.Ordinal) ||
+            !Enum.TryParse(manifest.CodeSystem, ignoreCase: false, out FiscalCodeSystem system) ||
+            !Enum.IsDefined(system) ||
+            !string.Equals(manifest.CodeSystem, system.ToString(), StringComparison.Ordinal) ||
             !IsAllowedSystem(source, system))
         {
             throw Invalid("Η πηγή και το σύστημα κωδικών δεν αντιστοιχούν σε επιτρεπτό namespace.");
