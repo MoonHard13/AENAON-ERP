@@ -53,6 +53,11 @@ public sealed class WorkspacePreferenceService(
             logger.LogWarning("Invalid protected workspace cookie was rejected");
             return false;
         }
+        catch (FormatException)
+        {
+            logger.LogWarning("Malformed workspace cookie was rejected");
+            return false;
+        }
     }
 
     public void Save(HttpContext context, Guid authenticatedUserId, TenantWorkspaceSnapshot selection)
