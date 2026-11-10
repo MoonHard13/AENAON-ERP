@@ -20,6 +20,10 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Οδηγίες: [Fiscal Domain Contracts](docs/20-fiscal-domain-contracts.md).
 
+## Βήμα 9.3B — Fiscal Reference Data & Tax Mapping
+
+Το [Fiscal Reference Data & Tax Mapping](docs/21-fiscal-reference-mapping.md) εισάγει versioned registry φορολογικών αναφορών και προσωρινά tenant-safe mappings με τέταρτη EF Core migration, περιορισμούς SQL και read-only preview. Καμία φορολογική πρόταση δεν επιτρέπεται να εκδώσει παραστατικό, δεν υπάρχουν πραγματικά seed δεδομένα ή κλήσεις σε ΑΑΔΕ/IMPACT.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
@@ -330,4 +334,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [myDATA & IMPACT Compatibility Gate](docs/18-mydata-impact-compatibility.md)
 - [Fiscal Catalog Design Gate](docs/19-fiscal-catalog-design.md)
 - [Fiscal Domain Contracts & Tests](docs/20-fiscal-domain-contracts.md)
+- [Fiscal Reference Data & Tax Mapping](docs/21-fiscal-reference-mapping.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)

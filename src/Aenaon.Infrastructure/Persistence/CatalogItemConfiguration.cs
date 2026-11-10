@@ -28,6 +28,7 @@ internal sealed class CatalogItemConfiguration : IEntityTypeConfiguration<Catalo
         });
 
         builder.HasKey(item => item.Id);
+        builder.HasAlternateKey(item => new { item.TenantId, item.Id });
         builder.Property(item => item.Id).ValueGeneratedNever();
         builder.Property(item => item.TenantId).IsRequired();
         builder.Property(item => item.CategoryId).IsRequired();

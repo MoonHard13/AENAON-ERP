@@ -96,6 +96,8 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
 
                 b.HasKey("Id");
 
+                b.HasAlternateKey("TenantId", "Id");
+
                 b.HasIndex("TenantId", "CategoryId");
 
                 b.HasIndex("TenantId", "Code")
@@ -116,6 +118,136 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                         t.HasCheckConstraint("CK_CatalogItems_ServiceStock", "[Kind] <> 2 OR [TracksStock] = 0");
 
                         t.HasCheckConstraint("CK_CatalogItems_TenantId", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
+                    });
+            });
+
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Persistence.FiscalReferenceRecord", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<string>("Code")
+                    .IsRequired()
+                    .HasMaxLength(64)
+                    .HasColumnType("nvarchar(64)")
+                    .UseCollation("Latin1_General_100_BIN2");
+
+                b.Property<int>("CodeSystem")
+                    .HasColumnType("int");
+
+                b.Property<string>("Description")
+                    .IsRequired()
+                    .HasMaxLength(250)
+                    .HasColumnType("nvarchar(250)");
+
+                b.Property<DateOnly>("EffectiveFrom")
+                    .HasColumnType("date");
+
+                b.Property<DateOnly?>("EffectiveUntil")
+                    .HasColumnType("date");
+
+                b.Property<int>("Source")
+                    .HasColumnType("int");
+
+                b.Property<string>("SourceUrl")
+                    .IsRequired()
+                    .HasMaxLength(500)
+                    .HasColumnType("nvarchar(500)");
+
+                b.Property<string>("SourceVersion")
+                    .IsRequired()
+                    .HasMaxLength(80)
+                    .HasColumnType("nvarchar(80)")
+                    .UseCollation("Latin1_General_100_BIN2");
+
+                b.Property<DateTimeOffset>("VerifiedAtUtc")
+                    .HasColumnType("datetimeoffset");
+
+                b.HasKey("Id");
+
+                b.HasIndex("Source", "CodeSystem", "Code", "SourceVersion", "EffectiveFrom")
+                    .IsUnique();
+
+                b.ToTable("FiscalReferenceCodes", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_FiscalReferences_Source", "[Source] IN (1, 2, 3)");
+
+                        t.HasCheckConstraint("CK_FiscalReferences_CodeSystem", "[CodeSystem] BETWEEN 1 AND 8");
+
+                        t.HasCheckConstraint("CK_FiscalReferences_Period", "[EffectiveUntil] IS NULL OR [EffectiveUntil] >= [EffectiveFrom]");
+
+                        t.HasCheckConstraint("CK_FiscalReferences_Code", "LEN(LTRIM(RTRIM([Code]))) > 0");
+
+                        t.HasCheckConstraint("CK_FiscalReferences_Version", "LEN(LTRIM(RTRIM([SourceVersion]))) > 0");
+                    });
+            });
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Persistence.FiscalTaxMappingRecord", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<Guid>("CatalogItemId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<DateTimeOffset>("CreatedAtUtc")
+                    .HasColumnType("datetimeoffset");
+
+                b.Property<int>("CustomerChannel")
+                    .HasColumnType("int");
+
+                b.Property<DateOnly>("EffectiveFrom")
+                    .HasColumnType("date");
+
+                b.Property<DateOnly?>("EffectiveUntil")
+                    .HasColumnType("date");
+
+                b.Property<Guid>("IncomeCategoryId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<Guid>("IncomeTypeId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<Guid?>("MeasurementUnitEnId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<Guid?>("MeasurementUnitId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<Guid>("TenantId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<Guid>("VatCategoryId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<Guid?>("VatExemptionId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.HasKey("Id");
+
+                b.HasIndex("IncomeCategoryId");
+
+                b.HasIndex("IncomeTypeId");
+
+                b.HasIndex("MeasurementUnitEnId");
+
+                b.HasIndex("MeasurementUnitId");
+
+                b.HasIndex("VatCategoryId");
+
+                b.HasIndex("VatExemptionId");
+
+                b.HasIndex("TenantId", "CatalogItemId", "CustomerChannel", "EffectiveFrom")
+                    .IsUnique();
+
+                b.ToTable("FiscalTaxMappings", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_FiscalMappings_Channel", "[CustomerChannel] IN (1, 2, 3)");
+
+                        t.HasCheckConstraint("CK_FiscalMappings_Period", "[EffectiveUntil] IS NULL OR [EffectiveUntil] >= [EffectiveFrom]");
+
+                        t.HasCheckConstraint("CK_FiscalMappings_Tenant", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
                     });
             });
 
@@ -361,6 +493,50 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     .HasForeignKey("TenantId")
                     .OnDelete(DeleteBehavior.Restrict)
                     .IsRequired();
+            });
+
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Persistence.FiscalTaxMappingRecord", b =>
+            {
+                b.HasOne("Aenaon.Domain.Catalog.CatalogItem", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "CatalogItemId")
+                    .HasPrincipalKey("TenantId", "Id")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.HasOne("Aenaon.Infrastructure.Persistence.FiscalReferenceRecord", null)
+                    .WithMany()
+                    .HasForeignKey("VatCategoryId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.HasOne("Aenaon.Infrastructure.Persistence.FiscalReferenceRecord", null)
+                    .WithMany()
+                    .HasForeignKey("IncomeCategoryId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.HasOne("Aenaon.Infrastructure.Persistence.FiscalReferenceRecord", null)
+                    .WithMany()
+                    .HasForeignKey("IncomeTypeId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.HasOne("Aenaon.Infrastructure.Persistence.FiscalReferenceRecord", null)
+                    .WithMany()
+                    .HasForeignKey("VatExemptionId")
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                b.HasOne("Aenaon.Infrastructure.Persistence.FiscalReferenceRecord", null)
+                    .WithMany()
+                    .HasForeignKey("MeasurementUnitId")
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                b.HasOne("Aenaon.Infrastructure.Persistence.FiscalReferenceRecord", null)
+                    .WithMany()
+                    .HasForeignKey("MeasurementUnitEnId")
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
         modelBuilder.Entity("Aenaon.Domain.Tenancy.Store", b =>

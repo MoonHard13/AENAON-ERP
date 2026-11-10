@@ -22,7 +22,7 @@ internal static class SqlServerSchemaAssertions
 
         var preview = await manager.ExecuteAsync(false, null, cancellationToken);
         Assert.AreEqual(DatabaseSchemaStatus.Ready, preview.Status);
-        Assert.HasCount(3, preview.PendingMigrations!);
+        Assert.HasCount(4, preview.PendingMigrations!);
         Assert.HasCount(0, preview.AppliedMigrations!);
         await AssertUserTableCountAsync(connection, 0, cancellationToken);
 
@@ -39,9 +39,9 @@ internal static class SqlServerSchemaAssertions
 
         var applied = await manager.ExecuteAsync(true, "AenaonERP_CI", cancellationToken);
         Assert.AreEqual(DatabaseSchemaStatus.Updated, applied.Status);
-        Assert.HasCount(3, applied.AppliedMigrations!);
+        Assert.HasCount(4, applied.AppliedMigrations!);
         Assert.HasCount(0, applied.PendingMigrations!);
-        await AssertUserTableCountAsync(connection, 10, cancellationToken);
+        await AssertUserTableCountAsync(connection, 12, cancellationToken);
 
         var options = AenaonDbContextOptions.Create(connectionString, true);
         await using var context = new AenaonDbContext(options);
@@ -88,6 +88,7 @@ internal static class SqlServerSchemaAssertions
         Assert.AreEqual(4, await context.Stores.CountAsync(cancellationToken));
 
         await SqlServerCatalogAssertions.RunAsync(connection, context, first.Id, second.Id, cancellationToken);
+        await SqlServerFiscalAssertions.RunAsync(connection, context, first.Id, second.Id, cancellationToken);
 
         // Μια μελλοντική ή ξένη έκδοση στο ιστορικό αποκλείει την εφαρμογή παλαιότερου κώδικα.
         await ExecuteAsync(connection, """
