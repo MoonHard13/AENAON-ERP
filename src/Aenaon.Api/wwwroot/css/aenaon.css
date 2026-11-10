@@ -423,3 +423,211 @@ img { display: block; max-width: 100%; }
     .store-entry__badge { margin-left: 55px; }
     .surface-card { min-height: 0; }
 }
+
+
+/* Βήμα 8.4.7 — Η αριστερή πλευρά του Login ακολουθεί πραγματικά το Light/Dark theme. */
+:root:not([data-theme]) .login-presentation,
+:root[data-theme="light"] .login-presentation {
+    color: #153b32;
+    background:
+        radial-gradient(ellipse at 48% 36%, rgb(94 174 135 / 18%), transparent 48%),
+        radial-gradient(ellipse at 0 100%, rgb(140 192 156 / 13%), transparent 52%),
+        linear-gradient(145deg, #f1f8f0, #deebe1 56%, #d5e7dc);
+}
+:root:not([data-theme]) .login-presentation::before,
+:root[data-theme="light"] .login-presentation::before {
+    opacity: .12;
+    background: linear-gradient(90deg, transparent 98%, rgb(19 90 66 / 20%) 100%);
+    background-size: 46px 46px;
+}
+:root:not([data-theme]) .presentation__muted,
+:root[data-theme="light"] .presentation__muted { color: #3a6b57; }
+:root:not([data-theme]) .presentation__copy .eyebrow,
+:root[data-theme="light"] .presentation__copy .eyebrow { color: #136d50; }
+:root:not([data-theme]) .presentation__copy p,
+:root[data-theme="light"] .presentation__copy p { color: #345a4e; }
+:root:not([data-theme]) .presentation__bottom,
+:root[data-theme="light"] .presentation__bottom { color: #426a5b; }
+:root:not([data-theme]) .presentation__logo,
+:root[data-theme="light"] .presentation__logo { filter: drop-shadow(0 20px 32px rgb(19 77 57 / 14%)); }
+
+:root[data-theme="dark"] .login-presentation {
+    color: #eff9f3;
+    background:
+        radial-gradient(ellipse at 45% 35%, rgb(23 139 108 / 36%), transparent 44%),
+        radial-gradient(ellipse at 95% 100%, rgb(10 102 77 / 32%), transparent 60%),
+        linear-gradient(145deg,#062b24,#08251f 55%,#051a17);
+}
+:root[data-theme="dark"] .login-presentation::before {
+    opacity: .22;
+    background: linear-gradient(90deg, transparent 99%, rgb(202 245 212 / 17%) 100%);
+    background-size: 46px 46px;
+}
+:root[data-theme="dark"] .presentation__muted { color: #9bc7b7; }
+:root[data-theme="dark"] .presentation__copy .eyebrow { color: #7ae2ba; }
+:root[data-theme="dark"] .presentation__copy p { color: #b0d6c9; }
+:root[data-theme="dark"] .presentation__bottom { color: #85b8a6; }
+:root[data-theme="dark"] .presentation__logo { filter: drop-shadow(0 40px 60px rgb(0 0 0 / 18%)); }
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) .login-presentation {
+        color: #eff9f3;
+        background:
+            radial-gradient(ellipse at 45% 35%, rgb(23 139 108 / 36%), transparent 44%),
+            radial-gradient(ellipse at 95% 100%, rgb(10 102 77 / 32%), transparent 60%),
+            linear-gradient(145deg,#062b24,#08251f 55%,#051a17);
+    }
+    :root:not([data-theme]) .login-presentation::before {
+        opacity: .22;
+        background: linear-gradient(90deg, transparent 99%, rgb(202 245 212 / 17%) 100%);
+        background-size: 46px 46px;
+    }
+    :root:not([data-theme]) .presentation__muted { color: #9bc7b7; }
+    :root:not([data-theme]) .presentation__copy .eyebrow { color: #7ae2ba; }
+    :root:not([data-theme]) .presentation__copy p { color: #b0d6c9; }
+    :root:not([data-theme]) .presentation__bottom { color: #85b8a6; }
+    :root:not([data-theme]) .presentation__logo { filter: drop-shadow(0 40px 60px rgb(0 0 0 / 18%)); }
+}
+
+/* Όλα τα στοιχεία επιλογής είναι κανονικά submit buttons, προσβάσιμα μόνο με πληκτρολόγιο. */
+.workspace-choice-form { width: 100%; margin: 0; }
+.workspace-choice-form button {
+    width: 100%;
+    color: var(--text);
+    font: inherit;
+    border: 0;
+    text-align: left;
+    background: transparent;
+    cursor: pointer;
+}
+.workspace-choice-form button:hover { background: var(--surface-alt); }
+.workspace-choice-form .tenant-entry--active,
+.workspace-choice-form .store-entry--active { background: var(--surface-alt); }
+.workspace-choice-form button:focus-visible { outline: 3px solid var(--positive); outline-offset: 3px; }
+
+/* Dropdown λογαριασμού και ασφαλές POST Logout αντί για άμεσο κουμπί στο Dashboard. */
+.topbar__actions { position: relative; }
+.user-menu { position: relative; min-width: 0; }
+.user-menu summary {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 7px 9px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    list-style: none;
+    color: var(--text);
+}
+.user-menu summary::-webkit-details-marker { display: none; }
+.user-menu summary::marker { content: ""; }
+.user-menu summary:hover,
+.user-menu[open] > summary { background: var(--surface-alt); border-color: var(--border); }
+.user-menu summary > .app-icon {
+    width: 14px;
+    height: 14px;
+    flex-basis: 14px;
+    transform: rotate(90deg);
+    color: var(--muted);
+}
+.user-menu__panel {
+    position: absolute;
+    z-index: 80;
+    top: calc(100% + 8px);
+    right: 0;
+    width: min(294px, calc(100vw - 24px));
+    padding: 9px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface-raised);
+    box-shadow: 0 22px 50px rgb(0 0 0 / 18%);
+}
+.user-menu__identity {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 13px 11px;
+    border-bottom: 1px solid var(--border);
+}
+.user-menu__avatar {
+    display: grid;
+    place-items: center;
+    height: 39px;
+    width: 39px;
+    flex: 0 0 39px;
+    border-radius: 11px;
+    background: #146b50;
+    color: white;
+    font-weight: 750;
+}
+.user-menu__identity div { min-width: 0; display: grid; gap: 3px; }
+.user-menu__identity strong { font-size: 14px; }
+.user-menu__identity small { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.user-menu__section-label { padding: 13px 11px 7px; color: var(--muted); letter-spacing: .12em; font-size: 10px; font-weight: 800; }
+.user-menu__logout { margin: 0; }
+.user-menu__logout button {
+    width: 100%;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #a63730;
+    padding: 12px 11px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    font-size: 13px;
+    text-align: left;
+}
+.user-menu__logout button:hover { background: #fff0ee; }
+:root[data-theme="dark"] .user-menu__logout button { color: #ffaca1; }
+:root[data-theme="dark"] .user-menu__logout button:hover { background: #4b2e2a; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) .user-menu__logout button { color: #ffaca1; }
+    :root:not([data-theme]) .user-menu__logout button:hover { background: #4b2e2a; }
+}
+
+/* Mobile menu παραμένει διαθέσιμο ακόμη κι όταν το Sidebar απλοποιείται. */
+.mobile-navigation { display: none; position: relative; }
+.mobile-navigation > summary {
+    display: flex; align-items: center; gap: 7px; cursor: pointer; list-style: none;
+    min-height: 40px; padding: 7px 10px; color: var(--text);
+    border: 1px solid var(--border); border-radius: 9px; font-size: 13px; font-weight: 700;
+}
+.mobile-navigation > summary::-webkit-details-marker { display: none; }
+.mobile-navigation > summary::marker { content: ""; }
+.mobile-navigation nav {
+    position: absolute; z-index: 70; top: calc(100% + 8px); left: 0;
+    min-width: 250px; max-width: calc(100vw - 32px);
+    background: var(--surface-raised); padding: 9px; border: 1px solid var(--border);
+    border-radius: 12px; box-shadow: 0 18px 45px rgb(0 0 0 / 16%);
+}
+.mobile-navigation nav a,
+.mobile-navigation nav span {
+    display: flex; align-items: center; gap: 9px; padding: 11px 9px; border-radius: 8px;
+    font-size: 13px; color: var(--text);
+}
+.mobile-navigation nav a:hover { background: var(--positive-soft); }
+.mobile-navigation nav span { color: var(--muted); }
+.mobile-navigation nav span .app-icon { opacity: .6; }
+.mobile-navigation .app-icon { width: 17px; height: 17px; flex: 0 0 17px; }
+@media (max-width: 850px) {
+    .mobile-navigation { display: block; }
+    .sidebar__nav { display: none; }
+    .topbar { justify-content: space-between; gap: 10px; }
+    .topbar__actions { gap: 5px; }
+    .topbar__actions .theme-toggle { padding: 8px; }
+    .topbar__actions .theme-toggle [data-theme-label] { display: none; }
+    .breadcrumb { display: none; }
+    .user-menu summary { gap: 7px; padding: 6px; }
+}
+@media (max-width: 540px) {
+    .user-menu .topbar__username { display: none; }
+    .user-menu__panel { right: -6px; }
+    .topbar { padding-inline: 14px; }
+    .login-panel__toolbar { padding: 18px 20px; }
+    .presentation__copy h2 { font-size: 28px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .workspace-choice-form button, .user-menu summary { transition: none; }
+}
