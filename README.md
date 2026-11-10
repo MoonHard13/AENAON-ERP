@@ -44,6 +44,10 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Το [εργαλείο πλήρους, read-only εξαγωγής XLSX σε JSON](docs/26-complete-xlsx-evidence-export.md) κρατά όλα τα μη κενά κελιά, συγχωνευμένες περιοχές και δείκτες μορφοποίησης, επιβάλλει πλήρη συμφωνία counts και διαχωρίζει υποψήφιες κατηγορίες εσόδων/εξόδων από ειδικές οδηγίες προς έλεγχο. Η προεπισκόπηση συνεχίζει να δείχνει 30 δείγματα ανά φύλλο, **με ρητή επισήμανση** της περικοπής· `--all` και `--export-json` εμφανίζουν/αποθηκεύουν ολόκληρα τα δεδομένα. Χωρίς migrations, SQL writes, tax approval ή έκδοση.
 
+## Βήμα 9.3C.3B.3 — Original XLSX / JSON Evidence Reconciliation
+
+Το [read-only εργαλείο ανεξάρτητης συμφωνίας](docs/27-xlsx-original-evidence-reconciliation.md) επανελέγχει το **πρωτότυπο XLSX** έναντι του πλήρους JSON κελί προς κελί, με SHA-256, συγχωνεύσεις, styles, υποψήφια ζεύγη και παρατηρήσεις. Η επαλήθευση αποδεικνύει μόνο **τεχνική συμφωνία**, ποτέ φορολογική έγκριση ή αυθεντικότητα πηγής. Δεν προστίθεται migration, SQL write ή provider call.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
@@ -360,4 +364,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Candidate myDATA Classification Matrix Preview](docs/24-classification-matrix-preview.md)
 - [Official XLSX Structure Inspection](docs/25-official-xlsx-structure-inspection.md)
 - [Complete XLSX Evidence Export](docs/26-complete-xlsx-evidence-export.md)
+- [Original XLSX / JSON Evidence Reconciliation](docs/27-xlsx-original-evidence-reconciliation.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
