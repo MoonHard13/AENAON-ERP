@@ -16,6 +16,7 @@ public static class SessionCookieIssuer
             new Claim(SessionAuthenticationOptions.SecurityStampClaim, account.SecurityStamp)
         };
         var identity = new ClaimsIdentity(claims, SessionAuthenticationOptions.Scheme);
+        Aenaon.Api.Ui.WorkspacePreferenceService.Clear(context);
         await context.SignInAsync(SessionAuthenticationOptions.Scheme, new ClaimsPrincipal(identity),
             new AuthenticationProperties
             {
@@ -29,6 +30,7 @@ public static class SessionCookieIssuer
     public static async Task SignOutAsync(HttpContext context)
     {
         await context.SignOutAsync(SessionAuthenticationOptions.Scheme);
+        Aenaon.Api.Ui.WorkspacePreferenceService.Clear(context);
         context.Response.Headers.CacheControl = "no-store";
     }
 }
