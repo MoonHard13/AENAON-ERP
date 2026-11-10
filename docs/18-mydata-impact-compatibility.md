@@ -19,6 +19,9 @@
 | ΑΑΔΕ myDATA | https://www.aade.gr/mydata/tehnikes-prodiagrafes-ekdoseis-mydata | Τρέχουσα έκδοση τεχνικών προδιαγραφών ERP/Παρόχων, XSD, επιτρεπόμενοι συνδυασμοί χαρακτηρισμών. |
 | ΑΑΔΕ — Test environment | https://www.aade.gr/mydata-ilektronika-biblia-aade/mydata/dokimastiko-periballon | Δοκιμαστικό περιβάλλον και ξεχωριστές δοκιμαστικές διευθύνσεις. |
 | IMPACT / SoftOne Group | https://developers.s1ecos.com/ | Onboarding, invoice JSON, υποχρεωτικά πεδία, κωδικοί ΦΠΑ, παραστατικών και χαρακτηρισμών, F&B και POS/offline ροές. |
+| IMPACT — VAT & TAX Codes | https://developers.s1ecos.com/vat-tax-codes-869826m0 | `VatCategoryCode`, `vatExemptionCategoryCode` και λοιποί tax codes· εφαρμόζονται μόνο στη σωστή φορολογική ροή. |
+| IMPACT — Classification & Payments | https://developers.s1ecos.com/classification-payment-method-codes-iapr-869832m0 | Κωδικοί χαρακτηρισμών και τρόπων πληρωμής, με έλεγχο ορθού συνδυασμού. |
+| IMPACT — Conditional Fields | https://developers.s1ecos.com/minimum-conditional-fields-869822m0 | Υποχρεωτικά ή υπό προϋποθέσεις πεδία ανά περίπτωση αποστολής. |
 | IMPACT Swagger UI | https://einvoiceapi.impact.gr/swagger/Index.html | Επικαιροποιημένες λειτουργίες, authentication, payload και response schemas. |
 | IMPACT OpenAPI JSON | https://einvoiceapi.impact.gr/swagger/coreapi/swagger.json | Ακριβή field names/types, endpoints, status codes και schema validation. |
 
@@ -58,6 +61,12 @@
 Αυτά θα προστεθούν σε **ρητά σχεδιασμένες επόμενες ενότητες** (π.χ. φορολογικό προφίλ, αντιστοίχιση myDATA, πολιτική ανά τύπο παραστατικού, αμετάβλητη γραμμή παραστατικού), αφού επιβεβαιώσουμε την ακριβή προδιαγραφή. Αποφεύγουμε να αποθηκεύσουμε αυθαίρετα την τιμή `vatCategory` ή κωδικούς IMPACT ως δήθεν καθολικά πεδία όλων των ειδών χωρίς μελέτη.
 
 **Εκτίμηση για migration 9.2:** οι πίνακες `CatalogCategories`/`CatalogItems` και ο κανόνας υπηρεσιών/αποθέματος δεν προϋποθέτουν ούτε πραγματοποιούν διαβίβαση. Είναι θεμέλιο καταλόγου, **όχι πλήρης φορολογική υλοποίηση**. Κάθε φορολογική προσθήκη στο schema θα γίνει με νέα versioned migration, όχι με σιωπηρή τροποποίηση ήδη εφαρμοσμένης.
+
+### Δεσμευτικός κανόνας χαρτογράφησης ΦΠΑ
+
+Η IMPACT δημοσιεύει ξεχωριστούς κωδικούς `VatCategoryCode` και `vatExemptionCategoryCode`. Αυτό σημαίνει ότι **ποσοστό ΦΠΑ, κατηγορία ΦΠΑ και νόμιμη αιτία εξαίρεσης δεν θεωρούνται ταυτόσημα στοιχεία**. Η πραγματική απόδοση εξαρτάται από την ισχύουσα νομοθεσία, τον τύπο συναλλαγής, την τοποθεσία και τα επιτρεπόμενα συνδυαστικά πεδία του παρόχου.
+
+Η αντιστοίχιση θα έχει versioned δοκιμαστικά παραδείγματα και θα αποτρέπει τυφλή χρήση `Product = 24%` ή `Service = 24%` ως γενικό κανόνα.
 
 ## 5. Σχέδιο διασύνδεσης IMPACT (χωρίς ενεργές κλήσεις)
 
