@@ -33,7 +33,13 @@ internal sealed class FiscalReferenceConfiguration : IEntityTypeConfiguration<Fi
         builder.Property(value => value.EffectiveUntil).HasColumnType("date");
         builder.Property(value => value.VerifiedAtUtc).IsRequired();
 
-        builder.HasIndex(value => new { value.Source, value.CodeSystem, value.Code,
-            value.SourceVersion, value.EffectiveFrom }).IsUnique();
+        builder.HasIndex(value => new
+        {
+            value.Source,
+            value.CodeSystem,
+            value.Code,
+            value.SourceVersion,
+            value.EffectiveFrom
+        }).IsUnique();
     }
 }
