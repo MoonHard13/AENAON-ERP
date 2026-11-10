@@ -48,6 +48,7 @@ public sealed class FiscalXlsxEvidenceInspector
     public async Task<FiscalXlsxEvidenceInspection> InspectAsync(string xlsxPath,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(xlsxPath) ||
             !string.Equals(Path.GetExtension(xlsxPath), ".xlsx", StringComparison.OrdinalIgnoreCase))
         {
