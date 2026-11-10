@@ -23,6 +23,7 @@ public static class ApiServiceCollectionExtensions
         services.AddControllers();
         services.AddRazorComponents();
         services.AddSingleton<UiAssetVersions>();
+        services.AddSingleton<WorkspacePreferenceService>();
         services.AddCascadingAuthenticationState();
         services.AddHttpContextAccessor();
         services.AddSingleton<IDatabaseConnectionProbe>(provider => new SqlServerConnectionProbe(
