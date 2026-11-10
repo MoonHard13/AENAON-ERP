@@ -3,43 +3,49 @@
 @layout MainLayout
 @inject IHttpContextAccessor HttpContextAccessor
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
-@inject TenantAuthorizationService Authorization
-@inject TenantWorkspaceService Workspace
+@inject TenantWorkspaceResolver WorkspaceResolver
 @inject ILogger<Dashboard> Logger
 
-<PageTitle>Dashboard | Aenaon ERP</PageTitle>
+<PageTitle>Επισκόπηση | Aenaon ERP</PageTitle>
 
 <main class="dashboard">
     <aside class="sidebar">
-        <a class="sidebar__brand" href="/dashboard" aria-label="Aenaon ERP Dashboard">
+        <a class="sidebar__brand" href="/dashboard" aria-label="Aenaon ERP — Επισκόπηση">
             <div class="sidebar__logo">
-                <img src="/images/aenaon-logo-dark.webp" alt="Aenaon ERP" width="76" height="76" />
+                <img src="/images/aenaon-favicon.png" alt="" width="48" height="48" />
             </div>
             <div class="sidebar__brand-text">
                 <strong>AENAON</strong><span>ERP · MOONHARD</span>
             </div>
         </a>
-        <div class="sidebar__section-title">WORKSPACE</div>
-        <nav class="sidebar__nav" aria-label="Βασική πλοήγηση">
+
+        <div class="sidebar__section-title">ΠΛΟΗΓΗΣΗ</div>
+        <nav class="sidebar__nav" aria-label="Κύρια πλοήγηση">
             <a class="sidebar__link sidebar__link--active" href="/dashboard" aria-current="page">
-                <span aria-hidden="true">◫</span> Επισκόπηση
+                <AppIcon Name="overview" /> Επισκόπηση
             </a>
-            <span class="sidebar__link sidebar__link--disabled"><span aria-hidden="true">▤</span> Εμπορική διαχείριση <small>Σύντομα</small></span>
-            <span class="sidebar__link sidebar__link--disabled"><span aria-hidden="true">◈</span> Αποθήκη <small>Σύντομα</small></span>
-            <span class="sidebar__link sidebar__link--disabled"><span aria-hidden="true">⚙</span> Ρυθμίσεις <small>Σύντομα</small></span>
+            <span class="sidebar__link sidebar__link--disabled">
+                <AppIcon Name="sales" /> Εμπορική διαχείριση <small>Σύντομα</small>
+            </span>
+            <span class="sidebar__link sidebar__link--disabled">
+                <AppIcon Name="warehouse" /> Αποθήκη <small>Σύντομα</small>
+            </span>
+            <span class="sidebar__link sidebar__link--disabled">
+                <AppIcon Name="settings" /> Ρυθμίσεις <small>Σύντομα</small>
+            </span>
         </nav>
         <div class="sidebar__foot">
-            <span class="sidebar__status-dot"></span> DEVELOPMENT ENVIRONMENT
-            <span class="sidebar__version">Aenaon ERP · v0.8.4</span>
+            <span class="sidebar__status-dot"></span> ΠΕΡΙΒΑΛΛΟΝ ΑΝΑΠΤΥΞΗΣ
+            <span class="sidebar__version">Aenaon ERP · Build @UiAppInfo.Version</span>
         </div>
     </aside>
 
     <div class="dashboard__content">
         <header class="topbar">
-            <div class="breadcrumb">Workspace <span>/</span> <strong>Επισκόπηση</strong></div>
+            <div class="breadcrumb">Εφαρμογή <span>/</span> <strong>Επισκόπηση</strong></div>
             <div class="topbar__actions">
                 <button type="button" class="theme-toggle" data-theme-toggle aria-label="Εναλλαγή θέματος">
-                    <span aria-hidden="true">◐</span> <span data-theme-label>Θέμα</span>
+                    <AppIcon Name="sun-moon" /> <span data-theme-label>Θέμα</span>
                 </button>
                 <div class="topbar__avatar" aria-label="Συνδεδεμένος χρήστης">@_initials</div>
                 <span class="topbar__username">@_userName</span>
@@ -49,66 +55,116 @@
         <div class="dashboard__body">
             <div class="dashboard__heading">
                 <div>
-                    <p class="eyebrow eyebrow--green">ΚΕΝΤΡΙΚΟ DASHBOARD</p>
-                    <h1>Καλώς ήρθες, @_userName.</h1>
-                    <p>Διαχειρίσου με ασφάλεια τις επιχειρήσεις και τα καταστήματά σου.</p>
+                    <p class="eyebrow eyebrow--green">ΚΕΝΤΡΙΚΗ ΕΠΙΣΚΟΠΗΣΗ</p>
+                    <h1>Καλώς ήρθατε, @_userName.</h1>
+                    <p>Διαχειριστείτε με ασφάλεια τις επιχειρήσεις και τα καταστήματά σας.</p>
                 </div>
                 @if (!string.IsNullOrWhiteSpace(_csrfToken))
                 {
                     <form method="post" action="/ui/session/logout" class="logout-form">
                         <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
-                        <button class="button button--outline" type="submit"><span aria-hidden="true">↪</span> Αποσύνδεση</button>
+                        <button class="button button--outline" type="submit">
+                            <AppIcon Name="logout" /> Αποσύνδεση
+                        </button>
                     </form>
                 }
             </div>
 
-            <section class="workspace-overview" aria-label="Σύνοψη πρόσβασης">
-                <div class="stat-card">
-                    <div class="stat-card__label">Επιχειρήσεις <span aria-hidden="true">▤</span></div>
-                    <div class="stat-card__value">@_tenants.Count</div>
-                    <div class="stat-card__caption">με ενεργή συμμετοχή</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-card__label">Καταστήματα <span aria-hidden="true">⌂</span></div>
-                    <div class="stat-card__value">@_stores.Count</div>
-                    <div class="stat-card__caption">στην επιλεγμένη επιχείρηση</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-card__label">Σύνδεση <span aria-hidden="true">◈</span></div>
-                    <div class="stat-card__value stat-card__value--status"><span class="status-dot"></span> Ενεργή</div>
-                    <div class="stat-card__caption">Ταυτότητα επιβεβαιωμένη από τον server</div>
-                </div>
-            </section>
-
             @if (_error)
             {
-                <div class="form-alert" role="alert">Δεν ήταν δυνατή η ανάκτηση των δεδομένων. Δοκίμασε ξανά.</div>
+                <div class="form-alert" role="alert">
+                    Η ανάκτηση δεδομένων δεν ολοκληρώθηκε. Ανανεώστε τη σελίδα και ελέγξτε τη σύνδεση με τη βάση.
+                </div>
             }
-            else
+            else if (_workspace is not null)
             {
+                @if (_workspace.Status is TenantWorkspaceStatus.InvalidTenant)
+                {
+                    <div class="workspace-alert" role="alert">
+                        Η επιλεγμένη επιχείρηση δεν είναι διαθέσιμη στον λογαριασμό σας.
+                        Επιλέξτε μία από τις επιχειρήσεις σας παρακάτω.
+                    </div>
+                }
+                else if (_workspace.Status is TenantWorkspaceStatus.InvalidStore)
+                {
+                    <div class="workspace-alert" role="alert">
+                        Το επιλεγμένο κατάστημα δεν είναι διαθέσιμο στην επιχείρησή σας.
+                        Επιλέξτε ένα από τα επιτρεπόμενα καταστήματα.
+                    </div>
+                }
+                else if (_workspace.Status is TenantWorkspaceStatus.NoTenants)
+                {
+                    <div class="workspace-alert" role="status">
+                        Δεν έχει ανατεθεί επιχείρηση στον λογαριασμό σας.
+                    </div>
+                }
+                else if (_workspace.Status is TenantWorkspaceStatus.NoStores)
+                {
+                    <div class="workspace-alert" role="status">
+                        Η επιχείρηση δεν διαθέτει καταχωρημένα καταστήματα.
+                    </div>
+                }
+
+                @if (_workspace.Status is TenantWorkspaceStatus.Ready)
+                {
+                    <section class="active-workspace" aria-label="Ενεργό πλαίσιο εργασίας">
+                        <span class="active-workspace__icon"><AppIcon Name="check" /></span>
+                        <div class="active-workspace__details">
+                            <span>ΕΝΕΡΓΟ ΠΛΑΙΣΙΟ ΕΡΓΑΣΙΑΣ</span>
+                            <strong>@_workspace.Tenant?.Name / @_workspace.Store?.Name</strong>
+                            <small>Κωδικός καταστήματος: @_workspace.Store?.Code</small>
+                        </div>
+                        <span class="active-workspace__status">Επιβεβαιωμένη πρόσβαση</span>
+                    </section>
+                }
+
+                <section class="workspace-overview" aria-label="Σύνοψη πρόσβασης">
+                    <div class="stat-card">
+                        <div class="stat-card__label">Επιχειρήσεις <AppIcon Name="building" /></div>
+                        <div class="stat-card__value">@_workspace.Tenants.Count</div>
+                        <div class="stat-card__caption">στις οποίες έχετε πρόσβαση</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card__label">Καταστήματα <AppIcon Name="store" /></div>
+                        <div class="stat-card__value">@_workspace.Stores.Count</div>
+                        <div class="stat-card__caption">στην επιλεγμένη επιχείρηση</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card__label">Σύνδεση <AppIcon Name="shield" /></div>
+                        <div class="stat-card__value stat-card__value--status"><span class="status-dot"></span> Ενεργή</div>
+                        <div class="stat-card__caption">Επαληθευμένη ταυτότητα χρήστη</div>
+                    </div>
+                </section>
+
                 <div class="workspace-grid">
                     <section class="surface-card">
                         <div class="surface-card__heading">
-                            <div><p class="eyebrow eyebrow--green">ΟΡΓΑΝΙΣΜΟΙ</p><h2>Οι επιχειρήσεις μου</h2></div>
-                            <span class="count-pill">@_tenants.Count</span>
+                            <div>
+                                <p class="eyebrow eyebrow--green">ΕΠΙΧΕΙΡΗΣΕΙΣ</p>
+                                <h2>Οι επιχειρήσεις μου</h2>
+                            </div>
+                            <span class="count-pill">@_workspace.Tenants.Count</span>
                         </div>
-                        @if (_tenants.Count == 0)
+                        @if (_workspace.Tenants.Count == 0)
                         {
                             <p class="empty-state">Δεν βρέθηκαν επιχειρήσεις για τον λογαριασμό.</p>
                         }
                         else
                         {
                             <div class="tenant-list">
-                                @foreach (var tenant in _tenants)
+                                @foreach (var tenant in _workspace.Tenants)
                                 {
-                                    <a class="tenant-entry @(tenant.TenantId == _activeTenantId ? "tenant-entry--active" : "")"
-                                       href="@($"/dashboard?tenantId={tenant.TenantId:D}")">
-                                        <span class="tenant-entry__icon" aria-hidden="true">⌂</span>
+                                    bool selected = tenant.TenantId == _workspace.Tenant?.TenantId;
+                                    <a class="tenant-entry @(selected ? "tenant-entry--active" : "")"
+                                       href="@($"/dashboard?tenantId={tenant.TenantId:D}")"
+                                       aria-current="@(selected ? "location" : null)">
+                                        <span class="tenant-entry__icon"><AppIcon Name="building" /></span>
                                         <span class="tenant-entry__details">
                                             <strong>@tenant.Name</strong>
-                                            <small>@(tenant.Role == Aenaon.Domain.Tenancy.TenantMembershipRole.Owner ? "Διαχειριστής επιχείρησης" : "Μέλος επιχείρησης")</small>
+                                            <small>@(tenant.Role == Aenaon.Domain.Tenancy.TenantMembershipRole.Owner
+                                                ? "Διαχειριστής επιχείρησης" : "Μέλος επιχείρησης")</small>
                                         </span>
-                                        <span class="tenant-entry__chevron" aria-hidden="true">›</span>
+                                        <span class="tenant-entry__chevron"><AppIcon Name="chevron" /></span>
                                     </a>
                                 }
                             </div>
@@ -117,36 +173,52 @@
 
                     <section class="surface-card">
                         <div class="surface-card__heading">
-                            <div><p class="eyebrow eyebrow--green">ΚΑΤΑΣΤΗΜΑΤΑ</p><h2>@_activeTenantName</h2></div>
-                            <span class="count-pill">@_stores.Count</span>
+                            <div>
+                                <p class="eyebrow eyebrow--green">ΚΑΤΑΣΤΗΜΑΤΑ</p>
+                                <h2>@(_workspace.Tenant?.Name ?? "Επιλογή επιχείρησης")</h2>
+                            </div>
+                            <span class="count-pill">@_workspace.Stores.Count</span>
                         </div>
-                        @if (_stores.Count == 0)
+                        @if (_workspace.Stores.Count == 0)
                         {
-                            <p class="empty-state">Δεν υπάρχουν καταστήματα προς εμφάνιση.</p>
+                            <p class="empty-state">Δεν υπάρχουν διαθέσιμα καταστήματα.</p>
                         }
                         else
                         {
+                            <p class="store-selector__help">Επιλέξτε το κατάστημα στο οποίο θέλετε να εργαστείτε.</p>
                             <div class="stores-list">
-                                @foreach (var store in _stores)
+                                @foreach (var store in _workspace.Stores)
                                 {
-                                    <div class="store-entry">
-                                        <span class="store-entry__icon" aria-hidden="true">◫</span>
-                                        <span class="store-entry__details"><strong>@store.Name</strong><small>Κωδικός: @store.Code</small></span>
-                                        <span class="store-entry__badge">Κατάστημα</span>
-                                    </div>
+                                    bool selected = store.StoreId == _workspace.Store?.StoreId;
+                                    <a class="store-entry @(selected ? "store-entry--active" : "")"
+                                       href="@($"/dashboard?tenantId={store.TenantId:D}&storeId={store.StoreId:D}")"
+                                       aria-current="@(selected ? "location" : null)">
+                                        <span class="store-entry__icon"><AppIcon Name="store" /></span>
+                                        <span class="store-entry__details">
+                                            <strong>@store.Name</strong>
+                                            <small>Κωδικός: @store.Code</small>
+                                        </span>
+                                        <span class="store-entry__badge">@(selected ? "Επιλεγμένο" : "Επιλογή")</span>
+                                    </a>
                                 }
                             </div>
                         }
                     </section>
                 </div>
-            }
 
-            <section class="next-steps">
-                <span class="next-steps__symbol" aria-hidden="true">◇</span>
-                <div><strong>Το επόμενο κεφάλαιο του Aenaon ERP</strong><p>Οι λειτουργίες πωλήσεων, αποθήκης και αναφορών θα προστεθούν στα επόμενα στάδια ανάπτυξης.</p></div>
-            </section>
+                <section class="next-steps">
+                    <span class="next-steps__symbol"><AppIcon Name="overview" /></span>
+                    <div>
+                        <strong>Το επόμενο κεφάλαιο του Aenaon ERP</strong>
+                        <p>Οι λειτουργίες πωλήσεων, αποθήκης και αναφορών θα προστεθούν σε επόμενα στάδια ανάπτυξης.</p>
+                    </div>
+                </section>
+            }
         </div>
-        <footer class="dashboard__footer">© @DateTime.UtcNow.Year Aenaon ERP · by MoonHard <span>Built with .NET &amp; Blazor</span></footer>
+        <footer class="dashboard__footer">
+            © @DateTime.UtcNow.Year Aenaon ERP · by MoonHard
+            <span>Built with .NET &amp; Blazor</span>
+        </footer>
     </div>
 </main>
 
@@ -154,10 +226,10 @@
     [SupplyParameterFromQuery(Name = "tenantId")]
     public Guid? TenantId { get; set; }
 
-    private IReadOnlyList<AccessibleTenant> _tenants = [];
-    private IReadOnlyList<TenantStoreSummary> _stores = [];
-    private Guid? _activeTenantId;
-    private string _activeTenantName = "Επιλεγμένη επιχείρηση";
+    [SupplyParameterFromQuery(Name = "storeId")]
+    public Guid? StoreId { get; set; }
+
+    private TenantWorkspaceSnapshot? _workspace;
     private string _userName = "Χρήστης";
     private string _initials = "A";
     private string? _csrfToken;
@@ -177,18 +249,12 @@
         _initials = _userName.Length > 0 ? _userName[..1].ToUpperInvariant() : "A";
         _csrfToken = Antiforgery.GetAndStoreTokens(context).RequestToken;
         context.Response.Headers.CacheControl = "no-store";
-
         _error = false;
+
         try
         {
-            _tenants = await Authorization.GetAccessibleTenantsAsync(userId, context.RequestAborted);
-            AccessibleTenant? tenant = _tenants.FirstOrDefault(item => item.TenantId == TenantId)
-                ?? _tenants.FirstOrDefault();
-            _activeTenantId = tenant?.TenantId;
-            _activeTenantName = tenant?.Name ?? "Επιλεγμένη επιχείρηση";
-            _stores = tenant is null
-                ? []
-                : await Workspace.ListAuthorizedStoresAsync(userId, tenant.TenantId, context.RequestAborted);
+            _workspace = await WorkspaceResolver.ResolveAsync(
+                userId, TenantId, StoreId, context.RequestAborted);
         }
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
@@ -196,10 +262,9 @@
         }
         catch (Exception exception)
         {
-            // Δεν διαρρέουν τεχνικές λεπτομέρειες βάσης ή στοιχεία χρήστη στο UI.
-            Logger.LogError(exception, "Dashboard data retrieval failed");
-            _tenants = [];
-            _stores = [];
+            // Αποκρύπτουμε τεχνικές λεπτομέρειες βάσης, χωρίς να εμφανίζουμε παρωχημένα στοιχεία.
+            Logger.LogError(exception, "Dashboard workspace resolution failed");
+            _workspace = null;
             _error = true;
         }
     }
