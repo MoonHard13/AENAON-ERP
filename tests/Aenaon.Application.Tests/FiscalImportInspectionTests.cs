@@ -67,6 +67,27 @@ public sealed class FiscalImportInspectionTests
     }
 
     [TestMethod]
+    public async Task Inspection_RejectsNumericEnumValues()
+    {
+        using var files = new Fixture();
+        var original = files.CreateManifest();
+        files.WriteManifest(new FiscalImportManifest
+        {
+            Source = "2",
+            CodeSystem = original.CodeSystem,
+            SourceVersion = original.SourceVersion,
+            SourceUrl = original.SourceUrl,
+            ArtifactSha256 = original.ArtifactSha256,
+            VerifiedAtUtc = original.VerifiedAtUtc,
+            Rows = original.Rows
+        });
+
+        DomainRuleException error = await Assert.ThrowsExactlyAsync<DomainRuleException>(() =>
+            Inspector().InspectAsync(files.ManifestPath, files.ArtifactPath));
+        Assert.AreEqual("fiscal.import.manifest.invalid", error.Code);
+    }
+
+    [TestMethod]
     public async Task Inspection_RejectsOverlappingCodePeriods()
     {
         using var files = new Fixture();
