@@ -1,0 +1,60 @@
+@* Ενιαία εικονίδια γραμμής, χωρίς εξωτερική βιβλιοθήκη και χωρίς εικονίδια από γραμματοσειρές. *@
+<svg class="app-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+     fill="none" stroke="currentColor" stroke-width="1.8"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    @switch (Name)
+    {
+        case "overview":
+            <rect x="3" y="3" width="8" height="8" rx="1.4" />
+            <rect x="13" y="3" width="8" height="5" rx="1.4" />
+            <rect x="13" y="10" width="8" height="11" rx="1.4" />
+            <rect x="3" y="13" width="8" height="8" rx="1.4" />
+            break;
+        case "building":
+            <rect x="4" y="3" width="16" height="18" rx="2" />
+            <path d="M8 7h2m4 0h2M8 11h2m4 0h2M8 15h2m4 0h2M10 21v-3h4v3" />
+            break;
+        case "store":
+            <path d="M3 10 5 4h14l2 6v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0v-2Z" />
+            <path d="M5 15v6h14v-6M10 21v-6h4v6" />
+            break;
+        case "sales":
+            <path d="M4 7h16l-1 14H5L4 7ZM8 9V6a4 4 0 0 1 8 0v3" />
+            break;
+        case "warehouse":
+            <path d="m3 10 9-6 9 6v11H3V10ZM3 10h18M9 21v-7h6v7" />
+            break;
+        case "settings":
+            <circle cx="12" cy="12" r="3" />
+            <path d="M10 2h4l.5 2.5 2 .9 2.2-1.2 2.8 2.8-1.2 2.2.9 2L23 12l-2.5.8-.9 2 1.2 2.2-2.8 2.8-2.2-1.2-2 .9L14 22h-4l-.5-2.5-2-.9-2.2 1.2-2.8-2.8 1.2-2.2-.9-2L1 12l2.5-.8.9-2-1.2-2.2 2.8-2.8 2.2 1.2 2-.9L10 2Z" />
+            break;
+        case "logout":
+            <path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5M15 7l5 5-5 5M20 12H9" />
+            break;
+        case "chevron":
+            <path d="m9 5 7 7-7 7" />
+            break;
+        case "arrow":
+            <path d="M4 12h16m-6-6 6 6-6 6" />
+            break;
+        case "sun-moon":
+            <path d="M12 3a9 9 0 1 0 9 9 9 9 0 0 0-9-9ZM12 3v18" />
+            break;
+        case "shield":
+            <path d="m12 2 8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4Z" />
+            <path d="m9 12 2 2 4-4" />
+            break;
+        case "check":
+            <circle cx="12" cy="12" r="9" />
+            <path d="m8 12 3 3 5-6" />
+            break;
+        default:
+            <circle cx="12" cy="12" r="9" />
+            break;
+    }
+</svg>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = string.Empty;
+}
