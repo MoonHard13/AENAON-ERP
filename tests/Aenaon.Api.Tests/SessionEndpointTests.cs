@@ -212,6 +212,7 @@ public sealed class SessionEndpointTests
 internal sealed class SessionApiFactory(string environment = "Development") : WebApplicationFactory<Program>
 {
     public SessionIdentityFixture Identity { get; } = new();
+    public SessionStoreCatalogFixture Stores { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -223,7 +224,7 @@ internal sealed class SessionApiFactory(string environment = "Development") : We
             services.RemoveAll<ITenantAccessStore>();
             services.AddSingleton<ITenantAccessStore, SessionTenancyFixture>();
             services.RemoveAll<ITenantStoreCatalog>();
-            services.AddSingleton<ITenantStoreCatalog, SessionStoreCatalogFixture>();
+            services.AddSingleton<ITenantStoreCatalog>(Stores);
         });
     }
 
@@ -293,15 +294,19 @@ internal sealed class SessionTenancyFixture : ITenantAccessStore
 
 internal sealed class SessionStoreCatalogFixture : ITenantStoreCatalog
 {
+    public Guid? AdditionalStoreId { get; set; }
     private static readonly Guid TenantId = Guid.Parse("9698df79-3c31-41c9-b292-b7240c7265fb");
     private static readonly Guid StoreId = Guid.Parse("c697b9c3-e221-4156-b533-f54dee27d979");
 
     public Task<IReadOnlyList<TenantStoreSummary>> ListStoresAsync(Guid tenantId,
         CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<TenantStoreSummary> result = tenantId == TenantId
-            ? [new TenantStoreSummary(StoreId, TenantId, "MAIN", "Κεντρικό")]
-            : [];
+        IReadOnlyList<TenantStoreSummary> result = tenantId != TenantId
+            ? []
+            : AdditionalStoreId is Guid secondary
+                ? [new TenantStoreSummary(StoreId, TenantId, "MAIN", "Κεντρικό"),
+                   new TenantStoreSummary(secondary, TenantId, "BRANCH", "Υποκατάστημα")]
+                : [new TenantStoreSummary(StoreId, TenantId, "MAIN", "Κεντρικό")];
         return Task.FromResult(result);
     }
 }
