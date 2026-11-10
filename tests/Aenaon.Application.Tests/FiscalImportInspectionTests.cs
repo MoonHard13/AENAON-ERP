@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Aenaon.Application.Fiscal;
 using Aenaon.Domain.Exceptions;
+using Aenaon.Domain.Fiscal;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Aenaon.Application.Tests;
