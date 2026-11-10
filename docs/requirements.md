@@ -219,3 +219,16 @@
 - Καμία migration, αλλαγή στην `AenaonERP_Dev`, UI/API endpoints ή νέες NuGet εξαρτήσεις.
 
 Η μοναδικότητα ισχύει προς το παρόν ανά in-memory catalog και **δεν** υποκαθιστά SQL constraints σε ταυτόχρονες εγγραφές. Η αποθήκευση SQL, οι foreign keys, η σύγκριση σύμφωνα με την πραγματική collation και η ασφαλής πρόσβαση Owner/Member προβλέπονται για το Βήμα 9.2. Τιμές, ΦΠΑ και διαθεσιμότητα ανά κατάστημα θα ακολουθήσουν σε μεταγενέστερα στάδια.
+
+## Βήμα 9.2 — Product Catalog SQL Server Persistence
+
+- Επέκταση του AenaonDbContext με DbSet για CatalogCategories και CatalogItems.
+- Τρίτη forward-only EF Core migration με δύο νέους πίνακες, χωρίς μεταβολή ή διαγραφή υφιστάμενων δεδομένων.
+- Unique index ανά (TenantId, Code), με Greek_CI_AS στους κωδικούς.
+- Αμετάβλητη ιδιοκτησία κατηγορίας και είδους, foreign keys προς Tenants χωρίς cascade.
+- Σύνθετο FK (TenantId, CategoryId) των ειδών προς (TenantId, Id) των κατηγοριών, ώστε να απαγορεύονται cross-tenant references.
+- SQL CHECK για αναγνωριστικά, κωδικούς, ονόματα, Kind και αποτροπή stock tracking υπηρεσιών.
+- Διατήρηση υπάρχοντος Development CLI --migrate-database --dry-run / --apply και ρητής επιβεβαίωσης βάσης.
+- Αναβάθμιση CI SQL tests για τρεις migrations, μη καταστροφική αναβάθμιση, SQL constraints και πραγματική επαναφόρτωση.
+- Καμία αυτόματη migration κατά την εκκίνηση, νέα NuGet εξάρτηση, νέο UI/API ή πρόσβαση στη βάση του χρήστη από CI.
+- CRUD εφαρμογής, authorization και οθόνες καταλόγου θα προστεθούν σε επόμενο στάδιο πριν δοθεί πρόσβαση σε πραγματικούς χρήστες.

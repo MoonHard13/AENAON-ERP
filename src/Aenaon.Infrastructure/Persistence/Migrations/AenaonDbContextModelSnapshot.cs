@@ -22,6 +22,103 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
 
         SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+        modelBuilder.Entity("Aenaon.Domain.Catalog.CatalogCategory", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<string>("Code")
+                    .IsRequired()
+                    .HasMaxLength(30)
+                    .HasColumnType("nvarchar(30)")
+                    .UseCollation("Greek_CI_AS");
+
+                b.Property<bool>("IsActive")
+                    .HasColumnType("bit");
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasMaxLength(160)
+                    .HasColumnType("nvarchar(160)");
+
+                b.Property<Guid>("TenantId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.HasKey("Id");
+
+                b.HasAlternateKey("TenantId", "Id");
+
+                b.HasIndex("TenantId", "Code")
+                    .IsUnique();
+
+                b.ToTable("CatalogCategories", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_CatalogCategories_Code", "LEN(LTRIM(RTRIM([Code]))) > 0");
+
+                        t.HasCheckConstraint("CK_CatalogCategories_Id", "[Id] <> '00000000-0000-0000-0000-000000000000'");
+
+                        t.HasCheckConstraint("CK_CatalogCategories_Name", "LEN(LTRIM(RTRIM([Name]))) > 0");
+
+                        t.HasCheckConstraint("CK_CatalogCategories_TenantId", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
+                    });
+            });
+
+        modelBuilder.Entity("Aenaon.Domain.Catalog.CatalogItem", b =>
+            {
+                b.Property<Guid>("Id")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<Guid>("CategoryId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<string>("Code")
+                    .IsRequired()
+                    .HasMaxLength(40)
+                    .HasColumnType("nvarchar(40)")
+                    .UseCollation("Greek_CI_AS");
+
+                b.Property<bool>("IsActive")
+                    .HasColumnType("bit");
+
+                b.Property<int>("Kind")
+                    .HasColumnType("int");
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasMaxLength(200)
+                    .HasColumnType("nvarchar(200)");
+
+                b.Property<Guid>("TenantId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<bool>("TracksStock")
+                    .HasColumnType("bit");
+
+                b.HasKey("Id");
+
+                b.HasIndex("TenantId", "CategoryId");
+
+                b.HasIndex("TenantId", "Code")
+                    .IsUnique();
+
+                b.ToTable("CatalogItems", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_CatalogItems_CategoryId", "[CategoryId] <> '00000000-0000-0000-0000-000000000000'");
+
+                        t.HasCheckConstraint("CK_CatalogItems_Code", "LEN(LTRIM(RTRIM([Code]))) > 0");
+
+                        t.HasCheckConstraint("CK_CatalogItems_Id", "[Id] <> '00000000-0000-0000-0000-000000000000'");
+
+                        t.HasCheckConstraint("CK_CatalogItems_Kind", "[Kind] IN (1, 2)");
+
+                        t.HasCheckConstraint("CK_CatalogItems_Name", "LEN(LTRIM(RTRIM([Name]))) > 0");
+
+                        t.HasCheckConstraint("CK_CatalogItems_ServiceStock", "[Kind] <> 2 OR [TracksStock] = 0");
+
+                        t.HasCheckConstraint("CK_CatalogItems_TenantId", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
+                    });
+            });
+
         modelBuilder.Entity("Aenaon.Domain.Tenancy.Store", b =>
             {
                 b.Property<Guid>("Id")
@@ -239,6 +336,31 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                 b.HasKey("UserId", "LoginProvider", "Name");
 
                 b.ToTable("AspNetUserTokens", "dbo");
+            });
+
+        modelBuilder.Entity("Aenaon.Domain.Catalog.CatalogCategory", b =>
+            {
+                b.HasOne("Aenaon.Domain.Tenancy.Tenant", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("Aenaon.Domain.Catalog.CatalogItem", b =>
+            {
+                b.HasOne("Aenaon.Domain.Catalog.CatalogCategory", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "CategoryId")
+                    .HasPrincipalKey("TenantId", "Id")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.HasOne("Aenaon.Domain.Tenancy.Tenant", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
             });
 
         modelBuilder.Entity("Aenaon.Domain.Tenancy.Store", b =>
