@@ -31,7 +31,7 @@ public sealed class FiscalXlsxCompleteExportTests
         Assert.IsTrue(first.ExportIsComplete);
         Assert.IsTrue(first.HasStyledCells);
         Assert.Contains("B7:B8", first.MergedRanges);
-        Assert.AreEqual("1", first.AllCells.Single(cell => cell.Address == "B7").StyleIndex);
+        Assert.AreEqual(1, first.AllCells.Single(cell => cell.Address == "B7").StyleIndex);
         Assert.IsTrue(first.AllCells.Single(cell => cell.Address == "A2").Text.Length > 180);
         Assert.IsTrue(first.SampleCells.Single(cell => cell.Address == "A2").Text.Length <= 180);
         Assert.IsFalse(inspected.IsClassificationMatrixVerified);
