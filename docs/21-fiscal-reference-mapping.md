@@ -62,7 +62,8 @@ dotnet restore AenaonERP.slnx --locked-mode
 dotnet format AenaonERP.slnx --verify-no-changes --no-restore
 dotnet build AenaonERP.slnx --configuration Release --no-restore
 dotnet test AenaonERP.slnx --configuration Release --no-build --no-restore --filter "TestCategory!=SqlServer"
-dotnet run --project src/Aenaon.Api -- --check-database
+dotnet run --project src/Aenaon.Api --launch-profile https -- --check-database
+dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database --dry-run
 ```
 
 {% hint style="warning" %}
