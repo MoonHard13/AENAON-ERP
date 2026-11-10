@@ -32,6 +32,10 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Η [απομονωμένη προσωρινή καταχώριση και ανεξάρτητη επιθεώρηση πηγής](docs/23-fiscal-staging-review.md) εισάγει 5η SQL migration με batch, γραμμές και audit απόφασης. Η εξουσιοδότηση υποβολής/ελέγχου είναι **default deny**, χωρίς δημόσιο API ή CLI writes, και η αποδοχή τεκμηρίου δεν σημαίνει φορολογική έγκριση ή ενεργοποίηση τιμολόγησης.
 
+## Βήμα 9.3C.3A — Candidate myDATA Classification Matrix Preview
+
+Το [μη φορολογικά ενεργό, τοπικό inspector συνδυασμών](docs/24-classification-matrix-preview.md) ελέγχει JSON αποδελτίωση έναντι του SHA-256 του πρωτότυπου XLS της ΑΑΔΕ. Δεν αντιπαραβάλλει αυτόματα τα πραγματικά κελιά Excel, δεν εγκρίνει κανόνες, δεν γράφει στη SQL και δεν αλλάζει τις 5 εφαρμοσμένες migrations.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
@@ -345,4 +349,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Fiscal Reference Data & Tax Mapping](docs/21-fiscal-reference-mapping.md)
 - [Offline Fiscal Reference Evidence Inspection](docs/22-fiscal-import-evidence-inspection.md)
 - [Fiscal Staging & Independent Source Review](docs/23-fiscal-staging-review.md)
+- [Candidate myDATA Classification Matrix Preview](docs/24-classification-matrix-preview.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
