@@ -32,7 +32,7 @@ public sealed class FiscalSemanticReviewWorklistCsvTests
         Assert.IsTrue(contents.Contains("'@SUM", StringComparison.Ordinal));
         Assert.IsTrue(contents.Contains("\"\"quoted\"\"", StringComparison.Ordinal));
         Assert.AreEqual(3,
-            contents.Split("\"Pending\"\r\n", StringSplitOptions.None).Length - 1);
+            contents.Split("\"Pending\";", StringSplitOptions.None).Length - 1);
         Assert.IsFalse(contents.Contains("Approved", StringComparison.Ordinal));
     }
 
@@ -88,7 +88,7 @@ public sealed class FiscalSemanticReviewWorklistCsvTests
                 "F8", "-2+5", "Συσχετιζόμενο", FiscalSemanticReviewKind.AssociatedDocumentDependency,
                 FiscalSemanticReviewPriority.Critical, "Επιθεώρηση αρχικού παραστατικού", []),
             new("EVIDENCE003", "5.1", FiscalXlsxClassificationDirection.Income,
-                "C9", "Δεν ενημερώνει E3", "Εξαίρεση",
+                "C9", "Δεν ενημερώνει E3", "@SUM",
                 FiscalSemanticReviewKind.NoE3Update, FiscalSemanticReviewPriority.High,
                 "Ανεξάρτητη επαλήθευση myDATA/IMPACT", [])
         ];
