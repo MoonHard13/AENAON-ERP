@@ -52,6 +52,10 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Ο [φάκελος ειδικών οδηγιών myDATA](docs/28-fiscal-semantic-review-triage.md) αναλύει αποκλειστικά **τεχνικά συμφωνημένα** XLSX/JSON, ταξινομεί κάθε εκκρεμότητα, διατηρεί SHA-256 + ακριβή κελιά και προτεραιότητες ανθρώπινου ελέγχου. Όλα τα review items παραμένουν **Pending**, χωρίς αυτοματοποιημένη φορολογική έγκριση, SQL migration, πάροχο ή έκδοση.
 
+## Βήμα 9.3C.3B.5A — Read-only Fiscal Review Worklist
+
+Ο [οδηγός Excel-compatible CSV για ανεξάρτητους reviewers](docs/29-fiscal-review-worklist-csv.md) περιγράφει πώς τα 254 μη εγκεκριμένα review items μετατρέπονται σε **Pending λίστα εργασίας** με ακριβές provenance, ελληνικό UTF-8, ασφαλές escaping Excel formulas και κενά πεδία ανθρώπινης τεκμηρίωσης. Κανένα CSV δεν εισάγεται ως έγκριση, καμία νέα migration, SQL write, IMPACT call ή φορολογική ενεργοποίηση.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
@@ -370,4 +374,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Complete XLSX Evidence Export](docs/26-complete-xlsx-evidence-export.md)
 - [Original XLSX / JSON Evidence Reconciliation](docs/27-xlsx-original-evidence-reconciliation.md)
 - [Fiscal Semantic Review Triage](docs/28-fiscal-semantic-review-triage.md)
+- [Fiscal Review Worklist CSV](docs/29-fiscal-review-worklist-csv.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
