@@ -166,7 +166,7 @@ public sealed class ImpactOfflinePayloadInspectorTests
     [TestMethod]
     public void BomNotAtStartOrDifferentEncoding_RemainsRejected()
     {
-        byte[] embedded = Encoding.UTF8.GetBytes("{\\uFEFF\"DocumentTypeCode\":\"INVOICE\"}");
+        byte[] embedded = Encoding.UTF8.GetBytes("{\uFEFF\"DocumentTypeCode\":\"INVOICE\"}");
         // Εσωτερικό BOM και UTF-16 δεν μετατρέπονται σιωπηρά σε έγκυρο UTF-8 JSON.
         AssertRejectsJson(embedded);
 
