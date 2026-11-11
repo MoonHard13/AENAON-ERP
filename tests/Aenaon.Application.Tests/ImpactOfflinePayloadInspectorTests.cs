@@ -58,9 +58,9 @@ public sealed class ImpactOfflinePayloadInspectorTests
     [TestMethod]
     public void RetailScenario_DoesNotRequireCounterparty()
     {
-        string retail = InvoiceJson().Replace(
-            ",\"CounterParty\":{\"RegisteredName\":\"Test business\",\"Vat\":\"EL000000000\",\"Address\":{\"CountryCode\":\"GR\"}}",
-            "", StringComparison.Ordinal);
+        var payload = System.Text.Json.Nodes.JsonNode.Parse(InvoiceJson())!.AsObject();
+        Assert.IsTrue(payload.Remove("CounterParty"));
+        string retail = payload.ToJsonString();
 
         ImpactOfflinePayloadReport b2c = Inspect(retail, ImpactContractProfile.InvoiceIapr,
             ImpactCounterpartyScenario.Retail);
