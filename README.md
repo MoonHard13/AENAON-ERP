@@ -48,6 +48,10 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Το [read-only εργαλείο ανεξάρτητης συμφωνίας](docs/27-xlsx-original-evidence-reconciliation.md) επανελέγχει το **πρωτότυπο XLSX** έναντι του πλήρους JSON κελί προς κελί, με SHA-256, συγχωνεύσεις, styles, υποψήφια ζεύγη και παρατηρήσεις. Η επαλήθευση αποδεικνύει μόνο **τεχνική συμφωνία**, ποτέ φορολογική έγκριση ή αυθεντικότητα πηγής. Δεν προστίθεται migration, SQL write ή provider call.
 
+## Βήμα 9.3C.3B.4 — Semantic Review Triage
+
+Ο [φάκελος ειδικών οδηγιών myDATA](docs/28-fiscal-semantic-review-triage.md) αναλύει αποκλειστικά **τεχνικά συμφωνημένα** XLSX/JSON, ταξινομεί κάθε εκκρεμότητα, διατηρεί SHA-256 + ακριβή κελιά και προτεραιότητες ανθρώπινου ελέγχου. Όλα τα review items παραμένουν **Pending**, χωρίς αυτοματοποιημένη φορολογική έγκριση, SQL migration, πάροχο ή έκδοση.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
@@ -365,4 +369,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Official XLSX Structure Inspection](docs/25-official-xlsx-structure-inspection.md)
 - [Complete XLSX Evidence Export](docs/26-complete-xlsx-evidence-export.md)
 - [Original XLSX / JSON Evidence Reconciliation](docs/27-xlsx-original-evidence-reconciliation.md)
+- [Fiscal Semantic Review Triage](docs/28-fiscal-semantic-review-triage.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
