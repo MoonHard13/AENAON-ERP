@@ -50,7 +50,7 @@ public sealed class FiscalSemanticReviewWorklistCsvTests
     }
 
     [TestMethod]
-    public async Task Worklist_RejectsInvalidPathsAndAlteredReviewState()
+    public async Task Worklist_RejectsInvalidPathsAndDuplicateEvidenceIds()
     {
         using var directory = new TemporaryFolder();
         var writer = new FiscalSemanticReviewWorklistCsvWriter();
@@ -63,8 +63,8 @@ public sealed class FiscalSemanticReviewWorklistCsvTests
         {
             Items =
             [
-                original.Items[0] with { IsHumanReviewed = true },
-                original.Items[1],
+                original.Items[0],
+                original.Items[1] with { EvidenceId = original.Items[0].EvidenceId },
                 original.Items[2]
             ]
         };
