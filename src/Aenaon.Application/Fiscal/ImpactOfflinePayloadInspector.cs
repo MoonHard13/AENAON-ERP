@@ -73,8 +73,19 @@ public sealed class ImpactOfflinePayloadInspector
                 "Μη επιτρεπτός συνδυασμός προφίλ και σεναρίου.");
         }
 
+        // Το Windows PowerShell 5.1 μπορεί να προσθέσει UTF-8 BOM σε συνθετικό JSON.
+        // Το αφαιρούμε μόνο από την αρχή, χωρίς να αλλάζουμε το αρχείο ή να χαλαρώνουμε τον parser.
+        ReadOnlyMemory<byte> jsonContent = jsonBytes;
+        if (jsonContent.Length >= 3 &&
+            jsonContent.Span[0] == 0xEF &&
+            jsonContent.Span[1] == 0xBB &&
+            jsonContent.Span[2] == 0xBF)
+        {
+            jsonContent = jsonContent[3..];
+        }
+
         // Οι άγνωστες/διπλές ονομασίες πεδίων δεν μπορούν να περνούν ως αξιόπιστες.
-        using JsonDocument document = JsonDocument.Parse(jsonBytes, new JsonDocumentOptions
+        using JsonDocument document = JsonDocument.Parse(jsonContent, new JsonDocumentOptions
         {
             AllowTrailingCommas = false,
             CommentHandling = JsonCommentHandling.Disallow,
