@@ -209,12 +209,10 @@ public sealed class ImpactOfflinePayloadInspector
             RequirePath(root, ["B2GDetails", "ContractingAuthorityCode"],
                 "$.B2GDetails.ContractingAuthorityCode", JsonValueKind.String,
                 SourceSectionB2G, findings);
-            RequirePath(root, ["B2GDetails", "ContractReferenceCode"],
-                "$.B2GDetails.ContractReferenceCode", JsonValueKind.String,
-                SourceSectionB2G, findings);
-            RequirePath(root, ["B2GDetails", "ContractTypeCode"],
-                "$.B2GDetails.ContractTypeCode", JsonValueKind.String,
-                SourceSectionB2G, findings);
+            RequireCodePath(root, ["B2GDetails", "ContractReferenceCode"],
+                "$.B2GDetails.ContractReferenceCode", SourceSectionB2G, findings);
+            RequireCodePath(root, ["B2GDetails", "ContractTypeCode"],
+                "$.B2GDetails.ContractTypeCode", SourceSectionB2G, findings);
             Add(findings, ImpactOfflineFindingSeverity.Review, "B2GContractPending",
                 "$.B2GDetails", SourceSectionB2G,
                 "Απαιτείται επιβεβαίωση πραγματικού ΑΑΗΤ, σύμβασης, CPV και EN16931.");
@@ -299,6 +297,32 @@ public sealed class ImpactOfflinePayloadInspector
             }
 
             index++;
+        }
+    }
+
+    private static void RequireCodePath(JsonElement root, string[] path,
+        string jsonPath, string sourceSection, List<ImpactOfflineFinding> findings)
+    {
+        JsonElement current = root;
+        foreach (string segment in path)
+        {
+            if (!TryGet(current, segment, out current))
+            {
+                Add(findings, ImpactOfflineFindingSeverity.Error, "MissingDocumentedField",
+                    jsonPath, sourceSection, "Απουσιάζει υποχρεωτικός κωδικός.");
+                return;
+            }
+        }
+
+        // Τα δημοσιευμένα B2G παραδείγματα αναφέρουν και αριθμητικές ειδικές τιμές (0, 3).
+        if (current.ValueKind != JsonValueKind.String &&
+            current.ValueKind != JsonValueKind.Number ||
+            current.ValueKind == JsonValueKind.String &&
+            string.IsNullOrWhiteSpace(current.GetString()))
+        {
+            Add(findings, ImpactOfflineFindingSeverity.Error, "InvalidDocumentedValue",
+                jsonPath, sourceSection,
+                "Απαιτείται μη κενός κωδικός κειμένου ή αριθμός. Η σημασία του δεν επικυρώνεται.");
         }
     }
 
