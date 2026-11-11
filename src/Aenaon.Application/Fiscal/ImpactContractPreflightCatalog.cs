@@ -45,12 +45,12 @@ public sealed record ImpactContractPreflightReport(
     IReadOnlyList<ImpactContractRequirement> Requirements,
     IReadOnlyList<ImpactContractReviewGate> ReviewGates)
 {
-    public int RequiredCount => Requirements.Count(field =>
-        field.Kind == ImpactContractRequirementKind.Required);
-    public int ConditionalCount => Requirements.Count(field =>
-        field.Kind == ImpactContractRequirementKind.Conditional);
-    public int ManualReviewCount => Requirements.Count(field =>
-        field.Kind == ImpactContractRequirementKind.RequiresExpertReview) + ReviewGates.Count;
+    public int RequiredCount => Requirements.Count(requirement =>
+        requirement.Kind == ImpactContractRequirementKind.Required);
+    public int ConditionalCount => Requirements.Count(requirement =>
+        requirement.Kind == ImpactContractRequirementKind.Conditional);
+    public int ManualReviewCount => Requirements.Count(requirement =>
+        requirement.Kind == ImpactContractRequirementKind.RequiresExpertReview) + ReviewGates.Count;
     public bool IsActualPayloadValidated => false;
     public bool IsAadeComplianceApproved => false;
     public bool IsImpactContractValidated => false;
