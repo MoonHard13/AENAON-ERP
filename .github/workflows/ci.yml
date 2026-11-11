@@ -38,6 +38,19 @@ jobs:
           global-json-file: global.json
           cache: true
           cache-dependency-path: '**/packages.lock.json'
+      - name: Diagnose new SDK implicit lock metadata (temporary)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          dotnet restore AenaonERP.slnx --force-evaluate
+          python3 - <<'PY'
+          import json,subprocess
+          p='src/Aenaon.Api/packages.lock.json'
+          j=json.load(open(p))
+          print('NEW_INTERNAL_ASSETS:',j['dependencies']['net10.0']['Microsoft.AspNetCore.App.Internal.Assets'])
+          print('CHANGED_LOCK_FILES:')
+          print(subprocess.check_output(['git','diff','--name-only'],text=True))
+          PY
       - name: Restore and audit packages
         run: dotnet restore AenaonERP.slnx --locked-mode
       - name: Restore pinned EF tooling
