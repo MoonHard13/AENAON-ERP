@@ -21,10 +21,11 @@ public partial class Program
     {
         if (args is ["--help"] or ["-h"])
         {
-            Console.WriteLine("Aenaon ERP API\n  --check-database  Έλεγχος σύνδεσης SQL χωρίς εκκίνηση HTTP.\n  --configure-database --server INSTANCE [--database NAME] [--trust-server-certificate]\n                    Ρύθμιση SQL login στα User Secrets του Development.\n  --migrate-database --dry-run\n                    Προεπισκόπηση migrations χωρίς αλλαγές.\n  --migrate-database --apply --confirm-database NAME\n                    Εφαρμογή migrations σε υπάρχουσα βάση Development.\n  --initialize-business (--dry-run | --apply --confirm-database NAME)\n                    --tenant-name NAME --store-code CODE --store-name NAME\n                    Αρχική καταχώρηση επιχείρησης και καταστήματος στο Development.\n  --initialize-admin (--dry-run | --apply --confirm-database NAME)\n                    --tenant-id GUID --username NAME --email ADDRESS\n                    Αρχική δημιουργία πρώτου Owner αποκλειστικά στο Development.\n  --fix-admin-email (--dry-run | --apply --confirm-database NAME)\n                    --tenant-id GUID --user-id GUID --new-email ADDRESS\n                    Διόρθωση αρχικού δοκιμαστικού email μετά από επαλήθευση κωδικού.\n  --verify-credentials --username NAME --confirm-database NAME\n                    Διαδραστικός έλεγχος κωδικού χωρίς session (Development).\n  --check-tenant-access --username NAME --tenant-id GUID [--store-id GUID]\n                    --permission Read|Manage --confirm-database NAME\n                    Έλεγχος Tenant/Store δικαιωμάτων (Development, χωρίς session).\n  --inspect-fiscal-import --manifest FILE.json --evidence-file SOURCE_FILE\n                    Τοπικός έλεγχος υποψήφιων κωδικών και SHA-256, χωρίς SQL.\n  --inspect-fiscal-matrix --manifest FILE.json --evidence-file SOURCE.xlsx\n                    Επιθεώρηση υποψήφιων συνδυασμών myDATA χωρίς SQL ή φορολογική έγκριση.\n  --inspect-fiscal-xlsx --evidence-file SOURCE.xlsx [--sheet NAME] [--all] [--export-json NEW_FILE.json]\n                    Πλήρης δομική εξαγωγή XLSX/JSON και SHA-256 χωρίς SQL ή έγκριση.\n  --verify-fiscal-xlsx-export --evidence-file SOURCE.xlsx --evidence-json COMPLETE.json\n                    Ανεξάρτητος έλεγχος συμφωνίας όλων των κελιών και παρατηρήσεων.\n  --triage-fiscal-semantics --evidence-file SOURCE.xlsx --evidence-json COMPLETE.json\n                    [--report-json NEW_REVIEW.json | --worklist-csv NEW_WORKLIST.csv]\n                    Μη εγκεκριμένες παρατηρήσεις ή ασφαλής λίστα Excel για φοροτεχνικό.\n  --inspect-impact-contract --profile base|invoice|b2g [--report-json NEW_FILE.json]\n                    Read-only checklist δημοσιευμένων πεδίων IMPACT, χωρίς API calls.\n  --help            Εμφάνιση βοήθειας.\nΧωρίς επιλογές εκκινεί το API.");
+            Console.WriteLine("Aenaon ERP API\n  --check-database  Έλεγχος σύνδεσης SQL χωρίς εκκίνηση HTTP.\n  --configure-database --server INSTANCE [--database NAME] [--trust-server-certificate]\n                    Ρύθμιση SQL login στα User Secrets του Development.\n  --migrate-database --dry-run\n                    Προεπισκόπηση migrations χωρίς αλλαγές.\n  --migrate-database --apply --confirm-database NAME\n                    Εφαρμογή migrations σε υπάρχουσα βάση Development.\n  --initialize-business (--dry-run | --apply --confirm-database NAME)\n                    --tenant-name NAME --store-code CODE --store-name NAME\n                    Αρχική καταχώρηση επιχείρησης και καταστήματος στο Development.\n  --initialize-admin (--dry-run | --apply --confirm-database NAME)\n                    --tenant-id GUID --username NAME --email ADDRESS\n                    Αρχική δημιουργία πρώτου Owner αποκλειστικά στο Development.\n  --fix-admin-email (--dry-run | --apply --confirm-database NAME)\n                    --tenant-id GUID --user-id GUID --new-email ADDRESS\n                    Διόρθωση αρχικού δοκιμαστικού email μετά από επαλήθευση κωδικού.\n  --verify-credentials --username NAME --confirm-database NAME\n                    Διαδραστικός έλεγχος κωδικού χωρίς session (Development).\n  --check-tenant-access --username NAME --tenant-id GUID [--store-id GUID]\n                    --permission Read|Manage --confirm-database NAME\n                    Έλεγχος Tenant/Store δικαιωμάτων (Development, χωρίς session).\n  --inspect-fiscal-import --manifest FILE.json --evidence-file SOURCE_FILE\n                    Τοπικός έλεγχος υποψήφιων κωδικών και SHA-256, χωρίς SQL.\n  --inspect-fiscal-matrix --manifest FILE.json --evidence-file SOURCE.xlsx\n                    Επιθεώρηση υποψήφιων συνδυασμών myDATA χωρίς SQL ή φορολογική έγκριση.\n  --inspect-fiscal-xlsx --evidence-file SOURCE.xlsx [--sheet NAME] [--all] [--export-json NEW_FILE.json]\n                    Πλήρης δομική εξαγωγή XLSX/JSON και SHA-256 χωρίς SQL ή έγκριση.\n  --verify-fiscal-xlsx-export --evidence-file SOURCE.xlsx --evidence-json COMPLETE.json\n                    Ανεξάρτητος έλεγχος συμφωνίας όλων των κελιών και παρατηρήσεων.\n  --triage-fiscal-semantics --evidence-file SOURCE.xlsx --evidence-json COMPLETE.json\n                    [--report-json NEW_REVIEW.json | --worklist-csv NEW_WORKLIST.csv]\n                    Μη εγκεκριμένες παρατηρήσεις ή ασφαλής λίστα Excel για φοροτεχνικό.\n  --inspect-impact-contract --profile base|invoice|b2g [--report-json NEW_FILE.json]\n                    Read-only checklist δημοσιευμένων πεδίων IMPACT, χωρίς API calls.\n  --inspect-impact-payload --profile base|invoice|b2g --scenario unknown|business|retail\n                    --payload-file SYNTHETIC.json [--report-json NEW_REPORT.json]\n                    Offline δομικός έλεγχος, χωρίς φορολογική έγκριση ή διαβίβαση.\n  --help            Εμφάνιση βοήθειας.\nΧωρίς επιλογές εκκινεί το API.");
             return 0;
         }
 
+        bool inspectImpactPayload = args.Length > 0 && args[0] == "--inspect-impact-payload";
         bool inspectImpactContract = args.Length > 0 && args[0] == "--inspect-impact-contract";
         bool triageFiscalSemantics = args.Length > 0 && args[0] == "--triage-fiscal-semantics";
         bool verifyFiscalXlsxExport = args.Length > 0 && args[0] == "--verify-fiscal-xlsx-export";
@@ -45,7 +46,7 @@ public partial class Program
             return 2;
         }
 
-        var builder = WebApplication.CreateBuilder(inspectImpactContract || triageFiscalSemantics || verifyFiscalXlsxExport || inspectFiscalXlsx || inspectFiscalMatrix || inspectFiscalImport || checkDatabase || configureDatabase || migrateDatabase || initializeBusiness || initializeAdmin || fixAdminEmail || verifyCredentials || checkTenantAccess ? [] : args);
+        var builder = WebApplication.CreateBuilder(inspectImpactPayload || inspectImpactContract || triageFiscalSemantics || verifyFiscalXlsxExport || inspectFiscalXlsx || inspectFiscalMatrix || inspectFiscalImport || checkDatabase || configureDatabase || migrateDatabase || initializeBusiness || initializeAdmin || fixAdminEmail || verifyCredentials || checkTenantAccess ? [] : args);
         builder.Services.AddApiServices(builder.Configuration, builder.Environment);
         builder.Logging.ClearProviders();
         builder.Logging.AddJsonConsole(options =>
@@ -67,7 +68,7 @@ public partial class Program
             return await ConfigureDatabaseCommand.ExecuteAsync(args[1..], secretsId, new DotnetUserSecretsWriter(),
                 Console.In, Console.Out, Console.Error, ConsolePasswordReader.Read);
         }
-        if (inspectImpactContract || triageFiscalSemantics || verifyFiscalXlsxExport || inspectFiscalXlsx || inspectFiscalMatrix || inspectFiscalImport || checkDatabase || migrateDatabase || initializeBusiness || initializeAdmin || fixAdminEmail || verifyCredentials || checkTenantAccess)
+        if (inspectImpactPayload || inspectImpactContract || triageFiscalSemantics || verifyFiscalXlsxExport || inspectFiscalXlsx || inspectFiscalMatrix || inspectFiscalImport || checkDatabase || migrateDatabase || initializeBusiness || initializeAdmin || fixAdminEmail || verifyCredentials || checkTenantAccess)
         {
             using var cancellation = new CancellationTokenSource();
             ConsoleCancelEventHandler handler = (_, eventArgs) =>
@@ -78,6 +79,19 @@ public partial class Program
             Console.CancelKeyPress += handler;
             try
             {
+                if (inspectImpactPayload)
+                {
+                    if (!app.Environment.IsDevelopment())
+                    {
+                        Console.Error.WriteLine("Ο offline έλεγχος IMPACT επιτρέπεται μόνο σε Development.");
+                        return 2;
+                    }
+
+                    return await InspectImpactPayloadCommand.ExecuteAsync(args[1..],
+                        new ImpactOfflinePayloadInspector(),
+                        app.Logger, Console.Out, Console.Error, cancellation.Token);
+                }
+
                 if (inspectImpactContract)
                 {
                     if (!app.Environment.IsDevelopment())

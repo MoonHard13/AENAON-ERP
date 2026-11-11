@@ -1,5 +1,9 @@
 # Aenaon ERP — Βήμα 9.3C.3B.5B: Read-only IMPACT Contract Preflight
 
+{% hint style="info" %}
+**Νέο βήμα 9.3C.3B.5C:** το `--inspect-impact-payload` προσφέρει αποκλειστικά offline **μερικό δομικό έλεγχο συνθετικών JSON**. Δεν επαληθεύει πραγματική συμμόρφωση με IMPACT και δεν ενεργοποιεί φορολογική έκδοση. Βλ. [Offline IMPACT JSON Structural Preflight](31-impact-offline-payload-preflight.md).
+{% endhint %}
+
 ## 1. Σκοπός
 
 Η επιτυχής εξαγωγή της λίστας `AADE_Review_Worklist_Pending.csv` **δεν αποδεικνύει συμβατότητα** με το REST API του παρόχου IMPACT. Το συγκεκριμένο βήμα δημιουργεί **ανεξάρτητο, μη παραγωγικό κατάλογο απαιτήσεων** του `EliseCoreDocument` για τις τρεις περιπτώσεις `base`, `invoice`, `b2g`.

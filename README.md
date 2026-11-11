@@ -60,6 +60,10 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Ο [read-only κατάλογος συμβατότητας συμβολαίου IMPACT](docs/30-impact-contract-preflight.md) αποτυπώνει τις ρητές απαιτήσεις `EliseCoreDocument` από τα official docs για `base`, `invoice` και `b2g`, ξεχωρίζοντας **υποχρεωτικά**, **υπό όρους** πεδία και ανεξάρτητους manual-review ελέγχους. **Δεν πραγματοποιεί καμία πραγματική επικύρωση παραστατικού**, δεν κάνει SQL/API writes και δεν εγκρίνει φορολογική έκδοση.
 
+## Βήμα 9.3C.3B.5C — Offline IMPACT JSON Structural Preflight
+
+Ο [offline validator υποσυνόλου της δομής EliseCoreDocument](docs/31-impact-offline-payload-preflight.md) εξετάζει συνθετικά JSON μόνο σε Development, με explicit `base/invoice/b2g` και `unknown/business/retail` contexts. Ελέγχει υποχρεωτικά πεδία, βασικούς τύπους, B2G και πιθανό διπλό tax placement. **Πάντα απαιτείται ανεξάρτητος έλεγχος και έγκριση** ΑΑΔΕ/IMPACT· κανένα report, JSON ή exit code δεν δίνει δυνατότητα έκδοσης.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
@@ -380,4 +384,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Fiscal Semantic Review Triage](docs/28-fiscal-semantic-review-triage.md)
 - [Fiscal Review Worklist CSV](docs/29-fiscal-review-worklist-csv.md)
 - [IMPACT Contract Preflight](docs/30-impact-contract-preflight.md)
+- [Offline IMPACT Payload Preflight](docs/31-impact-offline-payload-preflight.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
