@@ -141,6 +141,59 @@ public sealed class ImpactOfflinePayloadInspectorTests
     }
 
     [TestMethod]
+    public void WindowsPowerShellUtf8Bom_IsAcceptedWithoutTaxApproval()
+    {
+        byte[] source = Encoding.UTF8.GetBytes(InvoiceJson());
+        byte[] withBom = new byte[source.Length + 3];
+        withBom[0] = 0xEF;
+        withBom[1] = 0xBB;
+        withBom[2] = 0xBF;
+        source.AsSpan().CopyTo(withBom.AsSpan(3));
+
+        ImpactOfflinePayloadReport plain = inspector.Inspect(source,
+            ImpactContractProfile.InvoiceIapr, ImpactCounterpartyScenario.Business);
+        ImpactOfflinePayloadReport prefixed = inspector.Inspect(withBom,
+            ImpactContractProfile.InvoiceIapr, ImpactCounterpartyScenario.Business);
+
+        Assert.AreEqual(plain.StructuralErrorCount, prefixed.StructuralErrorCount);
+        Assert.AreEqual(plain.PendingExpertReviewCount, prefixed.PendingExpertReviewCount);
+        Assert.AreEqual(1, prefixed.LineCount);
+        Assert.AreEqual(0, prefixed.StructuralErrorCount);
+        Assert.IsTrue(prefixed.PendingExpertReviewCount > 0);
+        AssertAlwaysUnapproved(prefixed);
+    }
+
+    [TestMethod]
+    public void BomNotAtStartOrDifferentEncoding_RemainsRejected()
+    {
+        byte[] embedded = Encoding.UTF8.GetBytes("{\\uFEFF\"DocumentTypeCode\":\"INVOICE\"}");
+        // Εσωτερικό BOM και UTF-16 δεν μετατρέπονται σιωπηρά σε έγκυρο UTF-8 JSON.
+        AssertRejectsJson(embedded);
+
+        byte[] utf16 = Encoding.Unicode.GetPreamble()
+            .Concat(Encoding.Unicode.GetBytes(BaseJson())).ToArray();
+        AssertRejectsJson(utf16);
+
+        byte[] original = Encoding.UTF8.GetBytes(BaseJson());
+        byte[] repeatedBom = [0xEF, 0xBB, 0xBF, 0xEF, 0xBB, 0xBF, .. original];
+        AssertRejectsJson(repeatedBom);
+    }
+
+    private void AssertRejectsJson(byte[] bytes)
+    {
+        try
+        {
+            inspector.Inspect(bytes, ImpactContractProfile.Base,
+                ImpactCounterpartyScenario.Unknown);
+            Assert.Fail("Το αλλοιωμένο ή μη UTF-8 JSON πρέπει να απορρίπτεται.");
+        }
+        catch (JsonException)
+        {
+            // Ο αναγνώστης JSON απορρίπτει την άκυρη κωδικοποίηση ή ενδιάμεσο BOM.
+        }
+    }
+
+    [TestMethod]
     public void WrongProfileAndInvalidDocumentType_Reject()
     {
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
