@@ -129,8 +129,15 @@ public sealed class ImpactOfflinePayloadInspectorTests
                 ImpactCounterpartyScenario.Business));
         Assert.ThrowsExactly<JsonException>(() =>
             Inspect("[]", ImpactContractProfile.Base, ImpactCounterpartyScenario.Unknown));
-        Assert.ThrowsExactly<JsonException>(() =>
-            Inspect("{\"a\":1,", ImpactContractProfile.Base, ImpactCounterpartyScenario.Unknown));
+        try
+        {
+            Inspect("{\"a\":1,", ImpactContractProfile.Base, ImpactCounterpartyScenario.Unknown);
+            Assert.Fail("Η μη ολοκληρωμένη JSON δομή πρέπει να απορρίπτεται.");
+        }
+        catch (JsonException)
+        {
+            // Ο parser μπορεί να επιστρέψει ειδικότερο τύπο εξαίρεσης ανά έκδοση SDK.
+        }
     }
 
     [TestMethod]
