@@ -159,6 +159,6 @@ public sealed class FiscalXlsxSemanticReviewTests
         string sha = Convert.ToHexString(SHA256.HashData(
             Encoding.UTF8.GetBytes("synthetic-semantic-evidence")));
         return new FiscalXlsxEvidenceInspection(sha, 128,
-            Array.AsReadOnly([sheet]));
+            Array.AsReadOnly(new[] { sheet }));
     }
 }
