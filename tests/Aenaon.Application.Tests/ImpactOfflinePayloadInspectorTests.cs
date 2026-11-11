@@ -43,13 +43,7 @@ public sealed class ImpactOfflinePayloadInspectorTests
     public void InvoiceMissingAmount_IsFlaggedBecauseRequiredDocumentContradictsExample()
     {
         string original = InvoiceJson();
-        string altered = original.Replace("\"Amount\":100", "", StringComparison.Ordinal)
-            .Replace("\"ClassificationCategoryCode\":\"category1_1\",,",
-                "\"ClassificationCategoryCode\":\"category1_1\"", StringComparison.Ordinal)
-            .Replace("\"ClassificationTypeCode\":\"E3_561_001\",,",
-                "\"ClassificationTypeCode\":\"E3_561_001\"", StringComparison.Ordinal);
-        // Χρησιμοποιούμε JsonDocument για να αφαιρέσουμε το πεδίο χωρίς εξάρτηση από τη σειρά.
-        using JsonDocument document = JsonDocument.Parse(original);
+        // Σκόπιμη αφαίρεση μόνο του Amount από το συνθετικό δείγμα.
         string adjusted = original.Replace(",\"Amount\":100", "", StringComparison.Ordinal);
         ImpactOfflinePayloadReport report = Inspect(adjusted,
             ImpactContractProfile.InvoiceIapr, ImpactCounterpartyScenario.Business);
