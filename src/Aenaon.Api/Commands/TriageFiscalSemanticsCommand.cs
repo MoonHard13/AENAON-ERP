@@ -18,6 +18,7 @@ public static class TriageFiscalSemanticsCommand
         string? evidenceFile = null;
         string? evidenceJson = null;
         string? reportJson = null;
+        string? worklistCsv = null;
         bool invalid = false;
 
         for (int index = 0; index < args.Length && !invalid;)
@@ -41,6 +42,9 @@ public static class TriageFiscalSemanticsCommand
                 case "--report-json" when reportJson is null:
                     reportJson = value;
                     break;
+                case "--worklist-csv" when worklistCsv is null:
+                    worklistCsv = value;
+                    break;
                 default:
                     invalid = true;
                     break;
@@ -49,11 +53,14 @@ public static class TriageFiscalSemanticsCommand
 
         if (invalid || string.IsNullOrWhiteSpace(evidenceFile) ||
             string.IsNullOrWhiteSpace(evidenceJson) ||
-            reportJson is not null && string.IsNullOrWhiteSpace(reportJson))
+            reportJson is not null && string.IsNullOrWhiteSpace(reportJson) ||
+            worklistCsv is not null && string.IsNullOrWhiteSpace(worklistCsv) ||
+            reportJson is not null && worklistCsv is not null)
         {
             await error.WriteLineAsync(
                 "Χρήση: --triage-fiscal-semantics --evidence-file SOURCE.xlsx " +
-                "--evidence-json COMPLETE.json [--report-json NEW_REVIEW.json]");
+                "--evidence-json COMPLETE.json [--report-json NEW_REVIEW.json | " +
+                "--worklist-csv NEW_WORKLIST.csv]");
             return 2;
         }
 
@@ -86,6 +93,12 @@ public static class TriageFiscalSemanticsCommand
                 // Το report είναι αρχείο εργασίας, χωρίς καταχώρηση απόφασης ή SQL.
                 await writer.WriteNewAsync(dossier, reportJson, cancellationToken);
             }
+            else if (worklistCsv is not null)
+            {
+                // Το Excel-compatible CSV περιλαμβάνει μόνο Pending ανθρώπινα review items.
+                await new FiscalSemanticReviewWorklistCsvWriter().WriteNewAsync(
+                    dossier, worklistCsv, cancellationToken);
+            }
 
             await output.WriteLineAsync("ΤΕΧΝΙΚΗ ΣΥΜΦΩΝΙΑ XLSX / JSON: ΕΠΙΤΥΧΗΣ");
             await output.WriteLineAsync($"SHA-256: {dossier.OriginalXlsxSha256}");
@@ -102,6 +115,12 @@ public static class TriageFiscalSemanticsCommand
             if (reportJson is not null)
             {
                 await output.WriteLineAsync($"Νέος φάκελος ανθρώπινου ελέγχου: {reportJson}");
+            }
+            else if (worklistCsv is not null)
+            {
+                await output.WriteLineAsync($"Νέα λίστα Excel για ανθρώπινο έλεγχο: {worklistCsv}");
+                await output.WriteLineAsync(
+                    "Το CSV είναι για χειροκίνητες σημειώσεις· ΔΕΝ αποτελεί εισαγωγή εγκρίσεων.");
             }
 
             await output.WriteLineAsync(
