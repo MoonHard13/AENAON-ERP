@@ -175,6 +175,24 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --inspect-impact-p
 | `unknown` scenario | Αναμενόμενο επιπλέον `CounterpartyScenarioUnknown` |
 | Η εφαρμογή γράφει πάντα `CanIssueFiscalDocument=false` | **Σκόπιμη προστασία**, όχι δυσλειτουργία |
 
+### Υποστήριξη JSON UTF-8 με BOM από Windows PowerShell
+
+Στο Windows PowerShell 5.1, η εντολή `Set-Content -Encoding utf8` γράφει τα τρία αρχικά bytes `EF-BB-BF`. Το `System.Text.Json.JsonDocument.Parse(ReadOnlyMemory<byte>)` δεν δέχεται αυτά τα bytes ως μέρος του JSON. Από το παρόν διορθωτικό patch ο offline inspector **αγνοεί μόνο ένα ακριβές UTF-8 BOM στην αρχή του αρχείου**, ενώ διατηρεί όλα τα προηγούμενα μέτρα ασφαλείας: απόρριψη malformed JSON, διπλών πεδίων, εσωτερικού/επαναλαμβανόμενου BOM και άλλης κωδικοποίησης (π.χ. UTF-16). Δεν επηρεάζονται τα bytes του πρωτότυπου αρχείου.
+
+Για να δεις μόνο τους τρεις πρώτους χαρακτήρες υπογραφής, χωρίς να εμφανίσεις το JSON:
+
+```powershell
+$path = "C:\FiscalEvidence\IMPACT_Synthetic_Invoice.json"
+$bytes = [System.IO.File]::ReadAllBytes($path)
+[BitConverter]::ToString($bytes, 0, [Math]::Min(3, $bytes.Length))
+```
+
+Αν εμφανίζει `EF-BB-BF`, η διόρθωση καλύπτει τη συγκεκριμένη περίπτωση. Εάν εξακολουθεί να εμφανίζεται `Μη έγκυρη ή διφορούμενη δομή JSON`, έλεγξε τη σύνταξη με `Get-Content -Raw | ConvertFrom-Json`. Δεν αποδυναμώνουμε τον parser ούτε εμφανίζουμε διαπιστευτήρια/στοιχεία συναλλαγών σε logs.
+
+Επίσημες πηγές:
+- [Microsoft PowerShell — Character Encoding](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_character_encoding?view=powershell-5.1)
+- [Microsoft .NET — JsonDocument.Parse και UTF-8 BOM](https://learn.microsoft.com/en-us/dotnet/api/system.text.json.jsondocument.parse?view=net-10.0)
+
 ## 10. Ασφάλεια / διαχείριση / rollback
 
 - **Μόνο Development.** Εκτέλεση σε παραγωγικό ASP.NET environment απορρίπτεται.
