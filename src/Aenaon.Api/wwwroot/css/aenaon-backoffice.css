@@ -353,7 +353,19 @@ html {
     border-radius: 8px; white-space: nowrap;
 }
 .catalog-edit-link:hover { background: var(--positive-soft); border-color: var(--positive); }
-.catalog-editor { max-width: 950px; min-height: 0; padding: 0; overflow: hidden; }
+.catalog-manage-page.dashboard__body {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+}
+.catalog-editor {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+}
 .catalog-editor__header {
     display: flex; justify-content: space-between; align-items: center; gap: 15px;
     padding: 23px 27px; border-bottom: 1px solid var(--border);
@@ -361,9 +373,65 @@ html {
 .catalog-editor__header h2 { font-size: 20px; margin: 0 0 4px; }
 .catalog-editor__header p { font-size: 13px; color: var(--muted); margin: 0; }
 .catalog-editor__form { display: grid; gap: 24px; padding: 25px 27px; }
-.catalog-editor__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 20px; }
+.catalog-editor__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 28px; }
 .catalog-editor__field { display: grid; gap: 8px; align-content: start; }
 .catalog-editor__field--wide { grid-column: 1 / -1; }
+
+/* Γρήγορη δημιουργία κατηγορίας από προϊόν/υπηρεσία χωρίς απώλεια πεδίων. */
+.catalog-editor__category-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+}
+.catalog-editor__category-toolbar > small { flex: 1 1 280px; }
+.catalog-editor__quick-create {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 9px 13px;
+    border: 1px solid var(--positive);
+    border-radius: 10px;
+    background: var(--positive-soft);
+    color: var(--positive);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 750;
+    white-space: normal;
+    cursor: pointer;
+    transition: border-color .15s ease, background-color .15s ease;
+}
+.catalog-editor__quick-create:hover {
+    border-color: var(--positive);
+    background: var(--surface-alt);
+}
+.catalog-editor__quick-create:focus-visible {
+    outline: 3px solid var(--positive);
+    outline-offset: 3px;
+}
+.catalog-editor__quick-create .app-icon {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 17px;
+}
+.catalog-editor__return {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 17px 27px 0;
+    padding: 13px 16px;
+    border-radius: 11px;
+    border: 1px solid var(--border);
+    background: var(--positive-soft);
+    color: var(--positive);
+    font-size: 13px;
+    font-weight: 700;
+}
+.catalog-editor__return .app-icon { width: 18px; height: 18px; flex: 0 0 18px; }
+
 .catalog-editor__field label { font-size: 13px; font-weight: 750; color: var(--muted-strong); }
 .catalog-editor__field input, .catalog-editor__field select {
     min-height: 46px; padding: 10px 13px;
@@ -406,6 +474,10 @@ html {
     .catalog-create { margin-top: 13px; }
     .catalog-manage-page .dashboard__heading .button { margin-top: 13px; }
     .catalog-editor__header, .catalog-editor__form, .catalog-editor__danger { padding: 16px; }
+    .catalog-editor__category-toolbar { align-items: stretch; }
+    .catalog-editor__quick-create { width: 100%; }
+    .catalog-editor__return { margin: 12px 16px 0; }
+
 }
 
 
