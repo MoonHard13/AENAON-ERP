@@ -121,7 +121,7 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
             cancellationToken);
         return new(rows.Select(x => x with
         {
-            CategoryPath = paths.GetValueOrDefault(x.CategoryId, x.CategoryName)
+            CategoryPath = paths.GetValueOrDefault(x.CategoryId) ?? x.CategoryName
         }).ToList(), validated.Page, validated.PageSize, hasMore);
     }
 }
