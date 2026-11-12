@@ -407,3 +407,55 @@ html {
     .catalog-manage-page .dashboard__heading .button { margin-top: 13px; }
     .catalog-editor__header, .catalog-editor__form, .catalog-editor__danger { padding: 16px; }
 }
+
+
+/* 9.4C.1 — Ομοιόμορφη διαχείριση κωδικών και ιεραρχικών επιλογών. */
+.catalog-code-mode {
+    display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center;
+    border: 1px solid var(--border); border-radius: 11px;
+    background: var(--surface-alt); padding: 4px;
+}
+.catalog-code-mode label { position: relative; cursor: pointer; font-size: 12px; }
+.catalog-code-mode label input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.catalog-code-mode label span {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 36px; padding: 6px 13px; border-radius: 8px;
+    font-weight: 750; color: var(--muted-strong);
+}
+.catalog-code-mode label input:checked + span {
+    color: var(--positive); background: var(--surface);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 9%);
+}
+.catalog-code-mode label input:focus-visible + span {
+    outline: 3px solid var(--positive); outline-offset: 2px;
+}
+.catalog-editor__field input:disabled {
+    opacity: .65; cursor: not-allowed; background: var(--surface-alt);
+}
+.catalog-editor__field [hidden] { display: none !important; }
+.catalog-editor__field .catalog-editor__error {
+    color: var(--danger, #c95047); font-size: 12px; font-weight: 700;
+}
+.catalog-editor__field [aria-busy="true"] {
+    background: var(--surface-alt);
+}
+.catalog-editor__form[aria-busy="true"] { opacity: .78; }
+.catalog-editor__field input[type="search"] {
+    min-height: 41px; background: var(--surface-alt);
+}
+.catalog-editor__field select[data-catalog-category-select] {
+    min-height: 47px;
+}
+.catalog-tree-path {
+    display: block; max-width: 520px; line-height: 1.5;
+    font-size: 12px; color: var(--muted-strong);
+}
+.catalog-tree-parent { display: inline-block; margin-right: 6px; color: var(--positive); }
+.catalog-managed-note {
+    padding: 0 2px; font-size: 12px; color: var(--muted);
+}
+.catalog-success { line-height: 1.6; }
+@media (max-width: 540px) {
+    .catalog-code-mode { width: 100%; }
+    .catalog-code-mode label { flex: 1 1 auto; text-align: center; }
+}
