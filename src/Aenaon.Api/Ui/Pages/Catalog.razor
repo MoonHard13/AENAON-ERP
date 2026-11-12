@@ -81,7 +81,17 @@
                 @if (Saved == 1)
                 {
                     <div class="catalog-success" role="status">
-                        <AppIcon Name="check" /> Η καταχώρηση αποθηκεύτηκε επιτυχώς.
+                        <AppIcon Name="check" /> Η καταχώρηση @SavedCode αποθηκεύτηκε επιτυχώς.
+                    </div>
+                }
+
+                @if (SelectedView == "categories" && ParentId.HasValue)
+                {
+                    <div class="catalog-managed-note">
+                        <AppIcon Name="folder-tree" /> Προβολή υποκατηγοριών
+                        <a class="catalog-edit-link" href="@BuildUrl("categories", 1, reset: true, clearParent: true)">
+                            Όλες οι κατηγορίες
+                        </a>
                     </div>
                 }
 
@@ -172,21 +182,45 @@
                             <table class="catalog-table">
                                 <thead>
                                     <tr><th scope="col">Κωδικός</th><th scope="col">Κατηγορία</th><th scope="col">Κατάσταση</th>
-                                        @if (CanManage) { <th scope="col">Ενέργειες</th> }</tr>
+                                        <th scope="col">Ενέργειες</th></tr>
                                 </thead>
                                 <tbody>
                                     @foreach (CatalogCategorySummary row in _categories.Rows)
                                     {
                                         <tr>
                                             <td><span class="catalog-code">@row.Code</span></td>
-                                            <td class="catalog-table__name">@row.Name</td>
+                                            <td class="catalog-table__name">
+                                                @if (row.ParentCategoryId.HasValue)
+                                                {
+                                                    <span class="catalog-tree-parent" aria-label="Υποκατηγορία">↳</span>
+                                                }
+                                                <strong>@row.Name</strong>
+                                                @if (!string.IsNullOrWhiteSpace(row.CategoryPath) && row.ParentCategoryId.HasValue)
+                                                {
+                                                    <small class="catalog-tree-path">@row.CategoryPath</small>
+                                                }
+                                            </td>
                                             <td><span class="@StatusClass(row.IsActive)">
                                                 @(row.IsActive ? "Ενεργή" : "Ανενεργή")
                                             </span></td>
                                             @if (CanManage)
                                             {
-                                                <td><a class="catalog-edit-link" href="@BuildManageUrl("categories", row.Id)"
-                                                       aria-label="Επεξεργασία κατηγορίας @row.Code">Επεξεργασία</a></td>
+                                                <td>
+                                                    <div class="catalog-table-actions">
+                                                        <a class="catalog-edit-link" href="@BuildManageUrl("categories", row.Id)"
+                                                           aria-label="Επεξεργασία κατηγορίας @row.Code">Επεξεργασία</a>
+                                                        @if (row.HasChildren)
+                                                        {
+                                                            <a class="catalog-edit-link" href="@BuildUrl("categories", 1, parent: row.Id)"
+                                                               aria-label="Υποκατηγορίες @row.Code">Υποκατηγορίες</a>
+                                                        }
+                                                    </div>
+                                                </td>
+                                            }
+                                            else if (row.HasChildren)
+                                            {
+                                                <td><a class="catalog-edit-link"
+                                                       href="@BuildUrl("categories", 1, parent: row.Id)">Υποκατηγορίες</a></td>
                                             }
                                         </tr>
                                     }
@@ -269,8 +303,15 @@
                 </section>
 
                 <p class="catalog-disclaimer">
-                    Η οθόνη είναι μόνο για ανάγνωση. Δεν ενημερώνει τιμές, ΦΠΑ, απόθεμα
-                    ή φορολογικές ταξινομήσεις και δεν εκδίδει παραστατικά.
+                    @if (CanManage)
+                    {
+                        <text>Μπορείτε να δημιουργείτε και να επεξεργάζεστε κατηγορίες, προϊόντα και υπηρεσίες.</text>
+                    }
+                    else
+                    {
+                        <text>Η οθόνη είναι μόνο για ανάγνωση.</text>
+                    }
+                    Δεν ενημερώνονται τιμές, ΦΠΑ, υπόλοιπα αποθήκης ή φορολογικές ταξινομήσεις.
                 </p>
             }
         </div>
@@ -305,6 +346,12 @@
 
     [SupplyParameterFromQuery(Name = "saved")]
     public int? Saved { get; set; }
+
+    [SupplyParameterFromQuery(Name = "savedCode")]
+    public string? SavedCode { get; set; }
+
+    [SupplyParameterFromQuery(Name = "parentId")]
+    public Guid? ParentId { get; set; }
 
     private TenantWorkspaceSnapshot? _workspace;
     private CatalogReadPage<CatalogCategorySummary>? _categories;
@@ -407,7 +454,8 @@
                 _ => null
             };
             CatalogReadQuery query = new(
-                PageNumber ?? 1, PageSize ?? 25, Search, IncludeInactive == true, kind);
+                PageNumber ?? 1, PageSize ?? 25, Search, IncludeInactive == true, kind,
+                SelectedView == "categories" ? ParentId : null);
             query = query.Validated();
 
             if (SelectedView == "categories")
@@ -484,7 +532,8 @@
 
     private string BuildResetUrl() => BuildUrl(SelectedView, 1, reset: true);
 
-    private string BuildUrl(string view, int page, bool reset = false)
+    private string BuildUrl(string view, int page, bool reset = false,
+        Guid? parent = null, bool clearParent = false)
     {
         var parameters = new List<string>
         {
@@ -517,6 +566,11 @@
             {
                 parameters.Add($"pageSize={PageSize.Value}");
             }
+        }
+
+        if (!clearParent && view == "categories" && (parent ?? ParentId) is { } parentId)
+        {
+            parameters.Add($"parentId={parentId:D}");
         }
 
         if (page > 1)
