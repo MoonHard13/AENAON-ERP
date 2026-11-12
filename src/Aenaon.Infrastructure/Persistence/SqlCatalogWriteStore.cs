@@ -24,10 +24,12 @@ public sealed class SqlCatalogWriteStore(AenaonDbContext context) : ICatalogWrit
         }
         catch (DbUpdateException exception) when (HasSqlNumber(exception, 2601, 2627))
         {
+            DetachFailedEntries(exception);
             return new(CatalogChangeStatus.Duplicate);
         }
         catch (DbUpdateException exception) when (HasSqlNumber(exception, 547))
         {
+            DetachFailedEntries(exception);
             return new(CatalogChangeStatus.Invalid, Error: "catalog.reference.invalid");
         }
         catch (DbUpdateConcurrencyException)
@@ -176,6 +178,15 @@ public sealed class SqlCatalogWriteStore(AenaonDbContext context) : ICatalogWrit
         CancellationToken cancellationToken) =>
         context.CatalogCategories.AsNoTracking()
             .AnyAsync(x => x.TenantId == tenantId && x.Id == id && x.IsActive, cancellationToken);
+
+    /// <summary>Δεν ξαναδοκιμάζονται κατά λάθος αποτυχημένα INSERT σε επόμενο SaveChanges.</summary>
+    private static void DetachFailedEntries(DbUpdateException exception)
+    {
+        foreach (var entry in exception.Entries)
+        {
+            entry.State = EntityState.Detached;
+        }
+    }
 
     private static bool HasSqlNumber(Exception exception, params int[] numbers)
     {
