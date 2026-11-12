@@ -8,6 +8,7 @@
 @inject TenantWorkspaceResolver WorkspaceResolver
 @inject WorkspacePreferenceService Preference
 @inject CatalogWriteService Manager
+@inject CatalogEditorDraftStore Drafts
 @inject ILogger<CatalogManage> Logger
 
 <PageTitle>@Heading | Aenaon ERP</PageTitle>
@@ -30,6 +31,13 @@
                 </a>
             </div>
 
+            @if (!string.IsNullOrWhiteSpace(SavedCode) && !_error && !_denied)
+            {
+                <div class="catalog-success" role="status">
+                    <AppIcon Name="check" /> Η καταχώρηση με κωδικό @SavedCode αποθηκεύτηκε.
+                </div>
+            }
+
             @if (_error)
             {
                 <div class="form-alert" role="alert">
@@ -50,23 +58,18 @@
             }
             else if (_details is not null)
             {
-                @if (Error is "duplicate" or "invalid" or "category")
+                @if (!string.IsNullOrEmpty(CurrentError))
                 {
                     <div class="form-alert" role="alert">
-                        @(Error switch
-                        {
-                            "duplicate" => "Ο κωδικός υπάρχει ήδη σε αυτήν την επιχείρηση.",
-                            "category" => "Επιλέξτε μια έγκυρη, ενεργή κατηγορία.",
-                            _ => "Τα στοιχεία δεν είναι έγκυρα. Ελέγξτε κωδικό και περιγραφή."
-                        })
+                        @ErrorMessage
                     </div>
                 }
 
                 <section class="surface-card catalog-editor">
                     <div class="catalog-editor__header">
                         <div>
-                            <h2>@(Id.HasValue ? "Επεξεργασία στοιχείων" : "Νέα καταχώρηση")</h2>
-                            <p>Τα πεδία με * είναι υποχρεωτικά.</p>
+                            <h2>Στοιχεία @EntityLabel</h2>
+                            <p>Συμπληρώστε τα υποχρεωτικά πεδία και αποθηκεύστε.</p>
                         </div>
                         @if (_details.Record is { } record)
                         {
@@ -85,18 +88,16 @@
                         </div>
                     }
 
-                    @if (_details.HasAdditionalCategories)
-                    {
-                        <p class="catalog-editor__hint" role="status">
-                            Εμφανίζονται οι πρώτες 300 κατηγορίες. Χρησιμοποιήστε κωδικό που ταξινομείται
-                            νωρίτερα ή οργανώστε τις κατηγορίες πριν συνεχίσετε.
-                        </p>
-                    }
+                    <p class="catalog-editor__hint">
+                        Οι κατηγορίες αναζητούνται στον server με κωδικό ή περιγραφή. Η γονική
+                        κατηγορία μπορεί να έχει επιπλέον υποκατηγορίες.
+                    </p>
 
                     <form class="catalog-editor__form" method="post" action="/ui/catalog/save">
                         <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
                         <input type="hidden" name="tenantId" value="@_workspace!.Tenant!.TenantId" />
                         <input type="hidden" name="view" value="@View" />
+                        <input type="hidden" name="requestId" value="@_requestId" />
                         <input type="hidden" name="action" value="@(Id.HasValue ? "update" : "create")" />
                         @if (Id.HasValue)
                         {
@@ -106,31 +107,78 @@
                         <div class="catalog-editor__grid">
                             <div class="catalog-editor__field">
                                 <label for="edit-code">Κωδικός *</label>
-                                <input id="edit-code" name="code" required autocomplete="off"
+                                @if (!Id.HasValue)
+                                {
+                                    <div class="catalog-code-mode" role="group"
+                                         aria-label="Τρόπος απόδοσης κωδικού">
+                                        <label>
+                                            <input type="radio" name="codeMode" value="auto"
+                                                   data-code-mode="auto" checked="@IsAutoCode" />
+                                            <span>Αυτόματος</span>
+                                        </label>
+                                        <label>
+                                            <input type="radio" name="codeMode" value="manual"
+                                                   data-code-mode="manual" checked="@(!IsAutoCode)" />
+                                            <span>Χειροκίνητος</span>
+                                        </label>
+                                    </div>
+                                }
+                                <input id="edit-code" name="code" autocomplete="off"
+                                       required="@(!IsAutoCode)" disabled="@IsAutoCode"
                                        maxlength="@(View == "categories" ? 30 : 40)"
-                                       value="@_details.Record?.Code" placeholder="π.χ. FOOD01" />
-                                <small>Γράμματα, αριθμοί, παύλα ή κάτω παύλα.</small>
+                                       value="@CurrentCode" placeholder="π.χ. 1, 2, 3 ή δικός σας κωδικός" />
+                                <small data-auto-code-hint hidden="@(!IsAutoCode)">
+                                    Ο μοναδικός αριθμός (1, 2, 3…) αποδίδεται από τον SQL Server
+                                    κατά την αποθήκευση. Δεν χρησιμοποιούνται αρχικά μηδενικά.
+                                </small>
+                                <small data-manual-code-hint hidden="@IsAutoCode">
+                                    Μπορείτε να γράψετε δικό σας κωδικό με γράμματα, αριθμούς, - ή _.
+                                </small>
+                                @if (CurrentError is "duplicate" or "code")
+                                {
+                                    <small class="catalog-editor__error">Ελέγξτε τον κωδικό: @ErrorMessage</small>
+                                }
                             </div>
                             <div class="catalog-editor__field">
                                 <label for="edit-name">Περιγραφή *</label>
                                 <input id="edit-name" name="name" required autocomplete="off"
                                        maxlength="@(View == "categories" ? 160 : 200)"
-                                       value="@_details.Record?.Name" placeholder="Περιγραφή καταχώρησης" />
+                                       value="@CurrentName" placeholder="Περιγραφή καταχώρησης" />
                             </div>
-                            @if (View != "categories")
+                            @if (View is "categories" or "products" or "services")
                             {
                                 <div class="catalog-editor__field catalog-editor__field--wide">
-                                    <label for="edit-category">Κατηγορία *</label>
-                                    <select id="edit-category" name="categoryId" required>
-                                        <option value="">Επιλογή κατηγορίας</option>
+                                    <label for="edit-category">
+                                        @(View == "categories" ? "Γονική κατηγορία" : "Κατηγορία *")
+                                    </label>
+                                    <input id="category-search" type="search" autocomplete="off"
+                                           data-catalog-category-search
+                                           data-tenant-id="@_workspace!.Tenant!.TenantId"
+                                           data-selected-id="@CurrentSelectedCategory"
+                                           placeholder="Αναζήτηση κατηγορίας με κωδικό ή περιγραφή…"
+                                           aria-label="Αναζήτηση κατηγορίας" />
+                                    <select id="edit-category"
+                                            name="@(View == "categories" ? "parentCategoryId" : "categoryId")"
+                                            data-catalog-category-select
+                                            required="@(View != "categories")">
+                                        <option value="">
+                                            @(View == "categories" ? "Καμία — κύρια κατηγορία" :
+                                                "Επιλέξτε κατηγορία")
+                                        </option>
                                         @foreach (CatalogCategoryOption category in _details.Categories)
                                         {
                                             <option value="@category.Id"
-                                                    selected="@(category.Id == _details.Record?.CategoryId)">
-                                                @category.Code — @category.Name
+                                                    selected="@(category.Id == CurrentSelectedCategory)">
+                                                @category.Code — @(category.Path ?? category.Name)
                                             </option>
                                         }
                                     </select>
+                                    <small>Επιλέξτε από τα αποτελέσματα. Οι υποκατηγορίες εμφανίζονται
+                                        με πλήρη διαδρομή.</small>
+                                    @if (CurrentError is "category" or "parent")
+                                    {
+                                        <small class="catalog-editor__error">@ErrorMessage</small>
+                                    }
                                 </div>
                             }
 
@@ -138,7 +186,7 @@
                             {
                                 <label class="catalog-editor__checkbox catalog-editor__field--wide">
                                     <input type="checkbox" name="tracksStock" value="true"
-                                           checked="@(_details.Record?.TracksStock ?? false)" />
+                                           checked="@CurrentTracksStock" />
                                     Παρακολούθηση αποθέματος
                                 </label>
                             }
@@ -146,9 +194,14 @@
 
                         <div class="catalog-editor__footer">
                             <button type="submit" class="button button--primary"
-                                    data-catalog-save
+                                    name="saveMode" value="close" data-catalog-save
                                     disabled="@(View != "categories" && _details.Categories.Count == 0)">
-                                <AppIcon Name="check" /> @(Id.HasValue ? "Αποθήκευση αλλαγών" : "Δημιουργία")
+                                <AppIcon Name="check" /> @(Id.HasValue ? "Αποθήκευση" : "Δημιουργία")
+                            </button>
+                            <button type="submit" name="saveMode" value="new"
+                                    class="button button--outline" data-catalog-save
+                                    disabled="@(View != "categories" && _details.Categories.Count == 0)">
+                                Αποθήκευση και νέο
                             </button>
                             <a class="button button--outline" href="@BackUrl">Ακύρωση</a>
                         </div>
@@ -204,10 +257,18 @@
     [SupplyParameterFromQuery(Name = "error")]
     public string? Error { get; set; }
 
+    [SupplyParameterFromQuery(Name = "draft")]
+    public Guid? DraftToken { get; set; }
+
+    [SupplyParameterFromQuery(Name = "savedCode")]
+    public string? SavedCode { get; set; }
+
     private TenantWorkspaceSnapshot? _workspace;
     private CatalogManageDetails? _details;
     private string? _csrfToken;
     private string _userName = "Χρήστης";
+    private CatalogEditorDraft? _draft;
+    private Guid _requestId = Guid.NewGuid();
     private bool _denied;
     private bool _missing;
     private bool _error;
@@ -217,6 +278,33 @@
         "categories" => CatalogManagedEntity.Category,
         "services" => CatalogManagedEntity.Service,
         _ => CatalogManagedEntity.Product
+    };
+
+    private string EntityLabel => View switch
+    {
+        "categories" => "κατηγορίας",
+        "services" => "υπηρεσίας",
+        _ => "προϊόντος"
+    };
+
+    private bool IsAutoCode => !Id.HasValue && (_draft?.AutoCode ?? true);
+    private string CurrentCode => _draft?.Code ?? _details?.Record?.Code ?? "";
+    private string CurrentName => _draft?.Name ?? _details?.Record?.Name ?? "";
+    private Guid? CurrentSelectedCategory => View == "categories"
+        ? _draft?.ParentCategoryId ?? _details?.Record?.ParentCategoryId
+        : _draft?.CategoryId ?? _details?.Record?.CategoryId;
+    private bool CurrentTracksStock =>
+        _draft?.TracksStock ?? _details?.Record?.TracksStock ?? false;
+
+    private string? CurrentError => _draft?.ErrorCode ?? Error;
+    private string ErrorMessage => CurrentError switch
+    {
+        "duplicate" => "Ο κωδικός χρησιμοποιείται ήδη στην επιχείρηση.",
+        "code" => "Δεν υπάρχουν διαθέσιμοι αριθμητικοί κωδικοί.",
+        "category" => "Επιλέξτε έγκυρη και ενεργή κατηγορία.",
+        "parent" => "Μη έγκυρη γονική κατηγορία ή δημιουργία κύκλου.",
+        "inuse" => "Η κατηγορία έχει ενεργά είδη ή ενεργές υποκατηγορίες.",
+        _ => "Τα στοιχεία δεν είναι έγκυρα. Ελέγξτε τα απαιτούμενα πεδία."
     };
 
     private string Heading => (View, Id.HasValue) switch
@@ -257,6 +345,8 @@
         _denied = false;
         _missing = false;
         _details = null;
+        _draft = null;
+        _requestId = Guid.NewGuid();
 
         HttpContext? context = HttpContextAccessor.HttpContext;
         if (context?.Request.IsHttps != true ||
@@ -303,6 +393,10 @@
             _details = result.Details;
             _missing = !_denied && (_details is null ||
                 (Id.HasValue && _details.Record is null));
+            if (!_denied && !_missing && DraftToken is { } token)
+            {
+                _draft = Drafts.Read(token, userId, _workspace.Tenant.TenantId, Id, View!);
+            }
         }
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
