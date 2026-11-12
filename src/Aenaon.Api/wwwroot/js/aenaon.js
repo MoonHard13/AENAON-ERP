@@ -32,29 +32,45 @@
         updateThemeLabels();
     }
 
+    // Ανάθεση χειριστών στο document για στοιχεία που αντικαθιστά το Blazor streaming SSR.
+    document.addEventListener("click", event => {
+        if (!(event.target instanceof Element)) {
+            return;
+        }
+
+        if (event.target.closest("[data-theme-toggle]")) {
+            toggleTheme();
+            return;
+        }
+
+        const button = event.target.closest("[data-password-toggle]");
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        const targetId = button.getAttribute("aria-controls");
+        const field = targetId ? document.getElementById(targetId) : null;
+        if (!(field instanceof HTMLInputElement)) {
+            return;
+        }
+
+        const show = field.type === "password";
+        field.type = show ? "text" : "password";
+        button.textContent = show ? "Απόκρυψη" : "Εμφάνιση";
+        button.setAttribute("aria-label", show ? "Απόκρυψη κωδικού" : "Εμφάνιση κωδικού");
+        field.focus({ preventScroll: true });
+    });
+
+    // Το Blazor ανανεώνει τους τίτλους/menus όταν το streaming αντικαθιστά HTML.
+    if (window.Blazor && typeof window.Blazor.addEventListener === "function") {
+        window.Blazor.addEventListener("enhancedload", updateThemeLabels);
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         updateThemeLabels();
 
-        document.querySelectorAll("[data-theme-toggle]").forEach(button => {
-            button.addEventListener("click", toggleTheme);
-        });
-
-        document.querySelectorAll("[data-password-toggle]").forEach(button => {
-            button.addEventListener("click", () => {
-                const targetId = button.getAttribute("aria-controls");
-                const field = targetId ? document.getElementById(targetId) : null;
-                if (!(field instanceof HTMLInputElement)) {
-                    return;
-                }
-
-                const show = field.type === "password";
-                field.type = show ? "text" : "password";
-                button.textContent = show ? "Απόκρυψη" : "Εμφάνιση";
-                button.setAttribute("aria-label", show ? "Απόκρυψη κωδικού" : "Εμφάνιση κωδικού");
-                field.focus({ preventScroll: true });
-            });
-        });
-
+        // Οι δυναμικές αντικαταστάσεις του streaming SSR δεν απαιτούν επανασύνδεση listeners.
+        // Η αρχικοποίηση του login form παραμένει τοπική στη στατική σελίδα.
         const loginForm = document.querySelector(".login-form");
         if (loginForm) {
             const button = loginForm.querySelector('button[type="submit"]');
