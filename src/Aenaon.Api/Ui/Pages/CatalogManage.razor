@@ -354,8 +354,10 @@
             }
 
             string itemId = _returnEditor.Id is { } id ? $"&id={id:D}" : "";
+            string store = _returnEditor.StoreId.HasValue
+                ? $"&storeId={_returnEditor.StoreId.Value:D}" : "";
             return $"/catalog/manage?view={_returnEditor.View}&tenantId={tenant.TenantId:D}" +
-                itemId + $"&draft={ReturnDraftToken.Value:D}";
+                store + itemId + $"&draft={ReturnDraftToken.Value:D}";
         }
     }
 
