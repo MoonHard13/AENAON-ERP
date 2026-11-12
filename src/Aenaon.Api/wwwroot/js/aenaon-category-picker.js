@@ -345,7 +345,7 @@
             const options = document.createDocumentFragment();
             this.items.forEach((item, index) => {
                 const option = document.createElement("div");
-                option.id = "catalog-category-option-" + index;
+                option.id = this.list.id + "-option-" + index;
                 option.className = "catalog-category-picker__option";
                 option.setAttribute("role", "option");
                 option.setAttribute("aria-selected", "false");
