@@ -25,6 +25,27 @@ public sealed class CatalogUiTests
     }
 
     [TestMethod]
+    public async Task Catalog_StreamingHasBlazorBootstrapAndJavascriptIsServed()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = await client.GetStringAsync("/catalog");
+
+        // Αποτρέπουμε την επανεμφάνιση ατέρμονου loading όταν λείπει ο Blazor bootstrap loader.
+        Match script = Regex.Match(html,
+            """<script\s+src="([^"]*blazor\.web[^"]*\.js(?:\?[^"]*)?)" """.TrimEnd(),
+            RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+        Assert.IsTrue(script.Success, "Το streaming SSR απαιτεί το blazor.web.js στο App.razor.");
+        Assert.Contains("data-enhance-nav=\"false\"", html);
+
+        using var response = await client.GetAsync(WebUtility.HtmlDecode(script.Groups[1].Value));
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode,
+            "Ο Blazor browser bootstrap πρέπει να διατίθεται ως static web asset.");
+    }
+
+    [TestMethod]
     public async Task Catalog_DefaultViewShowsProductsOnlyWithSharedNavigation()
     {
         await using var factory = new SessionApiFactory();
