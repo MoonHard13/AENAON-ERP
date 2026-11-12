@@ -124,6 +124,34 @@
                 event.preventDefault();
                 window.location.assign("/dashboard");
                 break;
+            case "c":
+                event.preventDefault();
+                window.location.assign("/catalog");
+                break;
+            case "f": {
+                const search = document.getElementById("catalog-search");
+                if (search instanceof HTMLInputElement) {
+                    event.preventDefault();
+                    search.focus();
+                    search.select();
+                }
+                break;
+            }
+            case "p":
+            case "s":
+            case "g": {
+                if (window.location.pathname !== "/catalog") {
+                    break;
+                }
+                const view = event.key.toLowerCase() === "p" ? "products"
+                    : event.key.toLowerCase() === "s" ? "services" : "categories";
+                const url = new URL(window.location.href);
+                url.searchParams.set("view", view);
+                url.searchParams.delete("page");
+                event.preventDefault();
+                window.location.assign(url.pathname + url.search);
+                break;
+            }
             case "o": {
                 const logoutForm = document.querySelector('.logout-form');
                 if (logoutForm instanceof HTMLFormElement) {
