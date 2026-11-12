@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using Aenaon.Application.Catalog;
 using Aenaon.Application.Tenancy;
-using Aenaon.Domain.Tenancy;
 using Aenaon.Domain.Catalog;
+using Aenaon.Domain.Tenancy;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 
