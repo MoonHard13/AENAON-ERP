@@ -267,7 +267,7 @@
                                         <tr>
                                             <td><span class="catalog-code">@row.Code</span></td>
                                             <td class="catalog-table__name">@row.Name</td>
-                                            <td>@(row.CategoryName ?? "—")</td>
+                                            <td><span class="catalog-tree-path">@(row.CategoryPath ?? row.CategoryName ?? "—")</span></td>
                                             <td>@(row.Kind == CatalogItemKind.Service ? "Υπηρεσία" : "Προϊόν")</td>
                                             <td>@(row.TracksStock ? "Ναι" : "Όχι")</td>
                                             <td><span class="@StatusClass(row.IsActive)">
