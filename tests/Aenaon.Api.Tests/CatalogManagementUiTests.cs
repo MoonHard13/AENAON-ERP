@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using Aenaon.Application.Catalog;
+using Aenaon.Domain.Catalog;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Aenaon.Api.Tests;
@@ -242,6 +243,29 @@ public sealed class CatalogManagementUiTests
         using var denied = await client.GetAsync(
             $"/ui/catalog/categories?tenantId={Tenant:D}&search=FOOD");
         Assert.AreEqual(HttpStatusCode.Forbidden, denied.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task LazyCategoryTree_AllowsMemberReadButNeverForeignTenant()
+    {
+        await using var factory = new SessionApiFactory();
+        Guid root = SessionCatalogWriteFixture.CategoryId;
+        factory.Catalog.Categories[0] = factory.Catalog.Categories[0] with { HasChildren = true };
+        factory.Catalog.Categories.Add(new CatalogCategorySummary(
+            Guid.NewGuid(), "CHILD", "Υποκατηγορία", true, root, "Φαγητά / Υποκατηγορία"));
+        factory.Access.GrantedRole = Aenaon.Domain.Tenancy.TenantMembershipRole.Member;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string catalog = await client.GetStringAsync("/catalog?view=categories");
+        Assert.Contains("data-category-branch", catalog);
+        using var rows = await client.GetAsync(
+            $"/ui/catalog/children?tenantId={Tenant:D}&parentId={root:D}");
+        Assert.AreEqual(HttpStatusCode.OK, rows.StatusCode);
+        Assert.Contains("CHILD", await rows.Content.ReadAsStringAsync());
+        using var foreign = await client.GetAsync(
+            $"/ui/catalog/children?tenantId={Guid.NewGuid():D}&parentId={root:D}");
+        Assert.AreEqual(HttpStatusCode.Forbidden, foreign.StatusCode);
     }
 
     [TestMethod]
