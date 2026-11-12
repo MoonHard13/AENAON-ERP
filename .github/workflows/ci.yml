@@ -42,6 +42,13 @@ jobs:
         run: dotnet restore AenaonERP.slnx --locked-mode
       - name: Restore pinned EF tooling
         run: dotnet tool restore
+      - name: Verify browser JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in src/Aenaon.Api/wwwroot/js/aenaon.js src/Aenaon.Api/wwwroot/js/aenaon-category-picker.js src/Aenaon.Api/wwwroot/js/aenaon-theme-init.js; do
+            node --check "$file"
+          done
       - name: Verify formatting
         run: dotnet format AenaonERP.slnx --verify-no-changes --no-restore
       - name: Build Release
