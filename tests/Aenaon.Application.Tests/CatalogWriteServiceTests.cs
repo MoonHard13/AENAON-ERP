@@ -11,7 +11,7 @@ namespace Aenaon.Application.Tests;
 public sealed class CatalogWriteServiceTests
 {
     private static readonly Guid User = Guid.Parse("c4dbe076-0125-438d-9bf1-8e8ddc18f46f");
-    private static readonly Guid Tenant = Guid.Parse("1fe9efcb-2aa9-4538-9530-254431b841a0e");
+    private static readonly Guid Tenant = Guid.Parse("1fe9efcb-2aa9-4538-9530-254431b841a0");
 
     [TestMethod]
     public async Task Owner_CanCreateCategoryViaSharedService()
