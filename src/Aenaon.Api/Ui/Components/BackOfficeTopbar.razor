@@ -16,6 +16,26 @@
     </details>
     <div class="breadcrumb">Εφαρμογή <span>/</span> <strong>@PageTitle</strong></div>
     <div class="topbar__actions">
+        @* Το πλαίσιο εργασίας προβάλλεται συμπαγές· η αλλαγή εξακολουθεί να γίνεται με ασφαλές POST στο Dashboard. *@
+        <a class="workspace-indicator" href="@WorkspaceSelectionHref"
+           aria-label="Αλλαγή επιχείρησης ή καταστήματος"
+           title="Αλλαγή επιχείρησης ή καταστήματος">
+            <AppIcon Name="building" />
+            @if (ActiveWorkspace is { } selected)
+            {
+                <span class="workspace-indicator__tenant">@selected.Tenant!.Name</span>
+                @if (selected.Store is { } store)
+                {
+                    <span class="workspace-indicator__divider" aria-hidden="true">/</span>
+                    <span class="workspace-indicator__store">@store.Name (@store.Code)</span>
+                }
+            }
+            else
+            {
+                <span class="workspace-indicator__tenant">Επιλογή επιχείρησης</span>
+            }
+            <AppIcon Name="chevron" />
+        </a>
         <button type="button" class="theme-toggle" data-theme-toggle aria-label="Εναλλαγή θέματος">
             <AppIcon Name="sun-moon" /> <span data-theme-label>Θέμα</span>
         </button>
@@ -30,7 +50,7 @@
                     <span class="user-menu__avatar">@Initials</span>
                     <div>
                         <strong>@UserName</strong>
-                        <small>@TenantName</small>
+                        <small>@(ActiveWorkspace?.Tenant?.Name ?? "Aenaon ERP")</small>
                     </div>
                 </div>
                 <div class="user-menu__section-label">ΛΟΓΑΡΙΑΣΜΟΣ</div>
@@ -50,13 +70,36 @@
     [Parameter, EditorRequired] public string PageTitle { get; set; } = string.Empty;
     [Parameter] public string ActivePage { get; set; } = "dashboard";
     [Parameter] public string UserName { get; set; } = "Χρήστης";
-    [Parameter] public string TenantName { get; set; } = "Aenaon ERP";
+    [Parameter] public TenantWorkspaceSnapshot? Workspace { get; set; }
     [Parameter] public string? CsrfToken { get; set; }
     [Parameter] public Guid? TenantId { get; set; }
     [Parameter] public Guid? StoreId { get; set; }
 
     private string Initials =>
         string.IsNullOrWhiteSpace(UserName) ? "A" : UserName[..1].ToUpperInvariant();
+
+    private TenantWorkspaceSnapshot? ActiveWorkspace =>
+        Workspace is { Status: TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores, Tenant: not null }
+            ? Workspace : null;
+
+    private string WorkspaceSelectionHref
+    {
+        get
+        {
+            if (ActiveWorkspace is not { } workspace)
+            {
+                return "/dashboard#workspace-selection";
+            }
+
+            string address = $"/dashboard?tenantId={workspace.Tenant!.TenantId:D}";
+            if (workspace.Store is { } store)
+            {
+                address += $"&storeId={store.StoreId:D}";
+            }
+
+            return address + "#workspace-selection";
+        }
+    }
 
     private string DashboardHref => Href("/dashboard");
     private string CatalogHref => Href("/catalog");
