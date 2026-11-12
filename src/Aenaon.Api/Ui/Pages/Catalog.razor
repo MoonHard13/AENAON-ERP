@@ -199,6 +199,18 @@
                                                 {
                                                     <small class="catalog-tree-path">@row.CategoryPath</small>
                                                 }
+                                                @if (row.HasChildren)
+                                                {
+                                                    <button type="button" class="catalog-tree-toggle"
+                                                            data-category-branch="@row.Id"
+                                                            data-tenant-id="@_workspace.Tenant.TenantId"
+                                                            aria-expanded="false"
+                                                            aria-controls="subtree-@row.Id">
+                                                        <AppIcon Name="chevron" /> Ανάπτυξη υποκατηγοριών
+                                                    </button>
+                                                    <div id="subtree-@row.Id" class="catalog-tree-children"
+                                                         hidden aria-live="polite"></div>
+                                                }
                                             </td>
                                             <td><span class="@StatusClass(row.IsActive)">
                                                 @(row.IsActive ? "Ενεργή" : "Ανενεργή")
