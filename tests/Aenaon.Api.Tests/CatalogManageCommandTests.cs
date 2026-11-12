@@ -91,7 +91,7 @@ public sealed class CatalogManageCommandTests
             output, error, () => "SampleSecret!91", true);
 
         Assert.AreEqual(0, code, error.ToString());
-        Assert.IsTrue(store.LastCommand?.AutoCode);
+        Assert.IsTrue(store.LastCommand?.AutoCode == true);
         Assert.IsNull(store.LastCommand?.Code);
     }
 
