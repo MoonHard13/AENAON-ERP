@@ -70,7 +70,7 @@ public sealed class SqlCatalogWriteStore(AenaonDbContext context) : ICatalogWrit
                 return result;
             }
 
-            if (command.Action == CatalogChangeAction.Create &&
+            if (command.Action is CatalogChangeAction.Create or CatalogChangeAction.Update &&
                 long.TryParse(result.Code, NumberStyles.None, CultureInfo.InvariantCulture,
                     out long numeric) && numeric > 0)
             {
