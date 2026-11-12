@@ -665,3 +665,183 @@ img { display: block; max-width: 100%; }
     outline: 3px solid var(--positive);
     outline-offset: 2px;
 }
+
+
+/* Βήμα 9.4B — Ενιαία Back Office εμφάνιση για ασφαλή προβολή του καταλόγου. */
+.catalog-page { max-width: 1680px; }
+.catalog-page .dashboard__heading { align-items: flex-start; margin-bottom: 25px; }
+.catalog-readonly {
+    display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto;
+    font-size: 12px; font-weight: 750; color: var(--positive);
+    border: 1px solid var(--border); background: var(--positive-soft);
+    border-radius: 999px; padding: 9px 13px;
+}
+.catalog-readonly .app-icon { width: 17px; height: 17px; flex-basis: 17px; }
+.catalog-loading {
+    display: flex; align-items: center; gap: 17px; min-height: 155px;
+    font-weight: 650; color: var(--muted-strong);
+}
+.catalog-loading__indicator {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 3px solid var(--border); border-top-color: var(--positive);
+    animation: catalog-spinning .8s linear infinite;
+}
+@keyframes catalog-spinning { to { transform: rotate(360deg); } }
+
+.catalog-context {
+    display: flex; align-items: center; gap: 15px; min-width: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 17px 20px; border-radius: 14px; margin-bottom: 24px;
+}
+.catalog-context__icon {
+    width: 46px; height: 46px; flex: 0 0 46px; display: grid; place-items: center;
+    background: var(--positive-soft); color: var(--positive); border-radius: 12px;
+}
+.catalog-context > div:nth-child(2) { display: grid; gap: 2px; min-width: 0; }
+.catalog-context > div:nth-child(2) > span {
+    color: var(--positive); font-size: 10px; font-weight: 800; letter-spacing: .12em;
+}
+.catalog-context strong { font-size: 16px; overflow-wrap: anywhere; }
+.catalog-context small { font-size: 12px; color: var(--muted); }
+.catalog-context__scope {
+    margin-left: auto; flex: 0 0 auto; font-size: 11px;
+    font-weight: 700; padding: 6px 10px; color: var(--muted-strong);
+    border: 1px solid var(--border); border-radius: 999px;
+}
+.catalog-tabs {
+    display: flex; align-items: stretch; gap: 8px; margin-bottom: 20px;
+    overflow-x: auto; padding-bottom: 4px;
+}
+.catalog-tabs__link {
+    display: inline-flex; gap: 9px; align-items: center; justify-content: center;
+    min-height: 47px; padding: 9px 19px; border: 1px solid transparent;
+    color: var(--muted-strong); font-size: 13px; font-weight: 750;
+    border-radius: 11px; white-space: nowrap;
+}
+.catalog-tabs__link:hover { color: var(--positive); background: var(--positive-soft); }
+.catalog-tabs__link--active {
+    border-color: var(--border); background: var(--surface);
+    color: var(--positive); box-shadow: var(--shadow);
+}
+.catalog-tabs__link .app-icon { width: 18px; height: 18px; flex-basis: 18px; }
+.catalog-surface { padding: 0; overflow: hidden; min-height: 260px; }
+.catalog-surface__header {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding: 24px 27px 20px; border-bottom: 1px solid var(--border);
+}
+.catalog-surface__header .eyebrow { margin: 0 0 5px; }
+.catalog-surface__header h2 {
+    margin: 0; font-size: 21px; line-height: 1.3; letter-spacing: -.02em;
+}
+.catalog-surface__header .count-pill { white-space: nowrap; }
+.catalog-filters {
+    display: flex; flex-wrap: wrap; align-items: end; gap: 14px;
+    padding: 20px 27px; background: var(--surface-alt);
+    border-bottom: 1px solid var(--border);
+}
+.catalog-field { display: grid; gap: 7px; }
+.catalog-field label { font-size: 12px; font-weight: 700; color: var(--muted-strong); }
+.catalog-field--search { flex: 1 1 280px; max-width: 520px; }
+.catalog-field--size { flex: 0 0 96px; }
+.catalog-search { position: relative; }
+.catalog-search .app-icon {
+    position: absolute; top: 50%; left: 13px; transform: translateY(-50%);
+    width: 18px; height: 18px; pointer-events: none; color: var(--muted);
+}
+.catalog-field input, .catalog-field select {
+    width: 100%; min-height: 44px; font-size: 13px; color: var(--text);
+    background: var(--input-bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 9px 13px;
+}
+.catalog-search input { padding-left: 42px; }
+.catalog-field input:focus-visible, .catalog-field select:focus-visible {
+    outline: 2px solid var(--positive); outline-offset: 2px;
+}
+.catalog-checkbox {
+    display: inline-flex; align-items: center; gap: 8px;
+    min-height: 44px; font-size: 12px; font-weight: 650;
+    color: var(--muted-strong); white-space: nowrap;
+}
+.catalog-checkbox input { width: 16px; height: 16px; accent-color: var(--positive); }
+.catalog-filter-button { min-height: 44px; padding: 8px 17px; font-size: 13px; }
+.catalog-filter-button .app-icon { width: 17px; height: 17px; flex-basis: 17px; }
+.catalog-reset {
+    min-height: 44px; display: inline-flex; align-items: center;
+    padding: 8px 3px; color: var(--muted-strong); font-size: 12px; font-weight: 700;
+}
+.catalog-reset:hover { color: var(--positive); text-decoration: underline; }
+.catalog-table-wrap { overflow-x: auto; max-width: 100%; }
+.catalog-table {
+    border-collapse: collapse; width: 100%; min-width: 610px;
+    text-align: left; font-size: 13px;
+}
+.catalog-table th {
+    padding: 15px 23px; white-space: nowrap; font-size: 11px;
+    font-weight: 750; letter-spacing: .03em;
+    color: var(--muted-strong); background: var(--surface-alt);
+}
+.catalog-table td {
+    padding: 17px 23px; border-top: 1px solid var(--border);
+    color: var(--muted-strong); overflow-wrap: anywhere;
+}
+.catalog-table tbody tr:hover { background: var(--surface-alt); }
+.catalog-table__name { font-weight: 750; color: var(--text) !important; }
+.catalog-code {
+    padding: 5px 8px; color: var(--positive); background: var(--positive-soft);
+    border-radius: 6px; font-weight: 800; font-size: 12px;
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.catalog-status {
+    display: inline-flex; align-items: center; border-radius: 999px;
+    padding: 5px 9px; font-weight: 700; font-size: 11px; white-space: nowrap;
+}
+.catalog-status--active { color: var(--positive); background: var(--positive-soft); }
+.catalog-status--inactive { color: var(--muted-strong); background: var(--surface-alt); border: 1px solid var(--border); }
+.catalog-empty {
+    display: grid; place-items: center; text-align: center;
+    padding: 55px 20px; gap: 9px; min-height: 232px;
+}
+.catalog-empty__icon {
+    width: 56px; height: 56px; display: grid; place-items: center;
+    border-radius: 16px; color: var(--positive); background: var(--positive-soft);
+}
+.catalog-empty strong { font-size: 16px; }
+.catalog-empty p { max-width: 450px; margin: 0; color: var(--muted); font-size: 13px; }
+.catalog-pager {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 14px; padding: 18px 27px;
+    border-top: 1px solid var(--border); font-size: 12px; color: var(--muted);
+}
+.catalog-pager__actions { display: flex; gap: 8px; align-items: center; }
+.catalog-pager__actions a, .catalog-pager__disabled {
+    border: 1px solid var(--border); border-radius: 8px;
+    min-height: 36px; display: inline-flex; align-items: center; padding: 7px 12px;
+    color: var(--text); font-weight: 700;
+}
+.catalog-pager__actions a:hover { border-color: var(--positive); color: var(--positive); }
+.catalog-pager__disabled { color: var(--muted); opacity: .6; }
+.catalog-disclaimer {
+    color: var(--muted); font-size: 12px; line-height: 1.7;
+    margin: 18px 2px 4px;
+}
+@media (max-width: 900px) {
+    .catalog-context__scope { display: none; }
+    .catalog-filters { padding: 17px 20px; }
+    .catalog-surface__header { padding: 22px 20px; }
+    .catalog-table th, .catalog-table td { padding-inline: 17px; }
+}
+@media (max-width: 540px) {
+    .catalog-page .dashboard__heading { gap: 12px; }
+    .catalog-readonly { margin-top: 13px; }
+    .catalog-tabs__link { padding-inline: 13px; }
+    .catalog-filters { display: grid; grid-template-columns: minmax(0,1fr) 94px; }
+    .catalog-field--search { grid-column: 1 / -1; }
+    .catalog-checkbox { grid-column: 1 / -1; }
+    .catalog-filter-button { grid-column: 1; }
+    .catalog-reset { grid-column: 2; justify-content: center; }
+    .catalog-surface__header { align-items: flex-start; flex-direction: column; }
+    .catalog-pager { padding: 15px 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .catalog-loading__indicator { animation: none; }
+}
