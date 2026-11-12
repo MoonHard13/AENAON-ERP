@@ -29,7 +29,8 @@ public sealed record CatalogReadQuery(int Page = 1, int PageSize = 25,
 }
 
 /// <summary>Μία ονομασμένη κατηγορία του επιλεγμένου TenantId.</summary>
-public sealed record CatalogCategorySummary(Guid Id, string Code, string Name, bool IsActive);
+public sealed record CatalogCategorySummary(Guid Id, string Code, string Name, bool IsActive,
+    Guid? ParentCategoryId = null, string? CategoryPath = null);
 
 /// <summary>Είδος ή υπηρεσία χωρίς τιμές, ΦΠΑ, αποθήκη ή δεδομένα παραστατικών.</summary>
 public sealed record CatalogItemSummary(
