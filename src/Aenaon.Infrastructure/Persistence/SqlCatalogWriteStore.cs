@@ -123,7 +123,7 @@ public sealed class SqlCatalogWriteStore(AenaonDbContext context) : ICatalogWrit
                 record = await context.CatalogCategories.AsNoTracking()
                     .Where(x => x.TenantId == tenantId && x.Id == id.Value)
                     .Select(x => new CatalogManageRecord(x.Id, x.Code, x.Name, x.IsActive,
-                        ParentCategoryId: x.ParentCategoryId))
+                        null, null, false, x.ParentCategoryId))
                     .SingleOrDefaultAsync(cancellationToken);
             }
             else
