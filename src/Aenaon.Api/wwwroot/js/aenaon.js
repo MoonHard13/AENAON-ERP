@@ -103,6 +103,137 @@
         }
     });
 
+    // Επιλογή χειροκίνητου/αυτόματου κωδικού χωρίς ψευδή δέσμευση αριθμού στον browser.
+    document.addEventListener("change", event => {
+        if (!(event.target instanceof HTMLInputElement) ||
+            !event.target.matches("[data-code-mode]")) {
+            return;
+        }
+
+        const input = document.getElementById("edit-code");
+        if (!(input instanceof HTMLInputElement)) {
+            return;
+        }
+
+        const auto = event.target.value === "auto";
+        input.disabled = auto;
+        input.required = !auto;
+        document.querySelectorAll("[data-auto-code-hint]").forEach(element => {
+            element.hidden = !auto;
+        });
+        document.querySelectorAll("[data-manual-code-hint]").forEach(element => {
+            element.hidden = auto;
+        });
+        if (!auto) {
+            input.focus({ preventScroll: true });
+        }
+    });
+
+    // Οι επιλογές κατηγορίας ανακτώνται τμηματικά από τον εξουσιοδοτημένο server.
+    // Δεν φορτώνεται ολόκληρο το δέντρο στον browser.
+    const lookupDelays = new WeakMap();
+    document.addEventListener("input", event => {
+        if (!(event.target instanceof HTMLInputElement) ||
+            !event.target.matches("[data-catalog-category-search]")) {
+            return;
+        }
+
+        const search = event.target;
+        const selector = document.querySelector("[data-catalog-category-select]");
+        if (!(selector instanceof HTMLSelectElement)) {
+            return;
+        }
+
+        window.clearTimeout(lookupDelays.get(search));
+        const handle = window.setTimeout(async () => {
+            const tenantId = search.dataset.tenantId;
+            if (!tenantId) {
+                return;
+            }
+
+            const selectedId = selector.value || search.dataset.selectedId || "";
+            const params = new URLSearchParams({ tenantId, search: search.value });
+            if (selectedId) {
+                params.set("selectedId", selectedId);
+            }
+
+            selector.setAttribute("aria-busy", "true");
+            try {
+                const response = await window.fetch(
+                    "/ui/catalog/categories?" + params.toString(), {
+                        method: "GET",
+                        credentials: "same-origin",
+                        headers: { "Accept": "application/json" }
+                    });
+                if (!response.ok) {
+                    throw new Error("Catalog category search failed");
+                }
+
+                const categories = await response.json();
+                const preserved = selector.value;
+                const rootLabel = selector.querySelector('option[value=""]')?.textContent || "";
+                selector.replaceChildren();
+                const empty = document.createElement("option");
+                empty.value = "";
+                empty.textContent = rootLabel;
+                selector.appendChild(empty);
+                for (const category of categories) {
+                    const option = document.createElement("option");
+                    option.value = category.id;
+                    option.textContent = category.code + " — " + (category.path || category.name);
+                    selector.appendChild(option);
+                }
+
+                selector.value = preserved;
+                if (!selector.value && preserved) {
+                    selector.value = "";
+                }
+            } catch {
+                // Διατηρούμε τις προηγούμενες επιλογές όταν αποτυγχάνει το δίκτυο.
+                search.setAttribute("aria-invalid", "true");
+            } finally {
+                selector.removeAttribute("aria-busy");
+            }
+        }, 260);
+        lookupDelays.set(search, handle);
+    });
+
+    // Διπλή υποβολή εμποδίζεται στη φόρμα· η πραγματική προστασία είναι το requestId της SQL.
+    document.addEventListener("submit", event => {
+        if (!(event.target instanceof HTMLFormElement) ||
+            !event.target.matches(".catalog-editor__form")) {
+            return;
+        }
+
+        const form = event.target;
+        const submitter = event.submitter;
+        if (submitter instanceof HTMLButtonElement && submitter.name === "saveMode") {
+            let field = form.querySelector('input[type="hidden"][name="saveMode"]');
+            if (!(field instanceof HTMLInputElement)) {
+                field = document.createElement("input");
+                field.type = "hidden";
+                field.name = "saveMode";
+                form.appendChild(field);
+            }
+            field.value = submitter.value;
+        }
+        form.setAttribute("aria-busy", "true");
+        window.setTimeout(() => {
+            form.querySelectorAll('button[type="submit"]').forEach(button => {
+                button.disabled = true;
+            });
+        }, 0);
+    });
+
+    window.addEventListener("pageshow", () => {
+        document.querySelectorAll(".catalog-editor__form").forEach(form => {
+            form.removeAttribute("aria-busy");
+            form.querySelectorAll('button[type="submit"]').forEach(button => {
+                button.disabled = false;
+            });
+        });
+    });
+
     // Επιβεβαίωση απενεργοποίησης/ενεργοποίησης χωρίς inline scripts.
     document.addEventListener("submit", event => {
         if (event.target instanceof HTMLFormElement &&
