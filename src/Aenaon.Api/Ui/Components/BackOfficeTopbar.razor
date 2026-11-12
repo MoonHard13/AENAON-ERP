@@ -9,9 +9,7 @@
             <a href="@CatalogHref" aria-current="@(ActivePage == "catalog" ? "page" : null)">
                 <AppIcon Name="catalog" /> Κατάλογος
             </a>
-            <span><AppIcon Name="sales" /> Εμπορική διαχείριση · Σύντομα</span>
-            <span><AppIcon Name="warehouse" /> Αποθήκη · Σύντομα</span>
-            <span><AppIcon Name="settings" /> Ρυθμίσεις · Σύντομα</span>
+            <span><AppIcon Name="settings" /> Περισσότερες λειτουργίες υπό ανάπτυξη</span>
         </nav>
     </details>
     <div class="breadcrumb">Εφαρμογή <span>/</span> <strong>@PageTitle</strong></div>
@@ -23,7 +21,7 @@
             <AppIcon Name="building" />
             @if (ActiveWorkspace is { } selected)
             {
-                <span class="workspace-indicator__tenant">@selected.Tenant!.Name</span>
+                <span class="workspace-indicator__tenant">@(selected.Tenant!.Name)</span>
                 @if (selected.Store is { } store)
                 {
                     <span class="workspace-indicator__divider" aria-hidden="true">/</span>
