@@ -17,7 +17,28 @@ public static class CatalogManagementEndpoints
             .RequireAuthorization();
         endpoints.MapGet("/ui/catalog/categories", SearchCategoriesAsync)
             .RequireAuthorization();
+        endpoints.MapGet("/ui/catalog/children", ReadChildrenAsync)
+            .RequireAuthorization();
         return endpoints;
+    }
+
+    private static async Task<IResult> ReadChildrenAsync(HttpContext context,
+        CatalogReadService reader)
+    {
+        if (!context.Request.IsHttps || !TryIdentity(context, out Guid userId) ||
+            !Guid.TryParse(context.Request.Query["tenantId"], out Guid tenantId) ||
+            tenantId == Guid.Empty ||
+            !Guid.TryParse(context.Request.Query["parentId"], out Guid parentId) ||
+            parentId == Guid.Empty)
+        {
+            return Results.BadRequest();
+        }
+
+        CatalogReadResult<CatalogCategorySummary> result = await reader.ReadCategoriesAsync(
+            userId, tenantId, new CatalogReadQuery(1, 100, ParentCategoryId: parentId),
+            context.RequestAborted);
+        context.Response.Headers.CacheControl = "no-store";
+        return !result.IsAuthorized ? Results.Forbid() : Results.Json(result.Page);
     }
 
     private static async Task<IResult> SearchCategoriesAsync(HttpContext context,
