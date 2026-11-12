@@ -6,7 +6,7 @@ namespace Aenaon.Api.Ui;
 public sealed record CatalogEditorDraft(
     Guid UserId, Guid TenantId, Guid? Id, string View,
     string Code, string Name, Guid? CategoryId, Guid? ParentCategoryId,
-    bool TracksStock, bool AutoCode, string ErrorCode);
+    bool TracksStock, bool AutoCode, string ErrorCode, Guid? StoreId = null);
 
 public sealed class CatalogEditorDraftStore : IDisposable
 {
