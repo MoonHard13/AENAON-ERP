@@ -64,7 +64,7 @@ public sealed class CatalogUiTests
         Assert.Contains("Κεντρικό (MAIN)", html);
         Assert.Contains("class=\"workspace-indicator\"", html);
         Assert.DoesNotContain("class=\"catalog-context\"", html);
-        Assert.Contains("Μόνο ανάγνωση", html);
+        Assert.Contains("Νέο προϊόν", html);
         Assert.Contains("action=\"/ui/session/logout\"", html);
         Assert.Contains("name=\"__RequestVerificationToken\"", html);
         Assert.Contains("href=\"/catalog", html);
