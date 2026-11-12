@@ -37,7 +37,7 @@ public sealed class CatalogEditorDraftStore : IDisposable
         }
 
         return draft.UserId == userId && draft.TenantId == tenantId &&
-            draft.View is "products" or "services" ? draft : null;
+            draft.View is ("products" or "services") ? draft : null;
     }
 
     public CatalogEditorDraft? Read(Guid token, Guid userId, Guid tenantId,
