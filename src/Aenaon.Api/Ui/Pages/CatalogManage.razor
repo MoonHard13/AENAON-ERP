@@ -76,7 +76,7 @@
                         {
                             <span class="catalog-status @(record.IsActive
                                 ? "catalog-status--active" : "catalog-status--inactive")">
-                                @(record.IsActive ? "Ενεργό" : "Ανενεργό")
+                                @StatusLabel(record.IsActive)
                             </span>
                         }
                     </div>
@@ -121,7 +121,7 @@
 
                         <div class="catalog-editor__grid">
                             <div class="catalog-editor__field">
-                                <label for="edit-code">Κωδικός @(IsAutoCode ? "(αυτόματος)" : "*")</label>
+                                <label for="edit-code" data-code-label>Κωδικός @(IsAutoCode ? "(αυτόματος)" : "*")</label>
                                 @if (!Id.HasValue)
                                 {
                                     <div class="catalog-code-mode" role="group"
@@ -143,8 +143,8 @@
                                        maxlength="@(View == "categories" ? 30 : 40)"
                                        value="@CurrentCode" placeholder="π.χ. 1, 2, 3 ή δικός σας κωδικός" />
                                 <small data-auto-code-hint hidden="@(!IsAutoCode)">
-                                    Ο μοναδικός αριθμός (1, 2, 3…) αποδίδεται από τον SQL Server
-                                    κατά την αποθήκευση. Δεν χρησιμοποιούνται αρχικά μηδενικά.
+                                    Ο κωδικός θα δημιουργηθεί αυτόματα κατά την αποθήκευση
+                                    (1, 2, 3…). Δεν χρειάζεται να τον συμπληρώσετε.
                                 </small>
                                 <small data-manual-code-hint hidden="@IsAutoCode">
                                     Μπορείτε να γράψετε δικό σας κωδικό με γράμματα, αριθμούς, - ή _.
@@ -287,6 +287,11 @@
         "services" => CatalogManagedEntity.Service,
         _ => CatalogManagedEntity.Product
     };
+
+    private string StatusLabel(bool active) =>
+        View is "categories" or "services"
+            ? (active ? "Ενεργή" : "Ανενεργή")
+            : (active ? "Ενεργό" : "Ανενεργό");
 
     private string EntityLabel => View switch
     {
