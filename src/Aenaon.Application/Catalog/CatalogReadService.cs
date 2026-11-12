@@ -6,7 +6,7 @@ namespace Aenaon.Application.Catalog;
 
 /// <summary>Ασφαλές όριο σελίδας για προβολή καταλόγου, χωρίς δικαίωμα μεταβολής.</summary>
 public sealed record CatalogReadQuery(int Page = 1, int PageSize = 25,
-    string? Search = null, bool IncludeInactive = false)
+    string? Search = null, bool IncludeInactive = false, CatalogItemKind? Kind = null)
 {
     public const int MaxPage = 1000;
     public const int MaxPageSize = 100;
@@ -17,7 +17,8 @@ public sealed record CatalogReadQuery(int Page = 1, int PageSize = 25,
         string? term = Search?.Trim();
         if (Page is < 1 or > MaxPage || PageSize is < 1 or > MaxPageSize ||
             term is { Length: > MaxSearchLength } ||
-            term?.Any(char.IsControl) == true)
+            term?.Any(char.IsControl) == true ||
+            (Kind.HasValue && !Enum.IsDefined(Kind.Value)))
         {
             throw new DomainRuleException("catalog.read.query.invalid",
                 "Μη έγκυρη σελίδα, μέγεθος ή αναζήτηση καταλόγου.");
@@ -33,7 +34,8 @@ public sealed record CatalogCategorySummary(Guid Id, string Code, string Name, b
 /// <summary>Είδος ή υπηρεσία χωρίς τιμές, ΦΠΑ, αποθήκη ή δεδομένα παραστατικών.</summary>
 public sealed record CatalogItemSummary(
     Guid Id, Guid CategoryId, string Code, string Name,
-    CatalogItemKind Kind, bool TracksStock, bool IsActive);
+    CatalogItemKind Kind, bool TracksStock, bool IsActive,
+    string? CategoryName = null);
 
 /// <summary>Σελιδοποιημένη λίστα με περιορισμένο αριθμό αναγνώσεων.</summary>
 public sealed record CatalogReadPage<T>(
