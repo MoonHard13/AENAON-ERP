@@ -40,6 +40,9 @@ public sealed record ImpactOfflinePayloadReport(
     public int PendingExpertReviewCount => Findings.Count(item =>
         item.Severity == ImpactOfflineFindingSeverity.Review);
     public bool HasDetectedStructuralErrors => StructuralErrorCount > 0;
+
+    // Οι παρατηρήσεις υπό όρους δεν είναι αποφάσεις καταλληλότητας.
+    public IReadOnlyList<ImpactConditionalFieldEvidence> ConditionalEvidence { get; init; } = [];
     public bool IsActualProviderContractValidated => false;
     public bool IsAadeClassificationApproved => false;
     public bool IsFiscalRuleApproved => false;
@@ -233,7 +236,16 @@ public sealed class ImpactOfflinePayloadInspector
             "$", SourceSectionBase,
             "Ο πραγματικός πάροχος IMPACT δεν έχει δεχθεί ή επικυρώσει το JSON.");
 
-        return new ImpactOfflinePayloadReport(profile, scenario, lineCount, findings.AsReadOnly());
+        // Η παρουσία των 37 υπό όρους πεδίων εξετάζεται χωριστά από τα errors:
+        // δεν γνωρίζουμε τη νόμιμη εφαρμογή τους χωρίς εγκεκριμένο transaction context.
+        IReadOnlyList<ImpactConditionalFieldEvidence> conditionalEvidence =
+            new ImpactConditionalFieldEvidenceAnalyzer().Analyze(
+                root, profile, cancellationToken);
+
+        return new ImpactOfflinePayloadReport(profile, scenario, lineCount, findings.AsReadOnly())
+        {
+            ConditionalEvidence = conditionalEvidence
+        };
     }
 
     private static void CheckInvoiceLine(JsonElement detail, int index,
