@@ -193,7 +193,7 @@ public static class CatalogManagementEndpoints
         var logger = loggerFactory.CreateLogger("Aenaon.Api.Ui.CatalogManagement");
         if (!string.IsNullOrEmpty(invalidField))
         {
-            return Failed(invalidField);
+            return await FailedAsync(invalidField);
         }
 
         CatalogChangeCommand command = new(entity, action, id,
@@ -239,10 +239,18 @@ public static class CatalogManagementEndpoints
             };
         logger.LogInformation("Catalog change rejected for {UserId} {TenantId} {Entity} {Status}",
             userId, tenantId, entity, result.Status);
-        return Failed(error);
+        return await FailedAsync(error);
 
-        IResult Failed(string codeError)
+        async Task<IResult> FailedAsync(string codeError)
         {
+            // Ακόμη και οι αποτυχημένες υποβολές απαιτούν Manage πριν δημιουργηθεί draft.
+            CatalogManageResult authorized = await manager.GetDetailsAsync(
+                userId, tenantId, entity, id, context.RequestAborted);
+            if (!authorized.IsAuthorized)
+            {
+                return Results.Forbid();
+            }
+
             // Η προεπισκόπηση/επεξεργασία απαιτεί ξανά authorization μετά το redirect.
             var draft = new CatalogEditorDraft(userId, tenantId, id, view,
                 code, name, categoryId, parentCategoryId, tracksStock, autoCode, codeError);
