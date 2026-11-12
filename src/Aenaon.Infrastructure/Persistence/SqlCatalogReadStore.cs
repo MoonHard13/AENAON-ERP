@@ -33,6 +33,11 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
                 category.Code.StartsWith(term) || category.Name.StartsWith(term));
         }
 
+        if (validated.ParentCategoryId is { } parentId)
+        {
+            categories = categories.Where(category => category.ParentCategoryId == parentId);
+        }
+
         // Το επιπλέον record επιτρέπει HasMore χωρίς ανεξάρτητο COUNT query.
         int offset = (validated.Page - 1) * validated.PageSize;
         var rows = await categories.OrderBy(category => category.Code)
@@ -40,7 +45,9 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
             .Skip(offset).Take(validated.PageSize + 1)
             .Select(category => new CatalogCategorySummary(
                 category.Id, category.Code, category.Name, category.IsActive,
-                category.ParentCategoryId))
+                category.ParentCategoryId, null,
+                context.CatalogCategories.Any(child => child.TenantId == category.TenantId &&
+                    child.ParentCategoryId == category.Id && child.IsActive)))
             .ToListAsync(cancellationToken);
         bool hasMore = rows.Count > validated.PageSize;
         if (hasMore)
