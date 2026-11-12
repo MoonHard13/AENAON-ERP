@@ -253,6 +253,18 @@ internal static class SqlServerCatalogAssertions
         Assert.AreEqual("CHILD", children.Rows[0].Code);
         Assert.AreEqual("Ρίζα / Κλάδος", children.Rows[0].CategoryPath);
 
+        // Το πλήρες μονοπάτι εμφανίζεται επίσης στην προβολή ειδών/υπηρεσιών.
+        CatalogChangeResult deepItem = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Create,
+                Code: "TREEITEM", Name: "Χυμός", CategoryId: grandchild.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, deepItem.Status);
+        CatalogReadPage<CatalogItemSummary> deepItems = await new SqlCatalogReadStore(context)
+            .ReadItemsAsync(tenantId,
+                new CatalogReadQuery(1, 25, Search: "TREEITEM",
+                    Kind: CatalogItemKind.Product), token);
+        Assert.HasCount(1, deepItems.Rows);
+        Assert.AreEqual("Ρίζα / Κλάδος / Υποκλάδος", deepItems.Rows[0].CategoryPath);
+
         // Οι υπηρεσίες και τα προϊόντα μοιράζονται τον ίδιο αύξοντα χώρο κωδικών.
         CatalogChangeResult productAuto = await writer.ApplyAsync(tenantId,
             new(CatalogManagedEntity.Product, CatalogChangeAction.Create,
