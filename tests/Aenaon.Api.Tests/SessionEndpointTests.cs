@@ -423,6 +423,15 @@ internal sealed class SessionCatalogWriteFixture : ICatalogWriteStore
             command.Id ?? Guid.NewGuid()));
     }
 
+    public Task<IReadOnlyList<CatalogCategoryOption>> SearchCategoriesAsync(
+        Guid tenantId, string? term, Guid? selectedId,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<CatalogCategoryOption> options =
+            [new CatalogCategoryOption(CategoryId, "FOOD", "Φαγητά", "Τρόφιμα / Φαγητά")];
+        return Task.FromResult(options);
+    }
+
     public Task<CatalogManageDetails> GetDetailsAsync(Guid tenantId,
         CatalogManagedEntity entity, Guid? id, CancellationToken cancellationToken = default)
     {
