@@ -19,15 +19,15 @@
            aria-current="@(ActivePage == "catalog" ? "page" : null)">
             <AppIcon Name="catalog" /> Κατάλογος
         </a>
-        <span class="sidebar__link sidebar__link--disabled">
-            <AppIcon Name="sales" /> Εμπορική διαχείριση <small>Σύντομα</small>
-        </span>
-        <span class="sidebar__link sidebar__link--disabled">
-            <AppIcon Name="warehouse" /> Αποθήκη <small>Σύντομα</small>
-        </span>
-        <span class="sidebar__link sidebar__link--disabled">
-            <AppIcon Name="settings" /> Ρυθμίσεις <small>Σύντομα</small>
-        </span>
+        <details class="sidebar__upcoming">
+            <summary><AppIcon Name="settings" /> Επόμενες λειτουργίες <AppIcon Name="chevron" /></summary>
+            <div class="sidebar__upcoming-list" aria-label="Λειτουργίες υπό ανάπτυξη">
+                <span><AppIcon Name="sales" /> Εμπορική διαχείριση</span>
+                <span><AppIcon Name="warehouse" /> Αποθήκη</span>
+                <span><AppIcon Name="settings" /> Ρυθμίσεις</span>
+                <small>Υπό ανάπτυξη</small>
+            </div>
+        </details>
     </nav>
     <div class="sidebar__foot">
         <span class="sidebar__status-dot"></span> ΠΕΡΙΒΑΛΛΟΝ ΑΝΑΠΤΥΞΗΣ
