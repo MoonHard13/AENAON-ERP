@@ -18,6 +18,8 @@ internal sealed class CatalogCategoryConfiguration : IEntityTypeConfiguration<Ca
                 "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
             table.HasCheckConstraint("CK_CatalogCategories_Code",
                 "LEN(LTRIM(RTRIM([Code]))) > 0");
+            table.HasCheckConstraint("CK_CatalogCategories_Parent_NotSelf",
+                "[ParentCategoryId] IS NULL OR [ParentCategoryId] <> [Id]");
             table.HasCheckConstraint("CK_CatalogCategories_Name",
                 "LEN(LTRIM(RTRIM([Name]))) > 0");
         });
@@ -30,6 +32,14 @@ internal sealed class CatalogCategoryConfiguration : IEntityTypeConfiguration<Ca
             .HasMaxLength(CatalogCategory.MaxCodeLength).UseCollation("Greek_CI_AS");
         builder.Property(category => category.Name).IsRequired().HasMaxLength(CatalogCategory.MaxNameLength);
         builder.Property(category => category.IsActive).IsRequired();
+        builder.Property(category => category.ParentCategoryId).IsRequired(false);
+        builder.HasIndex(category => new { category.TenantId, category.ParentCategoryId });
+
+        // Το σύνθετο κλειδί αποκλείει γονέα διαφορετικής επιχείρησης.
+        builder.HasOne<CatalogCategory>().WithMany()
+            .HasForeignKey(category => new { category.TenantId, category.ParentCategoryId })
+            .HasPrincipalKey(category => new { category.TenantId, category.Id })
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(category => new { category.TenantId, category.Code }).IsUnique();
         builder.HasOne<Tenant>().WithMany().HasForeignKey(category => category.TenantId)
