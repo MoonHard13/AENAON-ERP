@@ -64,6 +64,10 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Ο [offline validator υποσυνόλου της δομής EliseCoreDocument](docs/31-impact-offline-payload-preflight.md) εξετάζει συνθετικά JSON μόνο σε Development, με explicit `base/invoice/b2g` και `unknown/business/retail` contexts. Ελέγχει υποχρεωτικά πεδία, βασικούς τύπους, B2G και πιθανό διπλό tax placement. **Πάντα απαιτείται ανεξάρτητος έλεγχος και έγκριση** ΑΑΔΕ/IMPACT· κανένα report, JSON ή exit code δεν δίνει δυνατότητα έκδοσης.
 
+## Βήμα 9.3C.3B.5D.1 — IMPACT IncomeClassification Source Reconciliation
+
+Η [σύγκριση επίσημων περιγραφών και παραδειγμάτων IMPACT](docs/32-impact-classification-source-reconciliation.md) επεκτείνει **μόνο** τα offline diagnostic findings για επίπεδο έναντι ένθετου `ClassificationTypeCode` και για την αμφισημία της υποχρεωτικότητας `Amount`. Οι εναλλακτικές μορφές **δεν εγκρίνονται αυτομάτως**. Παραμένουν 254 Pending myDATA observations, όλα τα flags έκδοσης `false`, χωρίς SQL ή provider calls.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
@@ -385,4 +389,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Fiscal Review Worklist CSV](docs/29-fiscal-review-worklist-csv.md)
 - [IMPACT Contract Preflight](docs/30-impact-contract-preflight.md)
 - [Offline IMPACT Payload Preflight](docs/31-impact-offline-payload-preflight.md)
+- [IMPACT Classification Source Reconciliation](docs/32-impact-classification-source-reconciliation.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)

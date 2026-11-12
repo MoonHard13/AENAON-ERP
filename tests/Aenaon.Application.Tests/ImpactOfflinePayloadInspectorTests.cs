@@ -52,6 +52,78 @@ public sealed class ImpactOfflinePayloadInspectorTests
         Assert.IsTrue(report.Findings.Any(finding =>
             finding.Code == "MissingDocumentedField" &&
             finding.JsonPath == "$.Details[0].IncomeClassification.Amount"));
+        Assert.IsTrue(report.Findings.Any(finding =>
+            finding.Code == "ClassificationAmountSampleDiscrepancy" &&
+            finding.Severity == ImpactOfflineFindingSeverity.Review));
+        AssertAlwaysUnapproved(report);
+    }
+
+    [TestMethod]
+    public void PublishedNestedOnlyClassification_RemainsUnverifiedAndFailsClosed()
+    {
+        var payload = System.Text.Json.Nodes.JsonNode.Parse(InvoiceJson())!.AsObject();
+        var classification = payload["Details"]!.AsArray()[0]![
+            "IncomeClassification"]!.AsObject();
+        Assert.IsTrue(classification.Remove("ClassificationTypeCode"));
+        classification["Classification"] = new System.Text.Json.Nodes.JsonObject
+        {
+            ["TypeCode"] = "E3_561_001"
+        };
+
+        ImpactOfflinePayloadReport report = Inspect(payload.ToJsonString(),
+            ImpactContractProfile.InvoiceIapr, ImpactCounterpartyScenario.Business);
+
+        Assert.IsTrue(report.HasDetectedStructuralErrors);
+        Assert.IsTrue(report.Findings.Any(finding =>
+            finding.Code == "NestedClassificationTypeCodeUnverified" &&
+            finding.Severity == ImpactOfflineFindingSeverity.Review &&
+            finding.JsonPath ==
+                "$.Details[0].IncomeClassification.Classification.TypeCode"));
+        Assert.IsTrue(report.Findings.Any(finding =>
+            finding.Code == "MissingDocumentedField" &&
+            finding.JsonPath ==
+                "$.Details[0].IncomeClassification.ClassificationTypeCode"));
+        AssertAlwaysUnapproved(report);
+    }
+
+    [TestMethod]
+    public void MixedFlatAndNestedClassification_FailsClosedEvenIfCodesMatch()
+    {
+        var payload = System.Text.Json.Nodes.JsonNode.Parse(InvoiceJson())!.AsObject();
+        var classification = payload["Details"]!.AsArray()[0]![
+            "IncomeClassification"]!.AsObject();
+        classification["Classification"] = new System.Text.Json.Nodes.JsonObject
+        {
+            ["TypeCode"] = "E3_561_001"
+        };
+
+        ImpactOfflinePayloadReport report = Inspect(payload.ToJsonString(),
+            ImpactContractProfile.InvoiceIapr, ImpactCounterpartyScenario.Business);
+
+        Assert.IsTrue(report.HasDetectedStructuralErrors);
+        Assert.IsTrue(report.Findings.Any(finding =>
+            finding.Code == "ConflictingClassificationShapes" &&
+            finding.Severity == ImpactOfflineFindingSeverity.Error));
+        AssertAlwaysUnapproved(report);
+    }
+
+    [TestMethod]
+    public void UnknownNestedClassificationObject_RequiresExpertReview()
+    {
+        var payload = System.Text.Json.Nodes.JsonNode.Parse(InvoiceJson())!.AsObject();
+        var classification = payload["Details"]!.AsArray()[0]![
+            "IncomeClassification"]!.AsObject();
+        classification["Classification"] = new System.Text.Json.Nodes.JsonObject
+        {
+            ["Other"] = "unknown"
+        };
+
+        ImpactOfflinePayloadReport report = Inspect(payload.ToJsonString(),
+            ImpactContractProfile.InvoiceIapr, ImpactCounterpartyScenario.Business);
+
+        Assert.IsTrue(report.Findings.Any(finding =>
+            finding.Code == "UnexpectedNestedClassificationObject" &&
+            finding.Severity == ImpactOfflineFindingSeverity.Review));
         AssertAlwaysUnapproved(report);
     }
 
