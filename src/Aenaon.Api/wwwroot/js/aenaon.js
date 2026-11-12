@@ -234,6 +234,112 @@
         });
     });
 
+    // Το δέντρο ανακτά κάθε επόμενο επίπεδο μόνο κατά την ανάπτυξή του.
+    // Το περιεχόμενο εισάγεται με textContent για ασφαλή HTML απόδοση.
+    document.addEventListener("click", async event => {
+        if (!(event.target instanceof Element)) {
+            return;
+        }
+
+        const button = event.target.closest("[data-category-branch]");
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        const parentId = button.dataset.categoryBranch;
+        const tenantId = button.dataset.tenantId;
+        const target = button.nextElementSibling;
+        if (!(target instanceof HTMLElement) || !parentId || !tenantId) {
+            return;
+        }
+
+        const expanded = button.getAttribute("aria-expanded") === "true";
+        if (expanded) {
+            button.setAttribute("aria-expanded", "false");
+            button.setAttribute("aria-label", "Ανάπτυξη υποκατηγοριών");
+            target.hidden = true;
+            return;
+        }
+
+        button.setAttribute("aria-expanded", "true");
+        button.setAttribute("aria-label", "Σύμπτυξη υποκατηγοριών");
+        target.hidden = false;
+        if (target.dataset.loaded === "true") {
+            return;
+        }
+
+        button.disabled = true;
+        target.textContent = "Φόρτωση υποκατηγοριών…";
+        try {
+            const params = new URLSearchParams({ tenantId, parentId });
+            const response = await window.fetch(
+                "/ui/catalog/children?" + params.toString(), {
+                    method: "GET", credentials: "same-origin",
+                    headers: { "Accept": "application/json" }
+                });
+            if (!response.ok) {
+                throw new Error("Category branch request denied");
+            }
+
+            const page = await response.json();
+            const list = document.createElement("ul");
+            list.className = "catalog-tree-list";
+            for (const category of page.rows || []) {
+                const item = document.createElement("li");
+                const line = document.createElement("div");
+                line.className = "catalog-tree-line";
+                const code = document.createElement("strong");
+                code.textContent = category.code;
+                const name = document.createElement("span");
+                name.textContent = category.name;
+                line.append(code, name);
+                item.appendChild(line);
+
+                if (category.hasChildren) {
+                    const toggle = document.createElement("button");
+                    toggle.type = "button";
+                    toggle.className = "catalog-tree-toggle";
+                    toggle.dataset.categoryBranch = category.id;
+                    toggle.dataset.tenantId = tenantId;
+                    toggle.setAttribute("aria-expanded", "false");
+                    const targetId = "nested-" + parentId + "-" + category.id;
+                    toggle.setAttribute("aria-controls", targetId);
+                    toggle.textContent = "Ανάπτυξη υποκατηγοριών";
+                    const subtree = document.createElement("div");
+                    subtree.id = targetId;
+                    subtree.className = "catalog-tree-children";
+                    subtree.hidden = true;
+                    item.append(toggle, subtree);
+                }
+
+                list.appendChild(item);
+            }
+
+            target.replaceChildren(list);
+            if (page.hasMore) {
+                const more = document.createElement("a");
+                more.className = "catalog-edit-link";
+                more.href = "/catalog?" + new URLSearchParams({
+                    view: "categories", tenantId, parentId
+                }).toString();
+                more.textContent = "Προβολή όλων των υποκατηγοριών";
+                target.appendChild(more);
+            }
+
+            if (!list.children.length) {
+                target.textContent = "Δεν υπάρχουν υποκατηγορίες.";
+            }
+
+            target.dataset.loaded = "true";
+        } catch {
+            target.textContent = "Αποτυχία φόρτωσης. Δοκιμάστε ξανά.";
+            button.setAttribute("aria-expanded", "false");
+            target.hidden = true;
+        } finally {
+            button.disabled = false;
+        }
+    });
+
     // Επιβεβαίωση απενεργοποίησης/ενεργοποίησης χωρίς inline scripts.
     document.addEventListener("submit", event => {
         if (event.target instanceof HTMLFormElement &&
