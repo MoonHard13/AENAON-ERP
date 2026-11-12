@@ -15,7 +15,7 @@
     <div class="dashboard__content">
         <BackOfficeTopbar ActivePage="dashboard" PageTitle="Επισκόπηση"
                           UserName="@_userName"
-                          TenantName="@(_workspace?.Tenant?.Name ?? "Aenaon ERP")"
+                          Workspace="@_workspace"
                           CsrfToken="@_csrfToken" TenantId="@TenantId" StoreId="@StoreId" />
 
         <div class="dashboard__body">
@@ -23,7 +23,7 @@
                 <div>
                     <p class="eyebrow eyebrow--green">ΚΕΝΤΡΙΚΗ ΕΠΙΣΚΟΠΗΣΗ</p>
                     <h1>Καλώς ήρθατε, @_userName.</h1>
-                    <p>Διαχειριστείτε με ασφάλεια τις επιχειρήσεις και τα καταστήματά σας.</p>
+                    <p>Επιλέξτε επιχείρηση και κατάστημα για να εργαστείτε.</p>
                 </div>
 
             </div>
@@ -63,37 +63,18 @@
                     </div>
                 }
 
-                @if (_workspace.Status is TenantWorkspaceStatus.Ready)
-                {
-                    <section class="active-workspace" aria-label="Ενεργό πλαίσιο εργασίας">
-                        <span class="active-workspace__icon"><AppIcon Name="check" /></span>
-                        <div class="active-workspace__details">
-                            <span>ΕΝΕΡΓΟ ΠΛΑΙΣΙΟ ΕΡΓΑΣΙΑΣ</span>
-                            <strong>@_workspace.Tenant?.Name / @_workspace.Store?.Name</strong>
-                            <small>Κωδικός καταστήματος: @_workspace.Store?.Code</small>
+                <section class="workspace-selection" id="workspace-selection"
+                         aria-labelledby="workspace-selection-title">
+                    <div class="workspace-selection__header">
+                        <div>
+                            <p class="eyebrow eyebrow--green">ΕΠΙΛΟΓΗ ΠΛΑΙΣΙΟΥ</p>
+                            <h2 id="workspace-selection-title">Επιχείρηση &amp; κατάστημα</h2>
+                            <p>Η επιλογή σας ισχύει για τις διαθέσιμες λειτουργίες του Back Office.</p>
                         </div>
-                        <span class="active-workspace__status">Επιβεβαιωμένη πρόσβαση</span>
-                    </section>
-                }
-
-                <section class="workspace-overview" aria-label="Σύνοψη πρόσβασης">
-                    <div class="stat-card">
-                        <div class="stat-card__label">Επιχειρήσεις <AppIcon Name="building" /></div>
-                        <div class="stat-card__value">@_workspace.Tenants.Count</div>
-                        <div class="stat-card__caption">στις οποίες έχετε πρόσβαση</div>
+                        <span class="workspace-selection__counts">
+                            @_workspace.Tenants.Count επιχειρήσεις · @_workspace.Stores.Count καταστήματα
+                        </span>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-card__label">Καταστήματα <AppIcon Name="store" /></div>
-                        <div class="stat-card__value">@_workspace.Stores.Count</div>
-                        <div class="stat-card__caption">στην επιλεγμένη επιχείρηση</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card__label">Σύνδεση <AppIcon Name="shield" /></div>
-                        <div class="stat-card__value stat-card__value--status"><span class="status-dot"></span> Ενεργή</div>
-                        <div class="stat-card__caption">Επαληθευμένη ταυτότητα χρήστη</div>
-                    </div>
-                </section>
-
                 <div class="workspace-grid">
                     <section class="surface-card">
                         <div class="surface-card__heading">
@@ -136,7 +117,7 @@
                         <div class="surface-card__heading">
                             <div>
                                 <p class="eyebrow eyebrow--green">ΚΑΤΑΣΤΗΜΑΤΑ</p>
-                                <h2>@(_workspace.Tenant?.Name ?? "Επιλογή επιχείρησης")</h2>
+                                <h2>Τα καταστήματά μου</h2>
                             </div>
                             <span class="count-pill">@_workspace.Stores.Count</span>
                         </div>
@@ -171,12 +152,17 @@
                     </section>
                 </div>
 
+                </section>
+
                 <section class="next-steps">
                     <span class="next-steps__symbol"><AppIcon Name="overview" /></span>
                     <div>
-                        <strong>Το επόμενο κεφάλαιο του Aenaon ERP</strong>
-                        <p>Οι λειτουργίες πωλήσεων, αποθήκης και αναφορών θα προστεθούν σε επόμενα στάδια ανάπτυξης.</p>
+                        <strong>Κατάλογος προϊόντων &amp; υπηρεσιών</strong>
+                        <p>Προβάλετε τις κατηγορίες, τα προϊόντα και τις υπηρεσίες της επιχείρησης.</p>
                     </div>
+                    <a class="button button--outline next-steps__link" href="/catalog">
+                        Άνοιγμα καταλόγου <AppIcon Name="arrow" />
+                    </a>
                 </section>
             }
         </div>
