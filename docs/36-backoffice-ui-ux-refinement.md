@@ -141,6 +141,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 | Αδυναμία αλλαγής επιχείρησης | Χρησιμοποιήστε τις φόρμες του Dashboard και επιβεβαιώστε το ενεργό TenantMembership |
 | Πράσινο περίγραμμα σε κουμπί/link | **Αναμενόμενο** focus indicator για keyboard accessibility |
 | Πράσινο περίγραμμα γύρω από τίτλο `h1` | Ελέγξτε ότι το νέο `aenaon-backoffice.css` φορτώνεται με HTTP 200 |
+| Σε browser zoom 150–200% ο τίτλος εμφανίζεται κάτω από το sticky topbar | Ελέγξτε το νεότερο `aenaon-backoffice.css`, το `scroll-padding-block-start` και το `scroll-margin-block-start`, και κάντε `Ctrl+F5` |
 | Κενός κατάλογος | Χωρίς seed/CRUD, δεν υπάρχουν ακόμη δεδομένα· διαβάστε το εγχειρίδιο 9.4B |
 | Δεν εμφανίζεται η πρώτη σελίδα / Σφάλμα SQL | Ελέγξτε logs, User Secrets και συνδεσιμότητα SQL χωρίς να πειράξετε παραγωγικά δεδομένα |
 | Χαμένη εστίαση στο mobile | Χρησιμοποιήστε Tab και mobile menu· καταγράψτε browser/device για regression |
