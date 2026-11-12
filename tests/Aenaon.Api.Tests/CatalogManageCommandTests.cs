@@ -133,6 +133,11 @@ public sealed class CatalogManageCommandTests
             return Task.FromResult(new CatalogChangeResult(CatalogChangeStatus.Saved, Guid.NewGuid()));
         }
 
+        public Task<IReadOnlyList<CatalogCategoryOption>> SearchCategoriesAsync(
+            Guid tenantId, string? term, Guid? selectedId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<CatalogCategoryOption>>([]);
+
         public Task<CatalogManageDetails> GetDetailsAsync(Guid tenantId,
             CatalogManagedEntity entity, Guid? id, CancellationToken cancellationToken = default)
         {
