@@ -100,7 +100,13 @@
 
                 if (event.key === "Tab") {
                     this.restoreSelected();
-                    this.close();
+                    if (!event.shiftKey && this.create && this.isOpen) {
+                        // Το Tab επιτρέπει πρόσβαση και στη δημιουργία κατηγορίας.
+                        event.preventDefault();
+                        this.create.focus();
+                    } else {
+                        this.close();
+                    }
                 }
             });
 
@@ -135,6 +141,15 @@
                     this.restoreSelected();
                     this.close();
                 }
+            });
+
+            this.root.addEventListener("focusout", () => {
+                window.queueMicrotask(() => {
+                    if (!this.root.contains(document.activeElement)) {
+                        this.restoreSelected();
+                        this.close();
+                    }
+                });
             });
 
             this.form.addEventListener("submit", event => {
