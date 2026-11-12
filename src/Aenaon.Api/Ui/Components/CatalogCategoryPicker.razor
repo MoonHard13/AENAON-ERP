@@ -1,0 +1,101 @@
+@using Aenaon.Application.Catalog
+
+@* Επαναχρησιμοποιήσιμο προσβάσιμο combobox, με native select ως εφεδρεία χωρίς JavaScript. *@
+<div class="catalog-category-picker" data-catalog-picker
+     data-tenant-id="@TenantId"
+     data-self-id="@ExcludedCategoryId"
+     data-required="@(IsRequired ? "true" : "false")">
+    <label class="catalog-category-picker__label" for="catalog-category-search">
+        @Label
+        @if (IsRequired)
+        {
+            <span aria-hidden="true">*</span>
+        }
+    </label>
+
+    <div class="catalog-category-picker__control" data-picker-control>
+        <AppIcon Name="search" />
+        <input id="catalog-category-search" type="search"
+               data-picker-search
+               role="combobox"
+               aria-autocomplete="list"
+               aria-haspopup="listbox"
+               aria-expanded="false"
+               aria-controls="catalog-category-options"
+               aria-describedby="catalog-category-help catalog-category-status"
+               aria-required="@(IsRequired ? "true" : "false")"
+               maxlength="80"
+               autocomplete="off"
+               spellcheck="false"
+               placeholder="Αναζήτηση κατηγορίας ή κωδικού…"
+               value="@InitialDisplay" />
+        <button type="button" class="catalog-category-picker__toggle"
+                data-picker-toggle tabindex="-1" aria-label="Εμφάνιση κατηγοριών">
+            <AppIcon Name="chevron" />
+        </button>
+    </div>
+
+    <div class="catalog-category-picker__popup" data-picker-popup hidden>
+        <div id="catalog-category-options" class="catalog-category-picker__options"
+             role="listbox" aria-label="@Label" data-picker-options></div>
+        <div class="catalog-category-picker__status" id="catalog-category-status"
+             role="status" aria-live="polite" data-picker-status>
+            Πληκτρολογήστε για αναζήτηση ή επιλέξτε μια κατηγορία.
+        </div>
+        @if (AllowCreate)
+        {
+            <button type="button" class="catalog-category-picker__create catalog-editor__quick-create"
+                    data-picker-create>
+                <AppIcon Name="plus" />
+                <span>Δεν υπάρχει η κατηγορία; Δημιουργήστε νέα</span>
+            </button>
+        }
+    </div>
+
+    @* Χρησιμοποιείται μόνο αφού αρχικοποιηθεί το JavaScript combobox. *@
+    <input type="hidden" data-picker-value disabled name="@FieldName" value="@SelectedId" />
+
+    @* Χωρίς JavaScript το πεδίο παραμένει λειτουργικό και αποστέλλει το ίδιο όνομα. *@
+    <div class="catalog-category-picker__fallback" data-picker-fallback>
+        <select id="catalog-category-fallback" name="@FieldName"
+                required="@IsRequired" aria-label="@Label" data-picker-native>
+            <option value="">@EmptyLabel</option>
+            @foreach (CatalogCategoryOption category in Categories)
+            {
+                <option value="@category.Id" selected="@(category.Id == SelectedId)">
+                    @category.Code — @(category.Path ?? category.Name)
+                </option>
+            }
+        </select>
+    </div>
+
+    <p id="catalog-category-help" class="catalog-category-picker__help">
+        @(IsRequired
+            ? "Επιλέξτε κατηγορία για την καταχώρηση."
+            : "Προαιρετικό: αφήστε κενό για κύρια κατηγορία.")
+    </p>
+    <p class="catalog-category-picker__error" data-picker-error role="alert" hidden>
+        @(IsRequired ? "Επιλέξτε κατηγορία από τα αποτελέσματα." :
+            "Επιλέξτε έγκυρη γονική κατηγορία.")
+    </p>
+    <script type="application/json" data-picker-bootstrap>
+        @* Η λογική δεν βασίζεται σε αυτό το script: οι αρχικές επιλογές διαβάζονται από το native select. *@
+    </script>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Guid TenantId { get; set; }
+    [Parameter, EditorRequired] public string FieldName { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter] public string EmptyLabel { get; set; } = "Επιλέξτε κατηγορία";
+    [Parameter] public Guid? SelectedId { get; set; }
+    [Parameter] public Guid? ExcludedCategoryId { get; set; }
+    [Parameter] public bool IsRequired { get; set; }
+    [Parameter] public bool AllowCreate { get; set; }
+    [Parameter] public IReadOnlyList<CatalogCategoryOption> Categories { get; set; } = [];
+
+    private string InitialDisplay =>
+        Categories.FirstOrDefault(option => option.Id == SelectedId) is { } selected
+            ? $"{selected.Code} — {selected.Path ?? selected.Name}"
+            : string.Empty;
+}
