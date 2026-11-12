@@ -118,6 +118,10 @@
         const auto = event.target.value === "auto";
         input.disabled = auto;
         input.required = !auto;
+        const label = document.querySelector("[data-code-label]");
+        if (label instanceof HTMLLabelElement) {
+            label.textContent = auto ? "Κωδικός (αυτόματος)" : "Κωδικός *";
+        }
         document.querySelectorAll("[data-auto-code-hint]").forEach(element => {
             element.hidden = !auto;
         });
@@ -129,74 +133,7 @@
         }
     });
 
-    // Οι επιλογές κατηγορίας ανακτώνται τμηματικά από τον εξουσιοδοτημένο server.
-    // Δεν φορτώνεται ολόκληρο το δέντρο στον browser.
-    const lookupDelays = new WeakMap();
-    document.addEventListener("input", event => {
-        if (!(event.target instanceof HTMLInputElement) ||
-            !event.target.matches("[data-catalog-category-search]")) {
-            return;
-        }
-
-        const search = event.target;
-        const selector = document.querySelector("[data-catalog-category-select]");
-        if (!(selector instanceof HTMLSelectElement)) {
-            return;
-        }
-
-        window.clearTimeout(lookupDelays.get(search));
-        const handle = window.setTimeout(async () => {
-            const tenantId = search.dataset.tenantId;
-            if (!tenantId) {
-                return;
-            }
-
-            const selectedId = selector.value || search.dataset.selectedId || "";
-            const params = new URLSearchParams({ tenantId, search: search.value });
-            if (selectedId) {
-                params.set("selectedId", selectedId);
-            }
-
-            selector.setAttribute("aria-busy", "true");
-            try {
-                const response = await window.fetch(
-                    "/ui/catalog/categories?" + params.toString(), {
-                        method: "GET",
-                        credentials: "same-origin",
-                        headers: { "Accept": "application/json" }
-                    });
-                if (!response.ok) {
-                    throw new Error("Catalog category search failed");
-                }
-
-                const categories = await response.json();
-                const preserved = selector.value;
-                const rootLabel = selector.querySelector('option[value=""]')?.textContent || "";
-                selector.replaceChildren();
-                const empty = document.createElement("option");
-                empty.value = "";
-                empty.textContent = rootLabel;
-                selector.appendChild(empty);
-                for (const category of categories) {
-                    const option = document.createElement("option");
-                    option.value = category.id;
-                    option.textContent = category.code + " — " + (category.path || category.name);
-                    selector.appendChild(option);
-                }
-
-                selector.value = preserved;
-                if (!selector.value && preserved) {
-                    selector.value = "";
-                }
-            } catch {
-                // Διατηρούμε τις προηγούμενες επιλογές όταν αποτυγχάνει το δίκτυο.
-                search.setAttribute("aria-invalid", "true");
-            } finally {
-                selector.removeAttribute("aria-busy");
-            }
-        }, 260);
-        lookupDelays.set(search, handle);
-    });
+    // Η επαναχρησιμοποιούμενη αναζήτηση κατηγοριών βρίσκεται στο aenaon-category-picker.js.
 
     // Διπλή υποβολή εμποδίζεται στη φόρμα· η πραγματική προστασία είναι το requestId της SQL.
     document.addEventListener("submit", event => {
@@ -391,13 +328,11 @@
                 window.location.assign("/catalog");
                 break;
             case "k": {
-                // Προστατευμένη γρήγορη μετάβαση σε νέα κατηγορία από την ανοιχτή φόρμα.
-                const quickCreate = document.querySelector(".catalog-editor__quick-create");
-                const editor = document.querySelector(".catalog-editor__form");
-                if (quickCreate instanceof HTMLButtonElement &&
-                    editor instanceof HTMLFormElement) {
+                // Η εντολή καλεί το ίδιο ασφαλές κουμπί που παρέχει το νέο combobox.
+                const quickCreate = document.querySelector("[data-picker-create]");
+                if (quickCreate instanceof HTMLButtonElement) {
                     event.preventDefault();
-                    editor.requestSubmit(quickCreate);
+                    quickCreate.click();
                 }
                 break;
             }

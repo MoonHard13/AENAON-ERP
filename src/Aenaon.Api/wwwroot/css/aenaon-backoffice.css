@@ -555,3 +555,126 @@ html {
 .catalog-tree-line strong { color: var(--positive); font-size: 12px; }
 .catalog-tree-line span { color: var(--text); font-size: 12px; }
 .catalog-table-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+
+/* 9.4C.2 — Ενιαίος, προσβάσιμος και επαναχρησιμοποιούμενος επιλογέας κατηγοριών.
+   Το native select εμφανίζεται μόνο όταν δεν εκτελείται JavaScript. */
+.catalog-editor { overflow: visible; }
+.catalog-editor__form { position: relative; }
+.catalog-editor__field:focus-within { z-index: 6; }
+.catalog-category-picker { position: relative; min-width: 0; display: grid; gap: 9px; }
+.catalog-category-picker__label {
+    font-size: 13px; font-weight: 750; color: var(--muted-strong);
+}
+.catalog-category-picker__control { display: none; }
+.catalog-category-picker--ready .catalog-category-picker__control {
+    display: flex; align-items: center; gap: 11px; position: relative;
+    min-height: 51px; padding: 0 10px 0 14px; border: 1px solid var(--border);
+    border-radius: 11px; background: var(--input-bg); color: var(--muted-strong);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+.catalog-category-picker__control:hover { border-color: var(--positive); }
+.catalog-category-picker__control:focus-within {
+    border-color: var(--positive);
+    box-shadow: 0 0 0 3px var(--positive-soft);
+}
+.catalog-category-picker__control > .app-icon { flex: 0 0 17px; width: 17px; height: 17px; }
+.catalog-category-picker__control input[data-picker-search] {
+    flex: 1 1 0; min-width: 0; min-height: 47px; padding: 8px 0; margin: 0;
+    border: 0; outline: 0; box-shadow: none; color: var(--text);
+    background: transparent; font: inherit; font-size: 14px;
+}
+.catalog-category-picker__control input[data-picker-search]:focus,
+.catalog-category-picker__control input[data-picker-search]:focus-visible {
+    outline: none; box-shadow: none;
+}
+.catalog-category-picker__control input[data-picker-search]::placeholder { color: var(--muted); }
+.catalog-category-picker__control input[data-picker-search][aria-invalid="true"] {
+    color: var(--text);
+}
+.catalog-category-picker__control:has(input[aria-invalid="true"]) {
+    border-color: var(--danger, #be5448);
+}
+.catalog-category-picker__toggle {
+    display: inline-flex; justify-content: center; align-items: center; flex: 0 0 32px;
+    width: 32px; height: 32px; padding: 0;
+    border: 0; border-radius: 8px;
+    color: var(--muted-strong); background: var(--surface-alt);
+}
+.catalog-category-picker__toggle:hover { color: var(--positive); background: var(--positive-soft); }
+.catalog-category-picker__toggle .app-icon { width: 16px; height: 16px; transform: rotate(90deg); }
+.catalog-category-picker__control:has(input[aria-expanded="true"]) .catalog-category-picker__toggle .app-icon {
+    transform: rotate(-90deg);
+}
+.catalog-category-picker--ready .catalog-category-picker__fallback { display: none; }
+.catalog-category-picker__fallback select {
+    min-height: 49px; width: 100%; padding: 10px 13px; border: 1px solid var(--border);
+    border-radius: 11px; background: var(--input-bg); color: var(--text);
+}
+.catalog-category-picker__popup {
+    position: absolute; z-index: 70; top: calc(100% - 24px); left: 0; right: 0;
+    min-width: 0; padding: 6px; border: 1px solid var(--border);
+    border-radius: 13px; background: var(--surface-raised); color: var(--text);
+    box-shadow: 0 17px 45px rgb(10 40 33 / 15%);
+}
+.catalog-category-picker__popup[hidden], .catalog-category-picker__error[hidden] {
+    display: none !important;
+}
+.catalog-category-picker__options {
+    display: grid; align-items: stretch; gap: 3px; overflow-y: auto;
+    max-height: min(300px, 42vh); overscroll-behavior: contain;
+    padding: 2px;
+}
+.catalog-category-picker__option {
+    display: flex; align-items: center; gap: 11px; min-height: 51px;
+    padding: 9px 10px; border: 1px solid transparent; border-radius: 9px;
+    cursor: pointer; color: var(--text); background: transparent;
+}
+.catalog-category-picker__option:hover,
+.catalog-category-picker__option[aria-selected="true"] {
+    border-color: var(--border); background: var(--positive-soft);
+}
+.catalog-category-picker__option-icon {
+    flex: 0 0 30px; width: 30px; height: 30px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--surface-alt); border-radius: 8px;
+    color: var(--positive); font-size: 16px;
+}
+.catalog-category-picker__option-text {
+    flex: 1 1 auto; min-width: 0; display: grid; gap: 1px;
+}
+.catalog-category-picker__option-text strong {
+    font-size: 13px; font-weight: 750; overflow-wrap: anywhere;
+}
+.catalog-category-picker__option-text small {
+    font-size: 11px; color: var(--muted-strong); line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+.catalog-category-picker__selected-indicator { font-weight: 800; color: var(--positive); }
+.catalog-category-picker__status {
+    padding: 10px 11px; color: var(--muted-strong); font-size: 12px; line-height: 1.5;
+}
+.catalog-category-picker__create {
+    width: 100%; justify-content: flex-start; min-height: 47px;
+    margin-top: 3px; border: 1px solid transparent; border-top: 1px solid var(--border);
+    border-radius: 8px; background: var(--surface-alt);
+    color: var(--positive); font-size: 13px; font-weight: 750;
+}
+.catalog-category-picker__create:hover { background: var(--positive-soft); }
+.catalog-category-picker__help { margin: 0; color: var(--muted-strong); font-size: 12px; }
+.catalog-category-picker__error {
+    margin: 0; font-size: 12px; font-weight: 750; color: var(--danger, #c95047);
+}
+.catalog-category-picker[aria-busy="true"] .catalog-category-picker__status {
+    color: var(--positive);
+}
+.catalog-category-picker__create:focus-visible,
+.catalog-category-picker__option:focus-visible {
+    outline: 3px solid var(--positive); outline-offset: 2px;
+}
+@media (max-width: 650px) {
+    .catalog-category-picker__popup { top: calc(100% - 23px); }
+    .catalog-category-picker__create { white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .catalog-category-picker__control { transition: none; }
+}

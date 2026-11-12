@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Aenaon.Application.Catalog;
+using Aenaon.Application.Tenancy;
 using Aenaon.Domain.Catalog;
+using Aenaon.Domain.Tenancy;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,7 +29,8 @@ public static class CatalogManagementEndpoints
 
     /// <summary>Κρατά προσωρινά τη φόρμα είδους και ανοίγει νέα κατηγορία, χωρίς αποθήκευση είδους.</summary>
     private static async Task<IResult> NewCategoryAsync(HttpContext context,
-        IAntiforgery antiforgery, CatalogWriteService manager, CatalogEditorDraftStore drafts)
+        IAntiforgery antiforgery, CatalogWriteService manager, CatalogEditorDraftStore drafts,
+        TenantAuthorizationService authorization)
     {
         if (!context.Request.IsHttps || !context.Request.HasFormContentType ||
             context.Request.ContentLength > 8192 ||
@@ -53,6 +56,26 @@ public static class CatalogManagementEndpoints
             !Guid.TryParse(fields["tenantId"], out Guid tenantId) || tenantId == Guid.Empty)
         {
             return Results.BadRequest();
+        }
+
+        // Οποιοδήποτε κατάστημα διατηρείται μόνο μετά από server-side validation.
+        Guid? storeId = null;
+        string storeText = fields["storeId"].ToString();
+        if (!string.IsNullOrWhiteSpace(storeText))
+        {
+            if (!Guid.TryParse(storeText, out Guid selectedStore) || selectedStore == Guid.Empty)
+            {
+                return Results.BadRequest();
+            }
+
+            storeId = selectedStore;
+        }
+
+        TenantAccessResult permission = await authorization.CheckAsync(
+            userId, tenantId, storeId, TenantPermission.Manage, context.RequestAborted);
+        if (permission.Status != TenantAccessStatus.Granted)
+        {
+            return Results.Forbid();
         }
 
         Guid? id = null;
@@ -104,12 +127,13 @@ public static class CatalogManagementEndpoints
         bool tracksStock = entity == CatalogManagedEntity.Product &&
             string.Equals(fields["tracksStock"], "true", StringComparison.Ordinal);
         var draft = new CatalogEditorDraft(userId, tenantId, id, view, code, name,
-            categoryId, null, tracksStock, autoCode, "");
+            categoryId, null, tracksStock, autoCode, "", storeId);
         Guid returnDraft = drafts.Save(draft);
         context.Response.Headers.CacheControl = "no-store";
+        string storeQuery = storeId.HasValue ? $"&storeId={storeId.Value:D}" : "";
         return Results.Redirect(
-            $"/catalog/manage?view=categories&tenantId={tenantId:D}&returnDraft={returnDraft:D}",
-            permanent: false);
+            $"/catalog/manage?view=categories&tenantId={tenantId:D}" +
+            storeQuery + $"&returnDraft={returnDraft:D}", permanent: false);
     }
 
     private static async Task<IResult> ReadChildrenAsync(HttpContext context,
@@ -167,7 +191,8 @@ public static class CatalogManagementEndpoints
 
     private static async Task<IResult> SaveAsync(HttpContext context,
         IAntiforgery antiforgery, CatalogWriteService manager,
-        CatalogEditorDraftStore drafts, ILoggerFactory loggerFactory)
+        CatalogEditorDraftStore drafts, ILoggerFactory loggerFactory,
+        TenantAuthorizationService authorization)
     {
         if (!context.Request.IsHttps || !context.Request.HasFormContentType ||
             context.Request.ContentLength > 8192 ||
@@ -228,6 +253,25 @@ public static class CatalogManagementEndpoints
             }
 
             requestId = parsedRequest;
+        }
+
+        Guid? storeId = null;
+        string storeText = fields["storeId"].ToString();
+        if (!string.IsNullOrWhiteSpace(storeText))
+        {
+            if (!Guid.TryParse(storeText, out Guid selectedStore) || selectedStore == Guid.Empty)
+            {
+                return Results.BadRequest();
+            }
+
+            storeId = selectedStore;
+        }
+
+        TenantAccessResult storePermission = await authorization.CheckAsync(
+            userId, tenantId, storeId, TenantPermission.Manage, context.RequestAborted);
+        if (storePermission.Status != TenantAccessStatus.Granted)
+        {
+            return Results.Forbid();
         }
 
         // Η γρήγορη δημιουργία κατηγορίας επιστρέφει μόνο στον αρχικό εξουσιοδοτημένο editor.
@@ -345,15 +389,18 @@ public static class CatalogManagementEndpoints
                 var resumed = returnEditor with { CategoryId = createdCategoryId, ErrorCode = "" };
                 Guid resumedToken = drafts.Save(resumed);
                 string originalId = resumed.Id.HasValue ? $"&id={resumed.Id.Value:D}" : "";
+                string resumeStore = resumed.StoreId.HasValue
+                    ? $"&storeId={resumed.StoreId.Value:D}" : "";
                 return Results.Redirect(
                     $"/catalog/manage?view={resumed.View}&tenantId={tenantId:D}" +
-                    originalId + $"&draft={resumedToken:D}", permanent: false);
+                    resumeStore + originalId + $"&draft={resumedToken:D}", permanent: false);
             }
 
+            string storeQuery = storeId.HasValue ? $"&storeId={storeId.Value:D}" : "";
             string destination = saveMode == "new" &&
                 action is CatalogChangeAction.Create or CatalogChangeAction.Update
-                ? $"/catalog/manage?view={view}&tenantId={tenantId:D}&savedCode={savedCode}"
-                : $"/catalog?view={view}&tenantId={tenantId:D}&saved=1&savedCode={savedCode}";
+                ? $"/catalog/manage?view={view}&tenantId={tenantId:D}{storeQuery}&savedCode={savedCode}"
+                : $"/catalog?view={view}&tenantId={tenantId:D}{storeQuery}&saved=1&savedCode={savedCode}";
             return Results.Redirect(destination, permanent: false);
         }
 
@@ -382,11 +429,13 @@ public static class CatalogManagementEndpoints
 
             // Η προεπισκόπηση/επεξεργασία απαιτεί ξανά authorization μετά το redirect.
             var draft = new CatalogEditorDraft(userId, tenantId, id, view,
-                code, name, categoryId, parentCategoryId, tracksStock, autoCode, codeError);
+                code, name, categoryId, parentCategoryId, tracksStock, autoCode,
+                codeError, storeId);
             Guid token = drafts.Save(draft);
             return Results.Redirect(
                 $"/catalog/manage?view={view}&tenantId={tenantId:D}" +
                 (id.HasValue ? $"&id={id.Value:D}" : "") +
+                (storeId.HasValue ? $"&storeId={storeId.Value:D}" : "") +
                 $"&draft={token:D}" +
                 (returnDraftToken.HasValue ? $"&returnDraft={returnDraftToken.Value:D}" : ""),
                 permanent: false);

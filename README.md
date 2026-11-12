@@ -92,9 +92,15 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Ο [οδηγός 9.4C.1](docs/38-catalog-hierarchy-auto-numbering.md) τεκμηριώνει προαιρετικούς **αυτόματους κωδικούς 1,2,3… χωρίς αρχικά μηδενικά**, χειροκίνητους κωδικούς, πραγματική tenant-safe **ιεραρχία κατηγοριών**, server-side αναζήτηση και «Αποθήκευση και νέο». Η 6η additive migration προσθέτει nullable `ParentCategoryId`, durable SQL counters και idempotency receipts, χωρίς μεταβολή των ήδη καταχωρισμένων ειδών/κωδικών. Απαιτείται έλεγχος `--migrate-database --dry-run`, backup και ξεχωριστή ρητή εφαρμογή στη Development βάση. Παραμένουν **Development-only** όλες οι φόρμες/λειτουργίες και δεν ενεργοποιούνται τιμές, ΦΠΑ, myDATA, IMPACT ή παραστατικά.
 
+## Βήμα 9.4C.2 — Back Office UI Polish & Category Picker
+
+Το [ελληνικό εγχειρίδιο του 9.4C.2](docs/39-backoffice-category-picker-polish.md) περιλαμβάνει το ενιαίο προσβάσιμο category picker (WAI-ARIA combobox με server-side αναζήτηση, ασφαλές keyboard navigation και native fallback), σωστές ελληνικές ενέργειες «Νέο προϊόν / Νέα υπηρεσία / Νέα κατηγορία» και βελτιωμένα light/dark και responsive styles. Το γρήγορο «Δημιουργία νέας κατηγορίας» διατηρεί τα στοιχεία του editor και το εγκεκριμένο πλαίσιο επιχείρησης/καταστήματος. Τα JS/CSS assets χρησιμοποιούν SHA-256 fingerprinted URLs για ανανέωση χωρίς cache προβλήματα.
+
+Η έκδοση παραμένει **Development-only**, με Owner/Manage, HTTPS, anti-CSRF και tenant-scoped SQL. **Δεν** υπάρχουν νέες migrations, αλλαγές σε τιμές/ΦΠΑ, myDATA/IMPACT ή έκδοση παραστατικών.
+
 ## Τρέχον στάδιο
 
-**Βήμα 9.4C.1 — Hierarchical Catalog & Auto Numbering (Development, Owner write / Member read).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login, το Dashboard και ο νέος κατάλογος `/catalog` παραμένουν Development-only. Υπάρχει πλέον ασφαλής προβολή καταλόγου για Owner/Member και περιορισμένη δημιουργία/επεξεργασία/αλλαγή ενεργής κατάστασης από Owner μέσω UI και CLI.
+**Βήμα 9.4C.2 — Back Office UI Polish & Category Picker (Development, Owner write / Member read).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login, το Dashboard και ο νέος κατάλογος `/catalog` παραμένουν Development-only. Υπάρχει πλέον ασφαλής προβολή καταλόγου για Owner/Member και περιορισμένη δημιουργία/επεξεργασία/αλλαγή ενεργής κατάστασης από Owner μέσω UI και CLI.
 
 Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
 

@@ -33,7 +33,7 @@
                 @if (CanManage)
                 {
                     <a class="button button--primary catalog-create" href="@BuildManageUrl(SelectedView)">
-                        <AppIcon Name="catalog" /> Νέο @NewLabel
+                        <AppIcon Name="plus" /> @NewButtonText
                     </a>
                 }
                 else
@@ -381,11 +381,11 @@
     private string SelectedView => string.IsNullOrEmpty(View) ? "products" : View;
     private bool CanManage => _workspace?.Tenant?.Role == TenantMembershipRole.Owner &&
         _workspace.Status is (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores);
-    private string NewLabel => SelectedView switch
+    private string NewButtonText => SelectedView switch
     {
-        "categories" => "κατηγορία",
-        "services" => "υπηρεσία",
-        _ => "προϊόν"
+        "categories" => "Νέα κατηγορία",
+        "services" => "Νέα υπηρεσία",
+        _ => "Νέο προϊόν"
     };
 
     private string SelectedTitle => SelectedView switch
@@ -405,7 +405,9 @@
         };
     private string EmptyDescription => HasSearch
         ? "Δοκιμάστε διαφορετικό πρόθεμα ή καθαρίστε τα φίλτρα αναζήτησης."
-        : "Ο κατάλογος δεν έχει καταχωρίσεις σε αυτήν την ενότητα. Η διαχείριση ειδών θα προστεθεί στο επόμενο στάδιο.";
+        : CanManage
+            ? "Δεν υπάρχουν ακόμη καταχωρίσεις. Επιλέξτε «" + NewButtonText + "» για να ξεκινήσετε."
+            : "Δεν υπάρχουν ακόμη καταχωρίσεις σε αυτήν την ενότητα.";
 
     private int CurrentRows => _categories?.Rows.Count ?? _items?.Rows.Count ?? 0;
     private int CurrentPage => _categories?.Page ?? _items?.Page ?? (PageNumber ?? 1);
