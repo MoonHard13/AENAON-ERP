@@ -186,6 +186,12 @@ internal static class SqlServerCatalogAssertions
                     Code: "STOCKSERVICE", Name: "Λάθος υπηρεσία",
                     CategoryId: category.Id, TracksStock: true), token));
         Assert.AreEqual("catalog.item.service.stock_forbidden", serviceStock.Code);
+
+        // Ο μοναδικός SQL index επιστρέφει φιλικό Duplicate status χωρίς δημιουργία δεύτερης εγγραφής.
+        CatalogChangeResult duplicate = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "FOOD", Name: "Δεύτερη κατηγορία"), token);
+        Assert.AreEqual(CatalogChangeStatus.Duplicate, duplicate.Status);
     }
 
     private static async Task InsertCategoryAsync(SqlConnection connection, Guid tenantId,
