@@ -59,6 +59,7 @@ site:
       key: section-5
       title: Help Center
       path: help-center
+      description: ""
       icon: life-ring
       children:
         - type: space
