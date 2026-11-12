@@ -202,7 +202,7 @@
                 this.isOpen = true;
             }
 
-            this.render(this.initialItems, false);
+            this.render(this.initialItems);
             // Επιλογή ήδη καταχωρισμένης κατηγορίας δεν πρέπει να χρησιμοποιείται ως όρος αναζήτησης.
             this.scheduleSearch(this.hidden.value ||
                 this.input.value === "Καμία — κύρια κατηγορία"
@@ -306,7 +306,7 @@
                     return;
                 }
 
-                this.render(items, true);
+                this.render(items);
                 this.status.textContent = !this.items.length
                     ? "Δεν βρέθηκαν κατηγορίες."
                     : this.items.length === MAX_RESULTS
@@ -326,21 +326,22 @@
             }
         }
 
-        render(items, fetched) {
+        render(items) {
             const candidates = Array.isArray(items) ? items : [];
             const selectable = !this.required
                 ? [{ id: "", code: "", name: "Καμία — κύρια κατηγορία",
                      path: "", isRoot: true }, ...candidates]
                 : candidates;
+            const currentText = this.input.value.trim();
+            const committedDisplay = currentText === this.selectedLabel;
+            const searchTerm = committedDisplay ? ""
+                : currentText.toLocaleLowerCase("el");
             this.items = selectable
                 .filter(item => (item?.id || item?.isRoot) &&
                     item.id !== this.excludedId)
-                .filter(item => !fetched || !this.input.value.trim() ||
-                    !this.hidden.value || item.id === this.selectedId ||
-                    item.code?.toLocaleLowerCase("el").startsWith(
-                        this.input.value.trim().toLocaleLowerCase("el")) ||
-                    item.name?.toLocaleLowerCase("el").startsWith(
-                        this.input.value.trim().toLocaleLowerCase("el")))
+                .filter(item => !searchTerm || item.isRoot ||
+                    item.code?.toLocaleLowerCase("el").startsWith(searchTerm) ||
+                    item.name?.toLocaleLowerCase("el").startsWith(searchTerm))
                 .slice(0, MAX_RESULTS);
             const options = document.createDocumentFragment();
             this.items.forEach((item, index) => {
