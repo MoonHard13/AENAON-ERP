@@ -1,0 +1,327 @@
+/* Βήμα 9.4B — Ενιαία Back Office εμφάνιση για ασφαλή προβολή του καταλόγου. */
+.catalog-page { max-width: 1680px; }
+.catalog-page .dashboard__heading { align-items: flex-start; margin-bottom: 25px; }
+.catalog-readonly {
+    display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto;
+    font-size: 12px; font-weight: 750; color: var(--positive);
+    border: 1px solid var(--border); background: var(--positive-soft);
+    border-radius: 999px; padding: 9px 13px;
+}
+.catalog-readonly .app-icon { width: 17px; height: 17px; flex-basis: 17px; }
+.catalog-loading {
+    display: flex; align-items: center; gap: 17px; min-height: 155px;
+    font-weight: 650; color: var(--muted-strong);
+}
+.catalog-loading__indicator {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 3px solid var(--border); border-top-color: var(--positive);
+    animation: catalog-spinning .8s linear infinite;
+}
+@keyframes catalog-spinning { to { transform: rotate(360deg); } }
+
+.catalog-tabs {
+    display: flex; align-items: stretch; gap: 8px; margin-bottom: 20px;
+    overflow-x: auto; padding-bottom: 4px;
+}
+.catalog-tabs__link {
+    display: inline-flex; gap: 9px; align-items: center; justify-content: center;
+    min-height: 47px; padding: 9px 19px; border: 1px solid transparent;
+    color: var(--muted-strong); font-size: 13px; font-weight: 750;
+    border-radius: 11px; white-space: nowrap;
+}
+.catalog-tabs__link:hover { color: var(--positive); background: var(--positive-soft); }
+.catalog-tabs__link--active {
+    border-color: var(--border); background: var(--surface);
+    color: var(--positive); box-shadow: var(--shadow);
+}
+.catalog-tabs__link .app-icon { width: 18px; height: 18px; flex-basis: 18px; }
+.catalog-surface { padding: 0; overflow: hidden; min-height: 260px; }
+.catalog-surface__header {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding: 24px 27px 20px; border-bottom: 1px solid var(--border);
+}
+.catalog-surface__header .eyebrow { margin: 0 0 5px; }
+.catalog-surface__header h2 {
+    margin: 0; font-size: 21px; line-height: 1.3; letter-spacing: -.02em;
+}
+.catalog-surface__header .count-pill { white-space: nowrap; }
+.catalog-filters {
+    display: flex; flex-wrap: wrap; align-items: end; gap: 14px;
+    padding: 20px 27px; background: var(--surface-alt);
+    border-bottom: 1px solid var(--border);
+}
+.catalog-field { display: grid; gap: 7px; }
+.catalog-field label { font-size: 12px; font-weight: 700; color: var(--muted-strong); }
+.catalog-field--search { flex: 1 1 280px; max-width: 520px; }
+.catalog-field--size { flex: 0 0 96px; }
+.catalog-search { position: relative; }
+.catalog-search .app-icon {
+    position: absolute; top: 50%; left: 13px; transform: translateY(-50%);
+    width: 18px; height: 18px; pointer-events: none; color: var(--muted);
+}
+.catalog-field input, .catalog-field select {
+    width: 100%; min-height: 44px; font-size: 13px; color: var(--text);
+    background: var(--input-bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 9px 13px;
+}
+.catalog-search input { padding-left: 42px; }
+.catalog-field input:focus-visible, .catalog-field select:focus-visible {
+    outline: 2px solid var(--positive); outline-offset: 2px;
+}
+.catalog-checkbox {
+    display: inline-flex; align-items: center; gap: 8px;
+    min-height: 44px; font-size: 12px; font-weight: 650;
+    color: var(--muted-strong); white-space: nowrap;
+}
+.catalog-checkbox input { width: 16px; height: 16px; accent-color: var(--positive); }
+.catalog-filter-button { min-height: 44px; padding: 8px 17px; font-size: 13px; }
+.catalog-filter-button .app-icon { width: 17px; height: 17px; flex-basis: 17px; }
+.catalog-reset {
+    min-height: 44px; display: inline-flex; align-items: center;
+    padding: 8px 3px; color: var(--muted-strong); font-size: 12px; font-weight: 700;
+}
+.catalog-reset:hover { color: var(--positive); text-decoration: underline; }
+.catalog-table-wrap { overflow-x: auto; max-width: 100%; }
+.catalog-table {
+    border-collapse: collapse; width: 100%; min-width: 610px;
+    text-align: left; font-size: 13px;
+}
+.catalog-table th {
+    padding: 15px 23px; white-space: nowrap; font-size: 11px;
+    font-weight: 750; letter-spacing: .03em;
+    color: var(--muted-strong); background: var(--surface-alt);
+}
+.catalog-table td {
+    padding: 17px 23px; border-top: 1px solid var(--border);
+    color: var(--muted-strong); overflow-wrap: anywhere;
+}
+.catalog-table tbody tr:hover { background: var(--surface-alt); }
+.catalog-table__name { font-weight: 750; color: var(--text) !important; }
+.catalog-code {
+    padding: 5px 8px; color: var(--positive); background: var(--positive-soft);
+    border-radius: 6px; font-weight: 800; font-size: 12px;
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.catalog-status {
+    display: inline-flex; align-items: center; border-radius: 999px;
+    padding: 5px 9px; font-weight: 700; font-size: 11px; white-space: nowrap;
+}
+.catalog-status--active { color: var(--positive); background: var(--positive-soft); }
+.catalog-status--inactive { color: var(--muted-strong); background: var(--surface-alt); border: 1px solid var(--border); }
+.catalog-empty {
+    display: grid; place-items: center; text-align: center;
+    padding: 55px 20px; gap: 9px; min-height: 232px;
+}
+.catalog-empty__icon {
+    width: 56px; height: 56px; display: grid; place-items: center;
+    border-radius: 16px; color: var(--positive); background: var(--positive-soft);
+}
+.catalog-empty strong { font-size: 16px; }
+.catalog-empty p { max-width: 450px; margin: 0; color: var(--muted); font-size: 13px; }
+.catalog-pager {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 14px; padding: 18px 27px;
+    border-top: 1px solid var(--border); font-size: 12px; color: var(--muted);
+}
+.catalog-pager__actions { display: flex; gap: 8px; align-items: center; }
+.catalog-pager__actions a, .catalog-pager__disabled {
+    border: 1px solid var(--border); border-radius: 8px;
+    min-height: 36px; display: inline-flex; align-items: center; padding: 7px 12px;
+    color: var(--text); font-weight: 700;
+}
+.catalog-pager__actions a:hover { border-color: var(--positive); color: var(--positive); }
+.catalog-pager__disabled { color: var(--muted); opacity: .6; }
+.catalog-disclaimer {
+    color: var(--muted); font-size: 12px; line-height: 1.7;
+    margin: 18px 2px 4px;
+}
+@media (max-width: 900px) {
+    .catalog-filters { padding: 17px 20px; }
+    .catalog-surface__header { padding: 22px 20px; }
+    .catalog-table th, .catalog-table td { padding-inline: 17px; }
+}
+@media (max-width: 540px) {
+    .catalog-page .dashboard__heading { gap: 12px; }
+    .catalog-readonly { margin-top: 13px; }
+    .catalog-tabs__link { padding-inline: 13px; }
+    .catalog-filters { display: grid; grid-template-columns: minmax(0,1fr) 94px; }
+    .catalog-field--search { grid-column: 1 / -1; }
+    .catalog-checkbox { grid-column: 1 / -1; }
+    .catalog-filter-button { grid-column: 1; }
+    .catalog-reset { grid-column: 2; justify-content: center; }
+    .catalog-surface__header { align-items: flex-start; flex-direction: column; }
+    .catalog-pager { padding: 15px 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .catalog-loading__indicator { animation: none; }
+}
+
+/* Βήμα 9.4B.2 — Κοινές λειτουργικές βελτιώσεις, χωρισμένες από το θεμελιώδες design system. */
+
+/* Το FocusOnNavigate διατηρεί τη σημασιολογική εστίαση χωρίς διακοσμητικό πλαίσιο στο h1. */
+.dashboard__heading h1[tabindex="-1"]:focus {
+    outline: none;
+}
+.dashboard { align-items: start; }
+.dashboard__content { min-height: 100vh; }
+.sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    height: 100dvh;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    height: 70px;
+    min-height: 70px;
+    gap: 14px;
+    padding-inline: clamp(18px, 2.7vw, 40px);
+    box-shadow: 0 3px 14px rgb(6 33 26 / 3%);
+}
+.topbar__actions { gap: 10px; min-width: 0; }
+.dashboard__body { padding: 29px clamp(18px, 2.7vw, 40px); max-width: 1680px; }
+.dashboard__heading { margin-bottom: 21px; }
+.dashboard__heading h1 { font-size: clamp(27px, 2.25vw, 33px); margin-top: 5px; }
+.dashboard__heading p:not(.eyebrow) { font-size: 14px; }
+.dashboard__footer { padding: 15px clamp(18px, 2.7vw, 40px); }
+.breadcrumb { flex: 0 1 auto; }
+.workspace-indicator {
+    display: inline-flex; align-items: center; justify-content: flex-start;
+    gap: 8px; min-width: 0; max-width: min(43vw, 470px);
+    padding: 9px 11px; min-height: 42px;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface-alt); color: var(--text); font-weight: 700;
+    font-size: 12px; line-height: 1.3;
+    transition: border-color .15s ease, background-color .15s ease;
+}
+.workspace-indicator:hover { border-color: var(--positive); background: var(--positive-soft); }
+.workspace-indicator > .app-icon {
+    width: 17px; height: 17px; flex: 0 0 17px; color: var(--positive);
+}
+.workspace-indicator > .app-icon:last-child {
+    width: 13px; height: 13px; flex-basis: 13px;
+    transform: rotate(90deg); color: var(--muted-strong);
+}
+.workspace-indicator__tenant, .workspace-indicator__store {
+    display: inline-block; overflow: hidden; min-width: 0;
+    text-overflow: ellipsis; white-space: nowrap;
+}
+.workspace-indicator__tenant { max-width: 22ch; }
+.workspace-indicator__store { max-width: 20ch; color: var(--muted-strong); }
+.workspace-indicator__divider { color: var(--muted); flex: 0 0 auto; }
+.workspace-indicator:focus-visible { outline: 3px solid var(--positive); outline-offset: 2px; }
+
+/* Οι μελλοντικές λειτουργίες είναι μία ενότητα, όχι τρία ανενεργά menu items. */
+.sidebar__upcoming { margin-top: 13px; border-top: 1px solid #275245; padding-top: 10px; }
+.sidebar__upcoming > summary {
+    display: flex; align-items: center; gap: 10px;
+    min-height: 42px; cursor: pointer; border-radius: 10px; padding: 9px 12px;
+    list-style: none; color: #c2dbd1; font-size: 12px; font-weight: 700;
+}
+.sidebar__upcoming > summary::-webkit-details-marker { display: none; }
+.sidebar__upcoming > summary::marker { content: ""; }
+.sidebar__upcoming > summary:hover, .sidebar__upcoming[open] > summary { background: #164737; color: #effff9; }
+.sidebar__upcoming > summary .app-icon { width: 17px; height: 17px; flex: 0 0 17px; }
+.sidebar__upcoming > summary .app-icon:last-child {
+    margin-left: auto; width: 13px; height: 13px; flex-basis: 13px; transition: transform .16s ease;
+}
+.sidebar__upcoming[open] > summary .app-icon:last-child { transform: rotate(90deg); }
+.sidebar__upcoming-list { display: grid; gap: 3px; padding: 6px 8px 5px 23px; }
+.sidebar__upcoming-list > span {
+    display: flex; align-items: center; gap: 9px; min-height: 33px;
+    color: #a4c8b8; font-size: 12px; padding: 5px 4px;
+}
+.sidebar__upcoming-list .app-icon { width: 15px; height: 15px; flex: 0 0 15px; }
+.sidebar__upcoming-list > small { color: #92b7a7; font-size: 11px; padding-left: 28px; }
+
+/* Dashboard: η επιχείρηση εμφανίζεται μόνο στο topbar, όχι σε ξεχωριστό τρίτο πλαίσιο. */
+.workspace-selection { scroll-margin-top: 96px; }
+.workspace-selection__header {
+    display: flex; justify-content: space-between; align-items: end;
+    gap: 18px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.workspace-selection__header .eyebrow { margin: 0 0 4px; }
+.workspace-selection__header h2 { font-size: 19px; letter-spacing: -.02em; margin: 0 0 3px; }
+.workspace-selection__header p { font-size: 13px; color: var(--muted); margin: 0; }
+.workspace-selection__counts {
+    font-size: 12px; font-weight: 700; color: var(--muted-strong);
+    border: 1px solid var(--border); background: var(--surface);
+    padding: 7px 11px; border-radius: 10px; white-space: nowrap;
+}
+.workspace-grid { margin-top: 0; }
+.surface-card { min-height: 0; padding: 21px; }
+.surface-card__heading { padding-bottom: 15px; margin-bottom: 9px; }
+.tenant-entry, .store-entry { min-height: 58px; padding: 10px 9px; }
+.tenant-entry__details strong, .store-entry__details strong { font-size: 14px; }
+.tenant-entry__details small, .store-entry__details small { font-size: 12px; }
+.store-selector__help { font-size: 13px; }
+.next-steps { padding: 16px 19px; margin-top: 18px; }
+.next-steps__link { min-height: 40px; padding: 8px 13px; font-size: 12px; margin-left: auto; }
+.next-steps__link .app-icon { width: 16px; height: 16px; flex-basis: 16px; }
+
+/* Κατάλογος: μικρότερο ύψος πριν από τον πίνακα και σαφή empty state. */
+.catalog-page .dashboard__heading { margin-bottom: 15px; }
+.catalog-readonly { padding: 7px 11px; font-size: 11px; }
+.catalog-tabs { margin-bottom: 12px; gap: 6px; }
+.catalog-tabs__link { min-height: 40px; padding: 7px 14px; }
+.catalog-surface { min-height: 0; }
+.catalog-surface__header { padding: 14px 20px; }
+.catalog-surface__header h2 { font-size: 18px; }
+.catalog-filters { padding: 13px 20px; gap: 11px; }
+.catalog-field label { font-size: 12px; }
+.catalog-field--search { max-width: 640px; }
+.catalog-empty { min-height: 168px; padding: 28px 16px; gap: 7px; }
+.catalog-empty__icon { width: 44px; height: 44px; border-radius: 12px; }
+.catalog-empty__icon .app-icon { width: 20px; height: 20px; }
+.catalog-empty strong { font-size: 15px; }
+.catalog-empty p { font-size: 13px; }
+.catalog-table th, .catalog-table td { padding-block: 12px; }
+.catalog-disclaimer { margin-top: 12px; font-size: 12px; }
+
+@media (max-width: 1220px) {
+    .breadcrumb { display: none; }
+    .topbar { justify-content: flex-end; }
+}
+@media (max-width: 850px) {
+    .sidebar {
+        position: relative;
+        top: auto;
+        z-index: auto;
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+    }
+    .topbar { z-index: 50; }
+    .workspace-indicator { max-width: min(49vw, 400px); }
+    .sidebar__upcoming { display: none; }
+}
+@media (max-width: 540px) {
+    .topbar { height: 62px; min-height: 62px; padding-inline: 12px; }
+    .topbar__actions { gap: 6px; }
+    .workspace-indicator { max-width: min(50vw, 220px); min-height: 39px; padding: 7px; gap: 5px; }
+    .workspace-indicator > .app-icon:first-child { display: none; }
+    .workspace-indicator__tenant { max-width: 14ch; }
+    .workspace-indicator__store { max-width: 11ch; }
+    .workspace-indicator__divider { display: none; }
+    .workspace-selection { scroll-margin-top: 76px; }
+    .workspace-selection__header { align-items: start; }
+    .workspace-selection__counts { white-space: normal; }
+    .dashboard__body { padding: 21px 15px; }
+    .next-steps { align-items: flex-start; flex-wrap: wrap; }
+    .next-steps__link { margin-left: 0; width: 100%; }
+    .catalog-tabs__link { padding-inline: 11px; font-size: 12px; }
+    .catalog-surface__header { padding: 13px 16px; }
+    .catalog-filters { padding: 13px 16px; }
+}
+@media (max-width: 380px) {
+    .workspace-indicator__store { display: none; }
+    .workspace-indicator { max-width: 42vw; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .workspace-indicator, .sidebar__upcoming > summary .app-icon:last-child { transition: none; }
+}
