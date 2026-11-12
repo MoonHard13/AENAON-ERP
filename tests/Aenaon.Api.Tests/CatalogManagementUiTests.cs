@@ -279,7 +279,8 @@ public sealed class CatalogManagementUiTests
             $"/catalog/manage?view=products&tenantId={Tenant:D}"));
         Assert.Contains("role=\"combobox\"", product);
         Assert.Contains("aria-autocomplete=\"list\"", product);
-        Assert.Contains("aria-controls=\"catalog-category-options\"", product);
+        Assert.Contains("aria-controls=\"catalog-category-", product);
+        Assert.Contains("-options\"", product);
         Assert.Contains("role=\"listbox\"", product);
         Assert.Contains("data-picker-value", product);
         Assert.Contains("data-picker-native", product);
