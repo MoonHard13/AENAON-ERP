@@ -290,6 +290,11 @@ public sealed class BlazorUiTests
         Assert.Contains(".dashboard__heading h1[tabindex=\"-1\"]:focus", css);
         Assert.Contains(".workspace-indicator:focus-visible", css);
         Assert.Contains("position: sticky", css);
+        // Η αυτόματη εστίαση του Blazor δεν πρέπει να κρύβει τον τίτλο κάτω από το sticky topbar.
+        Assert.Contains("scroll-padding-block-start: 96px", css);
+        Assert.Contains("scroll-margin-block-start: 96px", css);
+        Assert.Contains("scroll-padding-block-start: 82px", css);
+        Assert.Contains("scroll-margin-block-start: 82px", css);
     }
 
     [TestMethod]
