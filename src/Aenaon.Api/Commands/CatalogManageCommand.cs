@@ -30,7 +30,8 @@ public static class CatalogManageCommand
             }
 
             if (option is not ("--username" or "--tenant-id" or "--confirm-database" or
-                "--view" or "--action" or "--id" or "--code" or "--name" or "--category-id") ||
+                "--view" or "--action" or "--id" or "--code" or "--name" or "--category-id" or
+                "--parent-category-id") ||
                 index == args.Length ||
                 args[index].StartsWith("--", StringComparison.Ordinal))
             {
