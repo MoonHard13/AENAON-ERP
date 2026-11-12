@@ -22,9 +22,9 @@
         <div class="dashboard__body catalog-page catalog-manage-page">
             <div class="dashboard__heading">
                 <div>
-                    <p class="eyebrow eyebrow--green">BACK OFFICE / ΔΙΑΧΕΙΡΙΣΗ ΚΑΤΑΛΟΓΟΥ</p>
+                    <p class="eyebrow eyebrow--green">ΚΑΤΑΛΟΓΟΣ / ΔΙΑΧΕΙΡΙΣΗ</p>
                     <h1>@Heading</h1>
-                    <p>Η καταχώρηση αφορά μόνο την επιλεγμένη επιχείρηση.</p>
+                    <p>Συμπληρώστε τα βασικά στοιχεία του καταλόγου.</p>
                 </div>
                 <a class="button button--outline" href="@EditorCancelUrl">
                     <AppIcon Name="chevron" />
@@ -69,8 +69,8 @@
                 <section class="surface-card catalog-editor">
                     <div class="catalog-editor__header">
                         <div>
-                            <h2>Στοιχεία @EntityLabel</h2>
-                            <p>Συμπληρώστε τα υποχρεωτικά πεδία και αποθηκεύστε.</p>
+                            <h2>Βασικά στοιχεία</h2>
+                            <p>Τα υποχρεωτικά πεδία σημειώνονται με *.</p>
                         </div>
                         @if (_details.Record is { } record)
                         {
@@ -85,7 +85,7 @@
                     {
                         <div class="workspace-alert" role="status">
                             Δεν υπάρχουν ακόμη ενεργές κατηγορίες. Χρησιμοποιήστε το κουμπί
-                            «+ Νέα κατηγορία» παρακάτω. Τα στοιχεία του είδους θα διατηρηθούν.
+                            «Δημιουργία νέας κατηγορίας» στην επιλογή κατηγορίας. Τα στοιχεία σας θα διατηρηθούν.
                         </div>
                     }
                     @if (_returnEditor is not null)
@@ -98,14 +98,15 @@
                         </div>
                     }
 
-                    <p class="catalog-editor__hint">
-                        Οι κατηγορίες αναζητούνται στον server με κωδικό ή περιγραφή. Η γονική
-                        κατηγορία μπορεί να έχει επιπλέον υποκατηγορίες.
-                    </p>
+
 
                     <form class="catalog-editor__form" method="post" action="/ui/catalog/save">
                         <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
                         <input type="hidden" name="tenantId" value="@_workspace!.Tenant!.TenantId" />
+                        @if (_workspace.Store is { } selectedStore)
+                        {
+                            <input type="hidden" name="storeId" value="@selectedStore.StoreId" />
+                        }
                         <input type="hidden" name="view" value="@View" />
                         @if (_returnEditor is not null && ReturnDraftToken.HasValue)
                         {
@@ -120,7 +121,7 @@
 
                         <div class="catalog-editor__grid">
                             <div class="catalog-editor__field">
-                                <label for="edit-code">Κωδικός *</label>
+                                <label for="edit-code">Κωδικός @(IsAutoCode ? "(αυτόματος)" : "*")</label>
                                 @if (!Id.HasValue)
                                 {
                                     <div class="catalog-code-mode" role="group"
@@ -159,55 +160,22 @@
                                        maxlength="@(View == "categories" ? 160 : 200)"
                                        value="@CurrentName" placeholder="Περιγραφή καταχώρησης" />
                             </div>
-                            @if (View is "categories" or "products" or "services")
-                            {
-                                <div class="catalog-editor__field catalog-editor__field--wide">
-                                    <label for="edit-category">
-                                        @(View == "categories" ? "Γονική κατηγορία" : "Κατηγορία *")
-                                    </label>
-                                    <input id="category-search" type="search" autocomplete="off"
-                                           data-catalog-category-search
-                                           data-tenant-id="@_workspace!.Tenant!.TenantId"
-                                           data-selected-id="@CurrentSelectedCategory"
-                                           placeholder="Αναζήτηση κατηγορίας με κωδικό ή περιγραφή…"
-                                           aria-label="Αναζήτηση κατηγορίας" />
-                                    <select id="edit-category"
-                                            name="@(View == "categories" ? "parentCategoryId" : "categoryId")"
-                                            data-catalog-category-select
-                                            required="@(View != "categories")">
-                                        <option value="">
-                                            @(View == "categories" ? "Καμία — κύρια κατηγορία" :
-                                                "Επιλέξτε κατηγορία")
-                                        </option>
-                                        @foreach (CatalogCategoryOption category in _details.Categories)
-                                        {
-                                            <option value="@category.Id"
-                                                    selected="@(category.Id == CurrentSelectedCategory)">
-                                                @category.Code — @(category.Path ?? category.Name)
-                                            </option>
-                                        }
-                                    </select>
-                                    <div class="catalog-editor__category-toolbar">
-                                        <small>Επιλέξτε από τα αποτελέσματα. Οι υποκατηγορίες
-                                            εμφανίζονται με πλήρη διαδρομή.</small>
-                                        @if (View is "products" or "services")
-                                        {
-                                            <button type="submit"
-                                                    class="catalog-editor__quick-create"
-                                                    formaction="/ui/catalog/new-category"
-                                                    formmethod="post" formnovalidate
-                                                    title="Δημιουργία νέας κατηγορίας χωρίς απώλεια των στοιχείων">
-                                                <AppIcon Name="plus" />
-                                                Δεν υπάρχει η κατηγορία; Δημιουργήστε νέα
-                                            </button>
-                                        }
-                                    </div>
-                                    @if (CurrentError is "category" or "parent")
-                                    {
-                                        <small class="catalog-editor__error">@ErrorMessage</small>
-                                    }
-                                </div>
-                            }
+                            <div class="catalog-editor__field catalog-editor__field--wide">
+                                <CatalogCategoryPicker
+                                    TenantId="@_workspace!.Tenant!.TenantId"
+                                    FieldName="@(View == "categories" ? "parentCategoryId" : "categoryId")"
+                                    Label="@(View == "categories" ? "Γονική κατηγορία" : "Κατηγορία")"
+                                    EmptyLabel="@(View == "categories" ? "Καμία — κύρια κατηγορία" : "Επιλέξτε κατηγορία")"
+                                    SelectedId="@CurrentSelectedCategory"
+                                    ExcludedCategoryId="@(View == "categories" ? Id : null)"
+                                    IsRequired="@(View != "categories")"
+                                    AllowCreate="@(View != "categories")"
+                                    Categories="@_details.Categories" />
+                                @if (CurrentError is "category" or "parent")
+                                {
+                                    <small class="catalog-editor__error">@ErrorMessage</small>
+                                }
+                            </div>
 
                             @if (View == "products")
                             {
@@ -218,6 +186,15 @@
                                 </label>
                             }
                         </div>
+
+                        @* Ο κρυφός submitter έπεται της κύριας αποθήκευσης, για σωστό Enter. *@
+                        @if (View is "products" or "services")
+                        {
+                            <button hidden type="submit" data-category-quick-submit
+                                    formnovalidate formaction="/ui/catalog/new-category"
+                                    formmethod="post" tabindex="-1"
+                                    aria-hidden="true"></button>
+                        }
 
                         <div class="catalog-editor__footer">
                             <button type="submit" class="button button--primary"
