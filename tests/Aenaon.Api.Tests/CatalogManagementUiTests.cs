@@ -53,8 +53,11 @@ public sealed class CatalogManagementUiTests
         string token = ExtractToken(edit);
         using var forbidden = await PostAsync(client, token, new()
         {
-            ["tenantId"] = Tenant.ToString("D"), ["view"] = "categories",
-            ["action"] = "create", ["code"] = "FOOD", ["name"] = "Φαγητά"
+            ["tenantId"] = Tenant.ToString("D"),
+            ["view"] = "categories",
+            ["action"] = "create",
+            ["code"] = "FOOD",
+            ["name"] = "Φαγητά"
         });
         Assert.AreEqual(HttpStatusCode.Forbidden, forbidden.StatusCode);
         Assert.AreEqual(0, factory.CatalogWriter.ApplyCalls);
@@ -70,8 +73,11 @@ public sealed class CatalogManagementUiTests
         using var missing = await client.PostAsync("/ui/catalog/save",
             new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                ["tenantId"] = Tenant.ToString("D"), ["view"] = "categories",
-                ["action"] = "create", ["code"] = "FOOD", ["name"] = "Φαγητά"
+                ["tenantId"] = Tenant.ToString("D"),
+            ["view"] = "categories",
+                ["action"] = "create",
+            ["code"] = "FOOD",
+            ["name"] = "Φαγητά"
             }));
         Assert.AreEqual(HttpStatusCode.BadRequest, missing.StatusCode);
         Assert.AreEqual(0, factory.CatalogWriter.ApplyCalls);
@@ -79,8 +85,11 @@ public sealed class CatalogManagementUiTests
         string form = await client.GetStringAsync("/catalog/manage?view=categories");
         using var saved = await PostAsync(client, ExtractToken(form), new()
         {
-            ["tenantId"] = Tenant.ToString("D"), ["view"] = "categories",
-            ["action"] = "create", ["code"] = "FOOD", ["name"] = "Φαγητά"
+            ["tenantId"] = Tenant.ToString("D"),
+            ["view"] = "categories",
+            ["action"] = "create",
+            ["code"] = "FOOD",
+            ["name"] = "Φαγητά"
         });
 
         Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
@@ -101,8 +110,10 @@ public sealed class CatalogManagementUiTests
         using var forbidden = await PostAsync(client, ExtractToken(form), new()
         {
             ["tenantId"] = Guid.NewGuid().ToString("D"),
-            ["view"] = "categories", ["action"] = "create",
-            ["code"] = "FOOD", ["name"] = "Φαγητά"
+            ["view"] = "categories",
+            ["action"] = "create",
+            ["code"] = "FOOD",
+            ["name"] = "Φαγητά"
         });
         Assert.AreEqual(HttpStatusCode.Forbidden, forbidden.StatusCode);
         Assert.AreEqual(0, factory.CatalogWriter.ApplyCalls);
@@ -128,10 +139,12 @@ public sealed class CatalogManagementUiTests
         using var saved = await PostAsync(client, ExtractToken(edit), new()
         {
             ["tenantId"] = Tenant.ToString("D"),
-            ["view"] = "products", ["action"] = "update",
+            ["view"] = "products",
+            ["action"] = "update",
             ["id"] = SessionCatalogWriteFixture.ItemId.ToString("D"),
             ["categoryId"] = SessionCatalogWriteFixture.CategoryId.ToString("D"),
-            ["code"] = "SKU002", ["name"] = "Πίτσα Μεγάλη",
+            ["code"] = "SKU002",
+            ["name"] = "Πίτσα Μεγάλη",
             ["tracksStock"] = "true"
         });
 
@@ -151,8 +164,11 @@ public sealed class CatalogManagementUiTests
 
         using var service = await PostAsync(client, ExtractToken(form), new()
         {
-            ["tenantId"] = Tenant.ToString("D"), ["view"] = "services",
-            ["action"] = "create", ["code"] = "SERV001", ["name"] = "Service",
+            ["tenantId"] = Tenant.ToString("D"),
+            ["view"] = "services",
+            ["action"] = "create",
+            ["code"] = "SERV001",
+            ["name"] = "Service",
             ["categoryId"] = SessionCatalogWriteFixture.CategoryId.ToString("D"),
             ["tracksStock"] = "true"
         });
@@ -162,8 +178,11 @@ public sealed class CatalogManagementUiTests
 
         using var duplicate = await PostAsync(client, ExtractToken(form), new()
         {
-            ["tenantId"] = Tenant.ToString("D"), ["view"] = "categories",
-            ["action"] = "create", ["code"] = "EXISTS", ["name"] = "Ήδη υπάρχει"
+            ["tenantId"] = Tenant.ToString("D"),
+            ["view"] = "categories",
+            ["action"] = "create",
+            ["code"] = "EXISTS",
+            ["name"] = "Ήδη υπάρχει"
         });
         Assert.AreEqual(HttpStatusCode.Redirect, duplicate.StatusCode);
         Assert.Contains("error=duplicate", duplicate.Headers.Location?.OriginalString ?? "");
