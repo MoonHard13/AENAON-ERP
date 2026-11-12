@@ -103,6 +103,15 @@
         }
     });
 
+    // Επιβεβαίωση απενεργοποίησης/ενεργοποίησης χωρίς inline scripts.
+    document.addEventListener("submit", event => {
+        if (event.target instanceof HTMLFormElement &&
+            event.target.matches(".catalog-state-form") &&
+            !window.confirm("Επιβεβαιώνετε την αλλαγή κατάστασης;")) {
+            event.preventDefault();
+        }
+    });
+
     // Κλείνουμε τα αναδυόμενα μενού με Escape ή κλικ έξω από αυτά.
     document.addEventListener("pointerdown", event => {
         document.querySelectorAll("details.user-menu[open], details.mobile-navigation[open]")
@@ -152,6 +161,30 @@
                 event.preventDefault();
                 window.location.assign("/catalog");
                 break;
+            case "n": {
+                const newLink = document.querySelector(".catalog-create");
+                if (newLink instanceof HTMLAnchorElement) {
+                    event.preventDefault();
+                    window.location.assign(newLink.href);
+                }
+                break;
+            }
+            case "enter": {
+                const editor = document.querySelector(".catalog-editor__form");
+                if (editor instanceof HTMLFormElement) {
+                    event.preventDefault();
+                    editor.requestSubmit();
+                }
+                break;
+            }
+            case "m": {
+                const stateForm = document.querySelector(".catalog-state-form");
+                if (stateForm instanceof HTMLFormElement) {
+                    event.preventDefault();
+                    stateForm.requestSubmit();
+                }
+                break;
+            }
             case "f": {
                 const search = document.getElementById("catalog-search");
                 if (search instanceof HTMLInputElement) {
