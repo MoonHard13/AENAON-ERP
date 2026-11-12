@@ -217,10 +217,15 @@
                                                     </div>
                                                 </td>
                                             }
-                                            else if (row.HasChildren)
+                                            else
                                             {
-                                                <td><a class="catalog-edit-link"
-                                                       href="@BuildUrl("categories", 1, parent: row.Id)">Υποκατηγορίες</a></td>
+                                                <td>
+                                                    @if (row.HasChildren)
+                                                    {
+                                                        <a class="catalog-edit-link"
+                                                           href="@BuildUrl("categories", 1, parent: row.Id)">Υποκατηγορίες</a>
+                                                    }
+                                                </td>
                                             }
                                         </tr>
                                     }
@@ -305,11 +310,11 @@
                 <p class="catalog-disclaimer">
                     @if (CanManage)
                     {
-                        <text>Μπορείτε να δημιουργείτε και να επεξεργάζεστε κατηγορίες, προϊόντα και υπηρεσίες.</text>
+                        Μπορείτε να δημιουργείτε και να επεξεργάζεστε κατηγορίες, προϊόντα και υπηρεσίες.
                     }
                     else
                     {
-                        <text>Η οθόνη είναι μόνο για ανάγνωση.</text>
+                        Η οθόνη είναι μόνο για ανάγνωση.
                     }
                     Δεν ενημερώνονται τιμές, ΦΠΑ, υπόλοιπα αποθήκης ή φορολογικές ταξινομήσεις.
                 </p>
