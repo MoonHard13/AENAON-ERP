@@ -1,4 +1,5 @@
 using System.Data;
+using Aenaon.Application.Catalog;
 using Aenaon.Domain.Catalog;
 using Aenaon.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
@@ -43,6 +44,37 @@ internal static class SqlServerCatalogAssertions
         Assert.AreEqual(1, await context.CatalogItems.CountAsync(
             item => item.TenantId == secondTenantId, cancellationToken));
         Assert.AreEqual(2, await context.CatalogCategories.CountAsync(cancellationToken));
+
+        // Ελέγχουμε πραγματικά το tenant predicate, τη SQL μετάφραση του StartsWith
+        // και το όριο των παραγόμενων σελίδων στο απομονωμένο CI SQL Server.
+        var reader = new SqlCatalogReadStore(context);
+        CatalogReadPage<CatalogItemSummary> firstPage = await reader.ReadItemsAsync(
+            firstTenantId, new CatalogReadQuery(1, 1), cancellationToken);
+        Assert.HasCount(1, firstPage.Rows);
+        Assert.AreEqual("SERV01", firstPage.Rows[0].Code);
+        Assert.IsTrue(firstPage.HasMore);
+        CatalogReadPage<CatalogItemSummary> nextPage = await reader.ReadItemsAsync(
+            firstTenantId, new CatalogReadQuery(2, 1), cancellationToken);
+        Assert.HasCount(1, nextPage.Rows);
+        Assert.AreEqual("SKU01", nextPage.Rows[0].Code);
+        Assert.IsFalse(nextPage.HasMore);
+
+        CatalogReadPage<CatalogItemSummary> otherTenant = await reader.ReadItemsAsync(
+            secondTenantId, new CatalogReadQuery(1, 20, "SKU"), cancellationToken);
+        Assert.HasCount(1, otherTenant.Rows);
+        Assert.AreEqual("Δεύτερη επιχείρηση", otherTenant.Rows[0].Name);
+        Assert.AreEqual(secondCategory.Id, otherTenant.Rows[0].CategoryId);
+
+        CatalogReadPage<CatalogItemSummary> noLeak = await reader.ReadItemsAsync(
+            secondTenantId, new CatalogReadQuery(1, 20, "SERV"), cancellationToken);
+        Assert.HasCount(0, noLeak.Rows);
+        CatalogReadPage<CatalogCategorySummary> categories = await reader.ReadCategoriesAsync(
+            firstTenantId, new CatalogReadQuery(1, 1, "FO"), cancellationToken);
+        Assert.HasCount(1, categories.Rows);
+        Assert.AreEqual(firstCategory.Id, categories.Rows[0].Id);
+        CatalogReadPage<CatalogItemSummary> noTenant = await reader.ReadItemsAsync(
+            Guid.Empty, new CatalogReadQuery(), cancellationToken);
+        Assert.HasCount(0, noTenant.Rows);
 
         // Ο μοναδικός κωδικός επιβάλλεται στη βάση, ακόμη και με διαφορετικά πεζά/κεφαλαία.
         SqlException duplicateCategory = await Assert.ThrowsExactlyAsync<SqlException>(
