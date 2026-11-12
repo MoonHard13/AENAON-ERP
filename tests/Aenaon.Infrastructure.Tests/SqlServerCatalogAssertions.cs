@@ -1,6 +1,7 @@
 using System.Data;
 using Aenaon.Application.Catalog;
 using Aenaon.Domain.Catalog;
+using Aenaon.Domain.Exceptions;
 using Aenaon.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -179,11 +180,12 @@ internal static class SqlServerCatalogAssertions
             foreignTenantId, CatalogManagedEntity.Product, item.Id, token);
         Assert.IsNull(foreignDetails.Record);
 
-        CatalogChangeResult serviceStock = await writer.ApplyAsync(tenantId,
-            new(CatalogManagedEntity.Service, CatalogChangeAction.Create,
-                Code: "STOCKSERVICE", Name: "Λάθος υπηρεσία",
-                CategoryId: category.Id, TracksStock: true), token);
-        Assert.AreEqual(CatalogChangeStatus.Invalid, serviceStock.Status);
+        DomainRuleException serviceStock = await Assert.ThrowsExactlyAsync<DomainRuleException>(
+            () => writer.ApplyAsync(tenantId,
+                new(CatalogManagedEntity.Service, CatalogChangeAction.Create,
+                    Code: "STOCKSERVICE", Name: "Λάθος υπηρεσία",
+                    CategoryId: category.Id, TracksStock: true), token));
+        Assert.AreEqual("catalog.item.service.stock_forbidden", serviceStock.Code);
     }
 
     private static async Task InsertCategoryAsync(SqlConnection connection, Guid tenantId,
