@@ -371,6 +371,13 @@ public sealed class SqlCatalogWriteStore(AenaonDbContext context) : ICatalogWrit
             }
             else
             {
+                if (command.Action == CatalogChangeAction.Activate &&
+                    !await CategoryIsActiveAsync(tenantId, item.CategoryId, cancellationToken))
+                {
+                    return new(CatalogChangeStatus.Invalid,
+                        Error: "catalog.category.inactive_or_missing");
+                }
+
                 item.ChangeActive(command.Action == CatalogChangeAction.Activate);
             }
         }
