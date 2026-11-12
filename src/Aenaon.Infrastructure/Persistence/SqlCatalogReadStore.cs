@@ -39,7 +39,8 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
             .ThenBy(category => category.Id)
             .Skip(offset).Take(validated.PageSize + 1)
             .Select(category => new CatalogCategorySummary(
-                category.Id, category.Code, category.Name, category.IsActive))
+                category.Id, category.Code, category.Name, category.IsActive,
+                category.ParentCategoryId))
             .ToListAsync(cancellationToken);
         bool hasMore = rows.Count > validated.PageSize;
         if (hasMore)
@@ -47,7 +48,11 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
             rows.RemoveAt(rows.Count - 1);
         }
 
-        return new(rows, validated.Page, validated.PageSize, hasMore);
+        // Η πλήρης διαδρομή υπολογίζεται με περιορισμένες, tenant-scoped αναγνώσεις γονέων.
+        Dictionary<Guid, string> paths = await CatalogCategoryPaths.ResolveAsync(context,
+            tenantId, rows.Select(x => (x.Id, x.ParentCategoryId, x.Name)), cancellationToken);
+        return new(rows.Select(x => x with { CategoryPath = paths.GetValueOrDefault(x.Id, x.Name) })
+            .ToList(), validated.Page, validated.PageSize, hasMore);
     }
 
     public async Task<CatalogReadPage<CatalogItemSummary>> ReadItemsAsync(
