@@ -357,6 +357,10 @@ internal sealed class SessionCatalogReadFixture : ICatalogReadStore
                 category.Code.StartsWith(term, StringComparison.OrdinalIgnoreCase) ||
                 category.Name.StartsWith(term, StringComparison.OrdinalIgnoreCase));
         }
+        if (query.ParentCategoryId is { } parentId)
+        {
+            source = source.Where(category => category.ParentCategoryId == parentId);
+        }
         return Task.FromResult(ToPage(source.OrderBy(category => category.Code)
             .ThenBy(category => category.Id), query));
     }
