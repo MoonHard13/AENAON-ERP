@@ -138,7 +138,8 @@
 
             document.addEventListener("pointerdown", event => {
                 if (!this.root.contains(event.target)) {
-                    this.restoreSelected();
+                    // Δεν υποκαθιστούμε σιωπηρά ένα μη επιλεγμένο νέο κείμενο
+                    // με την παλιά κατηγορία. Η υποβολή θα ζητήσει ρητή επιλογή.
                     this.close();
                 }
             });
@@ -146,7 +147,6 @@
             this.root.addEventListener("focusout", () => {
                 window.queueMicrotask(() => {
                     if (!this.root.contains(document.activeElement)) {
-                        this.restoreSelected();
                         this.close();
                     }
                 });
