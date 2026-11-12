@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using Aenaon.Api.Authentication;
 using Aenaon.Api.HealthChecks;
 using Aenaon.Api.Ui;
+using Aenaon.Application.Catalog;
 using Aenaon.Application.Fiscal;
 using Aenaon.Application.Identity;
 using Aenaon.Application.Tenancy;
@@ -75,6 +76,8 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<ITenantAccessStore, SqlTenantAccessStore>();
         services.AddScoped<TenantAuthorizationService>();
         services.AddScoped<ITenantStoreCatalog, SqlTenantStoreCatalog>();
+        services.AddScoped<ICatalogReadStore, SqlCatalogReadStore>();
+        services.AddScoped<CatalogReadService>();
         services.AddScoped<TenantWorkspaceService>();
         services.AddScoped<TenantWorkspaceResolver>();
         services.AddScoped<ISessionIdentityService, IdentitySessionService>();
