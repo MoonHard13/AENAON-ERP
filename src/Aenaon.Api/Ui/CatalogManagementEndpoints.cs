@@ -339,10 +339,10 @@ public static class CatalogManagementEndpoints
                 userId, tenantId, entity, action, result.Id);
             context.Response.Headers.CacheControl = "no-store";
             string savedCode = Uri.EscapeDataString(result.Code ?? "");
-            if (returnEditor is not null && result.Id is { } categoryId)
+            if (returnEditor is not null && result.Id is { } createdCategoryId)
             {
                 // Το νέο είδος/υπηρεσία δεν καταχωρείται ακόμη: απλώς προεπιλέγεται η κατηγορία.
-                var resumed = returnEditor with { CategoryId = categoryId, ErrorCode = "" };
+                var resumed = returnEditor with { CategoryId = createdCategoryId, ErrorCode = "" };
                 Guid resumedToken = drafts.Save(resumed);
                 string originalId = resumed.Id.HasValue ? $"&id={resumed.Id.Value:D}" : "";
                 return Results.Redirect(
