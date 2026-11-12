@@ -390,6 +390,17 @@
                 event.preventDefault();
                 window.location.assign("/catalog");
                 break;
+            case "k": {
+                // Προστατευμένη γρήγορη μετάβαση σε νέα κατηγορία από την ανοιχτή φόρμα.
+                const quickCreate = document.querySelector(".catalog-editor__quick-create");
+                const editor = document.querySelector(".catalog-editor__form");
+                if (quickCreate instanceof HTMLButtonElement &&
+                    editor instanceof HTMLFormElement) {
+                    event.preventDefault();
+                    editor.requestSubmit(quickCreate);
+                }
+                break;
+            }
             case "n": {
                 const newLink = document.querySelector(".catalog-create");
                 if (newLink instanceof HTMLAnchorElement) {

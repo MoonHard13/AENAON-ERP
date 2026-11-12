@@ -26,6 +26,20 @@ public sealed class CatalogEditorDraftStore : IDisposable
         return token;
     }
 
+    /// <summary>Επαναφέρει με ασφάλεια μόνο πρόχειρο προϊόντος ή υπηρεσίας του ίδιου χρήστη/tenant.</summary>
+    public CatalogEditorDraft? ReadCategoryReturn(Guid token, Guid userId, Guid tenantId)
+    {
+        if (token == Guid.Empty ||
+            !cache.TryGetValue("catalog-editor:" + token.ToString("N"),
+                out CatalogEditorDraft? draft) || draft is null)
+        {
+            return null;
+        }
+
+        return draft.UserId == userId && draft.TenantId == tenantId &&
+            draft.View is ("products" or "services") ? draft : null;
+    }
+
     public CatalogEditorDraft? Read(Guid token, Guid userId, Guid tenantId,
         Guid? id, string view)
     {

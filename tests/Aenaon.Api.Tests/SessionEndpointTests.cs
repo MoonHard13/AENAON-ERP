@@ -412,6 +412,8 @@ internal sealed class SessionCatalogWriteFixture : ICatalogWriteStore
     public int DetailCalls { get; private set; }
     public Guid LastTenant { get; private set; }
     public CatalogChangeCommand? LastCommand { get; private set; }
+    public Guid? CreatedCategoryId { get; private set; }
+    public string? CreatedCategoryName { get; private set; }
 
     public Task<CatalogChangeResult> ApplyAsync(Guid tenantId,
         CatalogChangeCommand command, CancellationToken cancellationToken = default)
@@ -423,17 +425,32 @@ internal sealed class SessionCatalogWriteFixture : ICatalogWriteStore
         {
             return Task.FromResult(new CatalogChangeResult(CatalogChangeStatus.Duplicate));
         }
+        Guid id = command.Id ?? Guid.NewGuid();
+        if (command is { Entity: CatalogManagedEntity.Category, Action: CatalogChangeAction.Create })
+        {
+            CreatedCategoryId = id;
+            CreatedCategoryName = command.Name;
+        }
+
         return Task.FromResult(new CatalogChangeResult(CatalogChangeStatus.Saved,
-            command.Id ?? Guid.NewGuid()));
+            id, Code: command.Code ?? "1"));
     }
 
     public Task<IReadOnlyList<CatalogCategoryOption>> SearchCategoriesAsync(
         Guid tenantId, string? term, Guid? selectedId,
         CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<CatalogCategoryOption> options =
-            [new CatalogCategoryOption(CategoryId, "FOOD", "Φαγητά", "Τρόφιμα / Φαγητά")];
-        return Task.FromResult(options);
+        var options = new List<CatalogCategoryOption>
+        {
+            new(CategoryId, "FOOD", "Φαγητά", "Τρόφιμα / Φαγητά")
+        };
+        if (CreatedCategoryId is { } created)
+        {
+            options.Add(new CatalogCategoryOption(created, "NEW", CreatedCategoryName ?? "Νέα",
+                CreatedCategoryName));
+        }
+
+        return Task.FromResult<IReadOnlyList<CatalogCategoryOption>>(options);
     }
 
     public Task<CatalogManageDetails> GetDetailsAsync(Guid tenantId,
@@ -445,8 +462,15 @@ internal sealed class SessionCatalogWriteFixture : ICatalogWriteStore
             : id == ItemId && entity == CatalogManagedEntity.Product
                 ? new(ItemId, "SKU001", "Πίτσα", true, CategoryId, CatalogItemKind.Product, true)
                 : null;
-        return Task.FromResult(new CatalogManageDetails(record,
-            entity == CatalogManagedEntity.Category ? [] :
-                [new CatalogCategoryOption(CategoryId, "FOOD", "Φαγητά")]));
+        List<CatalogCategoryOption> options = entity == CatalogManagedEntity.Category
+            ? []
+            : [new CatalogCategoryOption(CategoryId, "FOOD", "Φαγητά")];
+        if (entity != CatalogManagedEntity.Category && CreatedCategoryId is { } created)
+        {
+            options.Add(new CatalogCategoryOption(created, "NEW",
+                CreatedCategoryName ?? "Νέα", CreatedCategoryName));
+        }
+
+        return Task.FromResult(new CatalogManageDetails(record, options));
     }
 }
