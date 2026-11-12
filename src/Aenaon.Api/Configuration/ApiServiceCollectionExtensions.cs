@@ -31,6 +31,8 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<IFiscalStagingAuthorizationPolicy, DenyAllFiscalStagingAuthorizationPolicy>();
         services.AddScoped<FiscalStagingService>();
         services.AddSingleton<WorkspacePreferenceService>();
+        services.AddMemoryCache();
+        services.AddSingleton<CatalogEditorDraftStore>();
         services.AddCascadingAuthenticationState();
         services.AddHttpContextAccessor();
         services.AddSingleton<IDatabaseConnectionProbe>(provider => new SqlServerConnectionProbe(
