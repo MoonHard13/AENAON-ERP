@@ -205,18 +205,10 @@
             return;
         }
 
+        // Το κουμπί υποβολής μεταφέρει αυτόματα το saveMode.
+        // Δεν προσθέτουμε δεύτερο hidden input με το ίδιο όνομα, γιατί ο server
+        // θα λάμβανε διπλή παράμετρο και η καταχώρηση θα απορριπτόταν.
         const form = event.target;
-        const submitter = event.submitter;
-        if (submitter instanceof HTMLButtonElement && submitter.name === "saveMode") {
-            let field = form.querySelector('input[type="hidden"][name="saveMode"]');
-            if (!(field instanceof HTMLInputElement)) {
-                field = document.createElement("input");
-                field.type = "hidden";
-                field.name = "saveMode";
-                form.appendChild(field);
-            }
-            field.value = submitter.value;
-        }
         form.setAttribute("aria-busy", "true");
         window.setTimeout(() => {
             form.querySelectorAll('button[type="submit"]').forEach(button => {
