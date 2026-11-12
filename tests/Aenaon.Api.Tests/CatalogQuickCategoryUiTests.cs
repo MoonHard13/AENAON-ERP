@@ -43,7 +43,7 @@ public sealed class CatalogQuickCategoryUiTests
         Assert.Contains("/catalog/manage?view=categories&tenantId=", categoryUrl);
         Assert.Contains("&returnDraft=", categoryUrl);
 
-        string categoryForm = await client.GetStringAsync(categoryUrl);
+        string categoryForm = WebUtility.HtmlDecode(await client.GetStringAsync(categoryUrl));
         Assert.Contains("name=\"returnDraft\"", categoryForm);
         Assert.Contains("Πίσω στην καταχώρηση", categoryForm);
         Assert.Contains("χωρίς να χαθούν", categoryForm);
@@ -103,7 +103,7 @@ public sealed class CatalogQuickCategoryUiTests
         string expectedReturn = $"/catalog/manage?view=services&tenantId={Tenant:D}&draft={returnDraft}";
         Assert.Contains(expectedReturn, categoryForm);
 
-        string returned = await client.GetStringAsync(expectedReturn);
+        string returned = WebUtility.HtmlDecode(await client.GetStringAsync(expectedReturn));
         Assert.Contains("Υπηρεσία σε εξέλιξη", returned);
         Assert.AreEqual(0, factory.CatalogWriter.ApplyCalls);
     }
