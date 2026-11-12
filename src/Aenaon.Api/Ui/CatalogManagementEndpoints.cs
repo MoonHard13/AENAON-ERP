@@ -15,11 +15,101 @@ public static class CatalogManagementEndpoints
         endpoints.MapPost("/ui/catalog/save", SaveAsync)
             .WithMetadata(new RequestSizeLimitAttribute(8192))
             .RequireAuthorization();
+        endpoints.MapPost("/ui/catalog/new-category", NewCategoryAsync)
+            .WithMetadata(new RequestSizeLimitAttribute(8192))
+            .RequireAuthorization();
         endpoints.MapGet("/ui/catalog/categories", SearchCategoriesAsync)
             .RequireAuthorization();
         endpoints.MapGet("/ui/catalog/children", ReadChildrenAsync)
             .RequireAuthorization();
         return endpoints;
+    }
+
+    /// <summary>Κρατά προσωρινά τη φόρμα είδους και ανοίγει νέα κατηγορία, χωρίς αποθήκευση είδους.</summary>
+    private static async Task<IResult> NewCategoryAsync(HttpContext context,
+        IAntiforgery antiforgery, CatalogWriteService manager, CatalogEditorDraftStore drafts)
+    {
+        if (!context.Request.IsHttps || !context.Request.HasFormContentType ||
+            context.Request.ContentLength > 8192 ||
+            !await antiforgery.IsRequestValidAsync(context))
+        {
+            return Results.BadRequest();
+        }
+
+        if (!TryIdentity(context, out Guid userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var fields = await context.Request.ReadFormAsync(context.RequestAborted);
+        string view = fields["view"].ToString();
+        CatalogManagedEntity entity = view switch
+        {
+            "products" => CatalogManagedEntity.Product,
+            "services" => CatalogManagedEntity.Service,
+            _ => (CatalogManagedEntity)(-1)
+        };
+        if (!Enum.IsDefined(entity) ||
+            !Guid.TryParse(fields["tenantId"], out Guid tenantId) || tenantId == Guid.Empty)
+        {
+            return Results.BadRequest();
+        }
+
+        Guid? id = null;
+        string idText = fields["id"].ToString();
+        if (!string.IsNullOrEmpty(idText))
+        {
+            if (!Guid.TryParse(idText, out Guid existingId) || existingId == Guid.Empty)
+            {
+                return Results.BadRequest();
+            }
+
+            id = existingId;
+        }
+
+        string code = fields["code"].ToString();
+        string name = fields["name"].ToString();
+        if (code.Length > CatalogItem.MaxCodeLength + 8 ||
+            name.Length > CatalogItem.MaxNameLength + 8)
+        {
+            return Results.BadRequest();
+        }
+
+        Guid? categoryId = null;
+        string selectedText = fields["categoryId"].ToString();
+        if (!string.IsNullOrWhiteSpace(selectedText))
+        {
+            if (!Guid.TryParse(selectedText, out Guid selectedId) || selectedId == Guid.Empty)
+            {
+                return Results.BadRequest();
+            }
+
+            categoryId = selectedId;
+        }
+
+        CatalogManageResult access = await manager.GetDetailsAsync(
+            userId, tenantId, entity, id, context.RequestAborted);
+        if (!access.IsAuthorized)
+        {
+            return Results.Forbid();
+        }
+
+        if (id.HasValue && access.Details?.Record is null)
+        {
+            return Results.NotFound();
+        }
+
+        bool autoCode = !id.HasValue &&
+            string.Equals(fields["codeMode"], "auto", StringComparison.Ordinal);
+        bool tracksStock = entity == CatalogManagedEntity.Product &&
+            string.Equals(fields["tracksStock"], "true", StringComparison.Ordinal);
+        var draft = new CatalogEditorDraft(userId, tenantId, id, view, code, name,
+            categoryId, null, tracksStock, autoCode, "");
+        Guid returnDraft = drafts.Save(draft);
+        context.Response.Headers.CacheControl = "no-store";
+        return Results.Redirect(
+            $"/catalog/manage?view=categories&tenantId={tenantId:D}&returnDraft={returnDraft:D}",
+            permanent: false);
     }
 
     private static async Task<IResult> ReadChildrenAsync(HttpContext context,
@@ -140,6 +230,28 @@ public static class CatalogManagementEndpoints
             requestId = parsedRequest;
         }
 
+        // Η γρήγορη δημιουργία κατηγορίας επιστρέφει μόνο στον αρχικό εξουσιοδοτημένο editor.
+        Guid? returnDraftToken = null;
+        CatalogEditorDraft? returnEditor = null;
+        string returnText = fields["returnDraft"].ToString();
+        if (!string.IsNullOrWhiteSpace(returnText))
+        {
+            if (entity != CatalogManagedEntity.Category ||
+                action != CatalogChangeAction.Create ||
+                !Guid.TryParse(returnText, out Guid token) || token == Guid.Empty)
+            {
+                return Results.BadRequest();
+            }
+
+            returnEditor = drafts.ReadCategoryReturn(token, userId, tenantId);
+            if (returnEditor is null)
+            {
+                return Results.BadRequest();
+            }
+
+            returnDraftToken = token;
+        }
+
         bool writingFields = action is CatalogChangeAction.Create or CatalogChangeAction.Update;
         string code = fields["code"].ToString();
         string name = fields["name"].ToString();
@@ -227,6 +339,17 @@ public static class CatalogManagementEndpoints
                 userId, tenantId, entity, action, result.Id);
             context.Response.Headers.CacheControl = "no-store";
             string savedCode = Uri.EscapeDataString(result.Code ?? "");
+            if (returnEditor is not null && result.Id is { } categoryId)
+            {
+                // Το νέο είδος/υπηρεσία δεν καταχωρείται ακόμη: απλώς προεπιλέγεται η κατηγορία.
+                var resumed = returnEditor with { CategoryId = categoryId, ErrorCode = "" };
+                Guid resumedToken = drafts.Save(resumed);
+                string originalId = resumed.Id.HasValue ? $"&id={resumed.Id.Value:D}" : "";
+                return Results.Redirect(
+                    $"/catalog/manage?view={resumed.View}&tenantId={tenantId:D}" +
+                    originalId + $"&draft={resumedToken:D}", permanent: false);
+            }
+
             string destination = saveMode == "new" &&
                 action is CatalogChangeAction.Create or CatalogChangeAction.Update
                 ? $"/catalog/manage?view={view}&tenantId={tenantId:D}&savedCode={savedCode}"
@@ -264,7 +387,9 @@ public static class CatalogManagementEndpoints
             return Results.Redirect(
                 $"/catalog/manage?view={view}&tenantId={tenantId:D}" +
                 (id.HasValue ? $"&id={id.Value:D}" : "") +
-                $"&draft={token:D}", permanent: false);
+                $"&draft={token:D}" +
+                (returnDraftToken.HasValue ? $"&returnDraft={returnDraftToken.Value:D}" : ""),
+                permanent: false);
         }
     }
 
