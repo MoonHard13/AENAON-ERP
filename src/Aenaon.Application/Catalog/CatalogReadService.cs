@@ -38,7 +38,7 @@ public sealed record CatalogCategorySummary(Guid Id, string Code, string Name, b
 public sealed record CatalogItemSummary(
     Guid Id, Guid CategoryId, string Code, string Name,
     CatalogItemKind Kind, bool TracksStock, bool IsActive,
-    string? CategoryName = null);
+    string? CategoryName = null, string? CategoryPath = null);
 
 /// <summary>Σελιδοποιημένη λίστα με περιορισμένο αριθμό αναγνώσεων.</summary>
 public sealed record CatalogReadPage<T>(
