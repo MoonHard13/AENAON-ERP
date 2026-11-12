@@ -195,6 +195,7 @@ dotnet test AenaonERP.slnx -c Release --no-build --no-restore --filter "TestCate
 | «Μη έγκυρα φίλτρα» | Σελίδα 1–1000, μέγεθος 25/50/100, αναζήτηση έως 80 χαρακτήρες |
 | Γενικό σφάλμα φόρτωσης | Ελέγχουμε `--check-database`, SQL Server, User Secrets και τα logs |
 | 404 στο `/catalog` | Ελέγχουμε ότι τρέχει το feature σε **Development** και όχι Production |
+| Το `/catalog` μένει στο «Φόρτωση καταλόγου…» | Βεβαιωνόμαστε ότι το `blazor.web.js` φορτώνεται με 200 στον browser (DevTools → Network), ότι τρέχει η νεότερη έκδοση και κάνουμε `Ctrl+F5`· αν το αίτημα παραμένει ανοικτό, ελέγχουμε SQL/logs |
 | Το shortcut δεν λειτουργεί | Δοκιμάζουμε click/Tab· ο browser μπορεί να δεσμεύει το Alt |
 
 ## 10. Logs, ασφάλεια δεδομένων, backup και rollback
