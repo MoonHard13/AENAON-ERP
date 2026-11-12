@@ -171,6 +171,9 @@ public sealed class CatalogQuickCategoryUiTests
         Assert.Contains(".catalog-editor__quick-create:focus-visible", css);
         Assert.Contains("@media (max-width: 800px)", css);
         Assert.DoesNotContain(".catalog-editor { max-width: 950px", css);
+        string javascript = await client.GetStringAsync("/js/aenaon.js");
+        Assert.Contains("case \"k\"", javascript);
+        Assert.Contains("editor.requestSubmit(quickCreate)", javascript);
     }
 
     private static async Task LoginAsync(HttpClient client)
