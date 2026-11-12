@@ -43,7 +43,7 @@ public sealed class CatalogManagementUiTests
 
         string catalog = WebUtility.HtmlDecode(await client.GetStringAsync("/catalog"));
         Assert.Contains("Μόνο ανάγνωση", catalog);
-        Assert.DoesNotContain("class=\"catalog-create\"", catalog);
+        Assert.DoesNotContain("catalog-create", catalog);
 
         string edit = WebUtility.HtmlDecode(await client.GetStringAsync(
             $"/catalog/manage?view=categories&tenantId={Tenant:D}"));
@@ -93,7 +93,7 @@ public sealed class CatalogManagementUiTests
         });
 
         Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
-        Assert.AreEqual("/catalog?view=categories&saved=1", saved.Headers.Location?.OriginalString);
+        Assert.AreEqual($"/catalog?view=categories&tenantId={Tenant:D}&saved=1", saved.Headers.Location?.OriginalString);
         Assert.AreEqual(1, factory.CatalogWriter.ApplyCalls);
         Assert.AreEqual(CatalogChangeAction.Create, factory.CatalogWriter.LastCommand!.Action);
         Assert.AreEqual(CatalogManagedEntity.Category, factory.CatalogWriter.LastCommand.Entity);
