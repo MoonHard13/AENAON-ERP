@@ -102,6 +102,48 @@ public sealed class CatalogManagementUiTests
     }
 
     [TestMethod]
+    public async Task NativeSubmit_DoesNotDuplicateSaveMode_AndOldIdenticalValuesRemainCompatible()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string form = await client.GetStringAsync("/catalog/manage?view=categories");
+        string token = ExtractToken(form);
+        string javascript = await client.GetStringAsync("/js/aenaon.js");
+
+        // Το κουμπί συμπεριλαμβάνεται ήδη στο native POST: δεν εισάγουμε δεύτερο hidden input.
+        Assert.Contains("name=\"saveMode\" value=\"close\"", form);
+        Assert.DoesNotContain("field.name = \"saveMode\"", javascript);
+
+        // Συμβατότητα με παλιό ανοιχτό tab, που υπέβαλλε δύο φορές την ίδια επιλογή.
+        KeyValuePair<string, string>[] values =
+        [
+            new("__RequestVerificationToken", token),
+            new("tenantId", Tenant.ToString("D")),
+            new("view", "categories"),
+            new("action", "create"),
+            new("codeMode", "auto"),
+            new("name", "ΦΑΓΗΤΑ"),
+            new("saveMode", "close"),
+            new("saveMode", "close")
+        ];
+
+        using var accepted = await client.PostAsync("/ui/catalog/save",
+            new FormUrlEncodedContent(values));
+        Assert.AreEqual(HttpStatusCode.Redirect, accepted.StatusCode);
+        Assert.Contains("/catalog?view=categories", accepted.Headers.Location?.OriginalString ?? "");
+        Assert.AreEqual(1, factory.CatalogWriter.ApplyCalls);
+
+        // Αν οι δύο εντολές διαφέρουν, απορρίπτουμε την αμφίσημη υποβολή.
+        values[^1] = new("saveMode", "new");
+        using var ambiguous = await client.PostAsync("/ui/catalog/save",
+            new FormUrlEncodedContent(values));
+        Assert.AreEqual(HttpStatusCode.BadRequest, ambiguous.StatusCode);
+        Assert.AreEqual(1, factory.CatalogWriter.ApplyCalls);
+    }
+
+    [TestMethod]
     public async Task ForeignTenant_IsDeniedBeforeAnyWriteOrDetailRead()
     {
         await using var factory = new SessionApiFactory();

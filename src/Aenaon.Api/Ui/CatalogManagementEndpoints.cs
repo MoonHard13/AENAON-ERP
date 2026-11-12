@@ -184,8 +184,14 @@ public static class CatalogManagementEndpoints
             return Results.BadRequest();
         }
 
-        string saveMode = fields["saveMode"].ToString();
-        if (saveMode is not ("" or "close" or "new"))
+        // Συμβατότητα με ήδη ανοικτές φόρμες που έστελναν δύο ίδιες τιμές.
+        // Διαφορετικές ή περισσότερες από δύο τιμές απορρίπτονται ως αμφίσημες.
+        var saveModes = fields["saveMode"];
+        string saveMode = saveModes.Count == 0 ? "" : saveModes[0] ?? "";
+        if (saveModes.Count > 2 ||
+            (saveModes.Count == 2 &&
+                !string.Equals(saveModes[1], saveMode, StringComparison.Ordinal)) ||
+            saveMode is not ("" or "close" or "new"))
         {
             return Results.BadRequest();
         }
