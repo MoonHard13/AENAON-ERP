@@ -263,6 +263,10 @@ public sealed class ImpactOfflinePayloadInspector
             $"{prefix}.IncomeClassification.Amount", JsonValueKind.Number,
             SourceSectionInvoice, findings);
 
+        // Διακρίνουμε ρητά το επίπεδο σχήμα των παραδειγμάτων από την ένθετη
+        // διαδρομή της λεκτικής λίστας, χωρίς να θεωρούμε εγκεκριμένη καμία μορφή.
+        InspectClassificationSourceDifferences(detail, prefix, findings);
+
         // Η απουσία Amount σε δημοσιευμένο παράδειγμα καταγράφεται ως ανοιχτό contract issue.
         Add(findings, ImpactOfflineFindingSeverity.Review,
             "IncomeClassificationShapeAmbiguous",
@@ -276,6 +280,53 @@ public sealed class ImpactOfflinePayloadInspector
                 SourceSectionB2G, findings);
             Require(detail, "CpvCode", $"{prefix}.CpvCode",
                 JsonValueKind.String, SourceSectionB2G, findings);
+        }
+    }
+
+    private static void InspectClassificationSourceDifferences(
+        JsonElement detail, string linePath, List<ImpactOfflineFinding> findings)
+    {
+        if (!TryGet(detail, "IncomeClassification", out JsonElement classification) ||
+            classification.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        string prefix = $"{linePath}.IncomeClassification";
+        bool hasFlatType = TryGet(classification, "ClassificationTypeCode", out _);
+        bool hasNestedClassification = TryGet(
+            classification, "Classification", out JsonElement nested);
+        bool hasNestedType = hasNestedClassification &&
+            TryGet(nested, "TypeCode", out _);
+
+        if (hasNestedType && hasFlatType)
+        {
+            // Δεν επιλέγουμε σιωπηρά μεταξύ δύο παράλληλων ονομάτων/τιμών.
+            Add(findings, ImpactOfflineFindingSeverity.Error,
+                "ConflictingClassificationShapes", prefix, SourceSectionInvoice,
+                "Υπάρχουν ταυτόχρονα επίπεδο και ένθετο TypeCode· απαιτείται σαφές schema IMPACT.");
+        }
+        else if (hasNestedType)
+        {
+            Add(findings, ImpactOfflineFindingSeverity.Review,
+                "NestedClassificationTypeCodeUnverified",
+                $"{prefix}.Classification.TypeCode", SourceSectionInvoice,
+                "Η ένθετη διαδρομή αναφέρεται στη λίστα, αλλά το δημοσιευμένο sample είναι επίπεδο.");
+        }
+        else if (hasNestedClassification)
+        {
+            Add(findings, ImpactOfflineFindingSeverity.Review,
+                "UnexpectedNestedClassificationObject",
+                $"{prefix}.Classification", SourceSectionInvoice,
+                "Υπάρχει ένθετο αντικείμενο χωρίς τεκμηριωμένο TypeCode.");
+        }
+
+        if (!TryGet(classification, "Amount", out _))
+        {
+            Add(findings, ImpactOfflineFindingSeverity.Review,
+                "ClassificationAmountSampleDiscrepancy",
+                $"{prefix}.Amount", SourceSectionInvoice,
+                "Το πεδίο είναι required στη §1.3.2.2 αλλά λείπει από δημοσιευμένο B2B sample.");
         }
     }
 
