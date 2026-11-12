@@ -74,10 +74,10 @@ public sealed class CatalogManagementUiTests
             new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 ["tenantId"] = Tenant.ToString("D"),
-            ["view"] = "categories",
+                ["view"] = "categories",
                 ["action"] = "create",
-            ["code"] = "FOOD",
-            ["name"] = "Φαγητά"
+                ["code"] = "FOOD",
+                ["name"] = "Φαγητά"
             }));
         Assert.AreEqual(HttpStatusCode.BadRequest, missing.StatusCode);
         Assert.AreEqual(0, factory.CatalogWriter.ApplyCalls);
