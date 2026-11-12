@@ -119,7 +119,7 @@ public static class CatalogManagementEndpoints
                 "Catalog changed by {UserId} in {TenantId}: {Entity} {Action} {RecordId}",
                 userId, tenantId, entity, action, result.Id);
             context.Response.Headers.CacheControl = "no-store";
-            return Results.Redirect($"/catalog?view={view}&saved=1", permanent: false);
+            return Results.Redirect($"/catalog?view={view}&tenantId={tenantId:D}&saved=1", permanent: false);
         }
 
         string error = result.Status == CatalogChangeStatus.Duplicate ? "duplicate" :
