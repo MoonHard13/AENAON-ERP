@@ -26,8 +26,9 @@
                     <h1>@Heading</h1>
                     <p>Η καταχώρηση αφορά μόνο την επιλεγμένη επιχείρηση.</p>
                 </div>
-                <a class="button button--outline" href="@BackUrl">
-                    <AppIcon Name="chevron" /> Επιστροφή στον κατάλογο
+                <a class="button button--outline" href="@EditorCancelUrl">
+                    <AppIcon Name="chevron" />
+                    @(_returnEditor is null ? "Επιστροφή στον κατάλογο" : "Πίσω στην καταχώρηση")
                 </a>
             </div>
 
@@ -83,8 +84,17 @@
                     @if (View is not "categories" && _details.Categories.Count == 0)
                     {
                         <div class="workspace-alert" role="status">
-                            Απαιτείται τουλάχιστον μία ενεργή κατηγορία πριν από τη δημιουργία προϊόντος ή υπηρεσίας.
-                            <a href="@CategoryCreateUrl">Δημιουργία κατηγορίας</a>
+                            Δεν υπάρχουν ακόμη ενεργές κατηγορίες. Χρησιμοποιήστε το κουμπί
+                            «+ Νέα κατηγορία» παρακάτω. Τα στοιχεία του είδους θα διατηρηθούν.
+                        </div>
+                    }
+                    @if (_returnEditor is not null)
+                    {
+                        <div class="catalog-editor__return" role="status">
+                            <AppIcon Name="check" />
+                            Μετά τη δημιουργία της κατηγορίας θα επιστρέψετε
+                            @( _returnEditor.View == "services" ? "στην υπηρεσία" : "στο προϊόν" )
+                            που συμπληρώνατε, χωρίς να χαθούν τα στοιχεία σας.
                         </div>
                     }
 
@@ -97,6 +107,10 @@
                         <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
                         <input type="hidden" name="tenantId" value="@_workspace!.Tenant!.TenantId" />
                         <input type="hidden" name="view" value="@View" />
+                        @if (_returnEditor is not null && ReturnDraftToken.HasValue)
+                        {
+                            <input type="hidden" name="returnDraft" value="@ReturnDraftToken" />
+                        }
                         <input type="hidden" name="requestId" value="@_requestId" />
                         <input type="hidden" name="action" value="@(Id.HasValue ? "update" : "create")" />
                         @if (Id.HasValue)
@@ -173,8 +187,21 @@
                                             </option>
                                         }
                                     </select>
-                                    <small>Επιλέξτε από τα αποτελέσματα. Οι υποκατηγορίες εμφανίζονται
-                                        με πλήρη διαδρομή.</small>
+                                    <div class="catalog-editor__category-toolbar">
+                                        <small>Επιλέξτε από τα αποτελέσματα. Οι υποκατηγορίες
+                                            εμφανίζονται με πλήρη διαδρομή.</small>
+                                        @if (View is "products" or "services")
+                                        {
+                                            <button type="submit"
+                                                    class="catalog-editor__quick-create"
+                                                    formaction="/ui/catalog/new-category"
+                                                    formmethod="post" formnovalidate
+                                                    title="Δημιουργία νέας κατηγορίας χωρίς απώλεια των στοιχείων">
+                                                <AppIcon Name="plus" />
+                                                Δεν υπάρχει η κατηγορία; Δημιουργήστε νέα
+                                            </button>
+                                        }
+                                    </div>
                                     @if (CurrentError is "category" or "parent")
                                     {
                                         <small class="catalog-editor__error">@ErrorMessage</small>
@@ -203,7 +230,7 @@
                                     disabled="@(View != "categories" && _details.Categories.Count == 0)">
                                 Αποθήκευση και νέο
                             </button>
-                            <a class="button button--outline" href="@BackUrl">Ακύρωση</a>
+                            <a class="button button--outline" href="@EditorCancelUrl">Ακύρωση</a>
                         </div>
                     </form>
 
@@ -263,11 +290,15 @@
     [SupplyParameterFromQuery(Name = "savedCode")]
     public string? SavedCode { get; set; }
 
+    [SupplyParameterFromQuery(Name = "returnDraft")]
+    public Guid? ReturnDraftToken { get; set; }
+
     private TenantWorkspaceSnapshot? _workspace;
     private CatalogManageDetails? _details;
     private string? _csrfToken;
     private string _userName = "Χρήστης";
     private CatalogEditorDraft? _draft;
+    private CatalogEditorDraft? _returnEditor;
     private Guid _requestId = Guid.NewGuid();
     private bool _denied;
     private bool _missing;
@@ -335,9 +366,21 @@
         }
     }
 
-    private string CategoryCreateUrl => _workspace?.Tenant is { } tenant
-        ? $"/catalog/manage?view=categories&tenantId={tenant.TenantId:D}"
-        : "/catalog/manage?view=categories";
+    private string EditorCancelUrl
+    {
+        get
+        {
+            if (_returnEditor is null || !ReturnDraftToken.HasValue ||
+                _workspace?.Tenant is not { } tenant)
+            {
+                return BackUrl;
+            }
+
+            string itemId = _returnEditor.Id is { } id ? $"&id={id:D}" : "";
+            return $"/catalog/manage?view={_returnEditor.View}&tenantId={tenant.TenantId:D}" +
+                itemId + $"&draft={ReturnDraftToken.Value:D}";
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -346,6 +389,7 @@
         _missing = false;
         _details = null;
         _draft = null;
+        _returnEditor = null;
         _requestId = Guid.NewGuid();
 
         HttpContext? context = HttpContextAccessor.HttpContext;
@@ -393,6 +437,12 @@
             _details = result.Details;
             _missing = !_denied && (_details is null ||
                 (Id.HasValue && _details.Record is null));
+            if (!_denied && !_missing && View == "categories" &&
+                !Id.HasValue && ReturnDraftToken is { } returnToken)
+            {
+                _returnEditor = Drafts.ReadCategoryReturn(
+                    returnToken, userId, _workspace.Tenant.TenantId);
+            }
             if (!_denied && !_missing && DraftToken is { } token)
             {
                 _draft = Drafts.Read(token, userId, _workspace.Tenant.TenantId, Id, View!);
