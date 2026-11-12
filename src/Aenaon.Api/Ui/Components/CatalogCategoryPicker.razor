@@ -5,7 +5,7 @@
      data-tenant-id="@TenantId"
      data-self-id="@ExcludedCategoryId"
      data-required="@(IsRequired ? "true" : "false")">
-    <label class="catalog-category-picker__label" for="catalog-category-search">
+    <label class="catalog-category-picker__label" for="@($"{_idPrefix}-search")">
         @Label
         @if (IsRequired)
         {
@@ -15,14 +15,14 @@
 
     <div class="catalog-category-picker__control" data-picker-control>
         <AppIcon Name="search" />
-        <input id="catalog-category-search" type="search"
+        <input id="@($"{_idPrefix}-search")" type="search"
                data-picker-search
                role="combobox"
                aria-autocomplete="list"
                aria-haspopup="listbox"
                aria-expanded="false"
-               aria-controls="catalog-category-options"
-               aria-describedby="catalog-category-help catalog-category-status"
+               aria-controls="@($"{_idPrefix}-options")"
+               aria-describedby="@($"{_idPrefix}-help {_idPrefix}-status")"
                aria-required="@(IsRequired ? "true" : "false")"
                maxlength="80"
                autocomplete="off"
@@ -36,9 +36,9 @@
     </div>
 
     <div class="catalog-category-picker__popup" data-picker-popup hidden>
-        <div id="catalog-category-options" class="catalog-category-picker__options"
+        <div id="@($"{_idPrefix}-options")" class="catalog-category-picker__options"
              role="listbox" aria-label="@Label" data-picker-options></div>
-        <div class="catalog-category-picker__status" id="catalog-category-status"
+        <div class="catalog-category-picker__status" id="@($"{_idPrefix}-status")"
              role="status" aria-live="polite" data-picker-status>
             Πληκτρολογήστε για αναζήτηση ή επιλέξτε μια κατηγορία.
         </div>
@@ -57,7 +57,7 @@
 
     @* Χωρίς JavaScript το πεδίο παραμένει λειτουργικό και αποστέλλει το ίδιο όνομα. *@
     <div class="catalog-category-picker__fallback" data-picker-fallback>
-        <select id="catalog-category-fallback" name="@FieldName"
+        <select id="@($"{_idPrefix}-fallback")" name="@FieldName"
                 required="@IsRequired" aria-label="@Label" data-picker-native>
             <option value="">@EmptyLabel</option>
             @foreach (CatalogCategoryOption category in Categories)
@@ -69,7 +69,7 @@
         </select>
     </div>
 
-    <p id="catalog-category-help" class="catalog-category-picker__help">
+    <p id="@($"{_idPrefix}-help")" class="catalog-category-picker__help">
         @(IsRequired
             ? "Επιλέξτε κατηγορία για την καταχώρηση."
             : "Προαιρετικό: αφήστε κενό για κύρια κατηγορία.")
@@ -81,6 +81,7 @@
 </div>
 
 @code {
+    private readonly string _idPrefix = "catalog-category-" + Guid.NewGuid().ToString("N");
     [Parameter, EditorRequired] public Guid TenantId { get; set; }
     [Parameter, EditorRequired] public string FieldName { get; set; } = string.Empty;
     [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
