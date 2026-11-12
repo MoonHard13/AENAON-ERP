@@ -34,6 +34,24 @@ public sealed class CatalogCategory
         IsActive = true;
     }
 
+    /// <summary>Δημιουργεί νέα, ενεργή κατηγορία με όλους τους κανόνες του Domain.</summary>
+    public static CatalogCategory Create(Guid tenantId, string? code, string? name) =>
+        new(tenantId, code, name);
+
+    /// <summary>Ενημερώνει ατομικά τα έγκυρα πεδία χωρίς μεταβολή της επιχείρησης.</summary>
+    public void Update(string? code, string? name)
+    {
+        string normalizedCode = CatalogText.RequiredCode(code, MaxCodeLength,
+            "Κωδικός κατηγορίας", "catalog.category.code.invalid");
+        string normalizedName = CatalogText.RequiredName(name, MaxNameLength,
+            "Όνομα κατηγορίας", "catalog.category.name.invalid");
+        Code = normalizedCode;
+        Name = normalizedName;
+    }
+
+    /// <summary>Απενεργοποιεί/ενεργοποιεί χωρίς διαγραφή συνδεδεμένων ειδών.</summary>
+    public void ChangeActive(bool active) => SetActive(active);
+
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
     public string Code { get; private set; }
