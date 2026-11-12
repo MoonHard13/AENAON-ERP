@@ -108,6 +108,18 @@ public static class InspectImpactPayloadCommand
             await output.WriteLineAsync($"Γραμμές Details: {report.LineCount}");
             await output.WriteLineAsync($"Δομικά σφάλματα: {report.StructuralErrorCount}");
             await output.WriteLineAsync($"Ανεξάρτητοι έλεγχοι που εκκρεμούν: {report.PendingExpertReviewCount}");
+            if (report.ConditionalEvidence.Count > 0)
+            {
+                await output.WriteLineAsync(
+                    $"Υπό όρους πεδία σε τεχνική καταγραφή: {report.ConditionalEvidence.Count}");
+                await output.WriteLineAsync(
+                    $"Με μη-null παρουσία: {report.ConditionalEvidence.Count(item => item.ObservedNonNull > 0)}");
+                await output.WriteLineAsync(
+                    $"Με null παρουσία: {report.ConditionalEvidence.Count(item => item.ObservedNull > 0)}");
+                await output.WriteLineAsync(
+                    "Η παρουσία/απουσία δεν επιβεβαιώνει αν το πεδίο απαιτείται σε πραγματική συναλλαγή.");
+            }
+
             foreach (ImpactOfflineFinding finding in report.Findings)
             {
                 await output.WriteLineAsync(

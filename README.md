@@ -68,6 +68,10 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Η [σύγκριση επίσημων περιγραφών και παραδειγμάτων IMPACT](docs/32-impact-classification-source-reconciliation.md) επεκτείνει **μόνο** τα offline diagnostic findings για επίπεδο έναντι ένθετου `ClassificationTypeCode` και για την αμφισημία της υποχρεωτικότητας `Amount`. Οι εναλλακτικές μορφές **δεν εγκρίνονται αυτομάτως**. Παραμένουν 254 Pending myDATA observations, όλα τα flags έκδοσης `false`, χωρίς SQL ή provider calls.
 
+## Βήμα 9.3C.3B.5D.2 — IMPACT Conditional Field Presence Evidence
+
+Ο [οδηγός υπό όρους πεδίων IMPACT](docs/33-impact-conditional-field-evidence.md) τεκμηριώνει τη συμπληρωματική **μη δεσμευτική offline καταγραφή παρουσίας** 37 υπό όρους πεδίων στο InvoiceIapr (36 στο B2G), χωρίς ανάγνωση/αποθήκευση τιμών στην αναφορά. Οι 6 εκκρεμείς έλεγχοι, οι 254 μη εγκεκριμένες παρατηρήσεις myDATA και όλες οι απαγορεύσεις φορολογικής έκδοσης **παραμένουν αμετάβλητες**.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
@@ -390,4 +394,5 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [IMPACT Contract Preflight](docs/30-impact-contract-preflight.md)
 - [Offline IMPACT Payload Preflight](docs/31-impact-offline-payload-preflight.md)
 - [IMPACT Classification Source Reconciliation](docs/32-impact-classification-source-reconciliation.md)
+- [IMPACT Conditional Field Evidence](docs/33-impact-conditional-field-evidence.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
