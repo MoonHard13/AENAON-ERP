@@ -1,0 +1,318 @@
+@page "/catalog/manage"
+@attribute [Authorize]
+@layout MainLayout
+@using Aenaon.Application.Catalog
+@using Aenaon.Application.Tenancy
+@inject IHttpContextAccessor HttpContextAccessor
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject TenantWorkspaceResolver WorkspaceResolver
+@inject WorkspacePreferenceService Preference
+@inject CatalogWriteService Manager
+@inject ILogger<CatalogManage> Logger
+
+<PageTitle>@Heading | Aenaon ERP</PageTitle>
+
+<main class="dashboard">
+    <BackOfficeSidebar ActivePage="catalog" TenantId="@TenantId" StoreId="@StoreId" />
+    <div class="dashboard__content">
+        <BackOfficeTopbar ActivePage="catalog" PageTitle="Διαχείριση καταλόγου"
+                          UserName="@_userName" Workspace="@_workspace"
+                          CsrfToken="@_csrfToken" TenantId="@TenantId" StoreId="@StoreId" />
+        <div class="dashboard__body catalog-page catalog-manage-page">
+            <div class="dashboard__heading">
+                <div>
+                    <p class="eyebrow eyebrow--green">BACK OFFICE / ΔΙΑΧΕΙΡΙΣΗ ΚΑΤΑΛΟΓΟΥ</p>
+                    <h1>@Heading</h1>
+                    <p>Η καταχώρηση αφορά μόνο την επιλεγμένη επιχείρηση.</p>
+                </div>
+                <a class="button button--outline" href="@BackUrl">
+                    <AppIcon Name="chevron" /> Επιστροφή στον κατάλογο
+                </a>
+            </div>
+
+            @if (_error)
+            {
+                <div class="form-alert" role="alert">
+                    Η διαχείριση δεν είναι διαθέσιμη. Ελέγξτε τη σύνδεση με τη βάση.
+                </div>
+            }
+            else if (_denied)
+            {
+                <div class="workspace-alert" role="alert">
+                    Δεν έχετε δικαίωμα διαχείρισης του καταλόγου αυτής της επιχείρησης.
+                </div>
+            }
+            else if (_missing)
+            {
+                <div class="workspace-alert" role="alert">
+                    Η καταχώρηση δεν υπάρχει ή δεν ανήκει στον επιλεγμένο κατάλογο.
+                </div>
+            }
+            else if (_details is not null)
+            {
+                @if (Error is "duplicate" or "invalid" or "category")
+                {
+                    <div class="form-alert" role="alert">
+                        @(Error switch
+                        {
+                            "duplicate" => "Ο κωδικός υπάρχει ήδη σε αυτήν την επιχείρηση.",
+                            "category" => "Επιλέξτε μια έγκυρη, ενεργή κατηγορία.",
+                            _ => "Τα στοιχεία δεν είναι έγκυρα. Ελέγξτε κωδικό και περιγραφή."
+                        })
+                    </div>
+                }
+
+                <section class="surface-card catalog-editor">
+                    <div class="catalog-editor__header">
+                        <div>
+                            <h2>@(Id.HasValue ? "Επεξεργασία στοιχείων" : "Νέα καταχώρηση")</h2>
+                            <p>Τα πεδία με * είναι υποχρεωτικά.</p>
+                        </div>
+                        @if (_details.Record is { } record)
+                        {
+                            <span class="catalog-status @(record.IsActive
+                                ? "catalog-status--active" : "catalog-status--inactive")">
+                                @(record.IsActive ? "Ενεργό" : "Ανενεργό")
+                            </span>
+                        }
+                    </div>
+
+                    @if (View is not "categories" && _details.Categories.Count == 0)
+                    {
+                        <div class="workspace-alert" role="status">
+                            Απαιτείται τουλάχιστον μία ενεργή κατηγορία πριν από τη δημιουργία προϊόντος ή υπηρεσίας.
+                            <a href="@CategoryCreateUrl">Δημιουργία κατηγορίας</a>
+                        </div>
+                    }
+
+                    @if (_details.HasAdditionalCategories)
+                    {
+                        <p class="catalog-editor__hint" role="status">
+                            Εμφανίζονται οι πρώτες 300 κατηγορίες. Χρησιμοποιήστε κωδικό που ταξινομείται
+                            νωρίτερα ή οργανώστε τις κατηγορίες πριν συνεχίσετε.
+                        </p>
+                    }
+
+                    <form class="catalog-editor__form" method="post" action="/ui/catalog/save">
+                        <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
+                        <input type="hidden" name="tenantId" value="@_workspace!.Tenant!.TenantId" />
+                        <input type="hidden" name="view" value="@View" />
+                        <input type="hidden" name="action" value="@(Id.HasValue ? "update" : "create")" />
+                        @if (Id.HasValue)
+                        {
+                            <input type="hidden" name="id" value="@Id" />
+                        }
+
+                        <div class="catalog-editor__grid">
+                            <div class="catalog-editor__field">
+                                <label for="edit-code">Κωδικός *</label>
+                                <input id="edit-code" name="code" required autocomplete="off"
+                                       maxlength="@(View == "categories" ? 30 : 40)"
+                                       value="@_details.Record?.Code" placeholder="π.χ. FOOD01" />
+                                <small>Γράμματα, αριθμοί, παύλα ή κάτω παύλα.</small>
+                            </div>
+                            <div class="catalog-editor__field">
+                                <label for="edit-name">Περιγραφή *</label>
+                                <input id="edit-name" name="name" required autocomplete="off"
+                                       maxlength="@(View == "categories" ? 160 : 200)"
+                                       value="@_details.Record?.Name" placeholder="Περιγραφή καταχώρησης" />
+                            </div>
+                            @if (View != "categories")
+                            {
+                                <div class="catalog-editor__field catalog-editor__field--wide">
+                                    <label for="edit-category">Κατηγορία *</label>
+                                    <select id="edit-category" name="categoryId" required>
+                                        <option value="">Επιλογή κατηγορίας</option>
+                                        @foreach (CatalogCategoryOption category in _details.Categories)
+                                        {
+                                            <option value="@category.Id"
+                                                    selected="@(category.Id == _details.Record?.CategoryId)">
+                                                @category.Code — @category.Name
+                                            </option>
+                                        }
+                                    </select>
+                                </div>
+                            }
+
+                            @if (View == "products")
+                            {
+                                <label class="catalog-editor__checkbox catalog-editor__field--wide">
+                                    <input type="checkbox" name="tracksStock" value="true"
+                                           checked="@(_details.Record?.TracksStock ?? false)" />
+                                    Παρακολούθηση αποθέματος
+                                </label>
+                            }
+                        </div>
+
+                        <div class="catalog-editor__footer">
+                            <button type="submit" class="button button--primary"
+                                    data-catalog-save
+                                    disabled="@(View != "categories" && _details.Categories.Count == 0)">
+                                <AppIcon Name="check" /> @(Id.HasValue ? "Αποθήκευση αλλαγών" : "Δημιουργία")
+                            </button>
+                            <a class="button button--outline" href="@BackUrl">Ακύρωση</a>
+                        </div>
+                    </form>
+
+                    @if (_details.Record is { } existing)
+                    {
+                        <div class="catalog-editor__danger">
+                            <div>
+                                <strong>@(existing.IsActive ? "Απενεργοποίηση" : "Ενεργοποίηση")</strong>
+                                <p>Δεν διαγράφονται δεδομένα ούτε μεταβάλλονται συνδεδεμένα είδη.</p>
+                            </div>
+                            <form method="post" action="/ui/catalog/save"
+                                  onsubmit="return confirm('Επιβεβαιώνετε την αλλαγή κατάστασης;');">
+                                <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
+                                <input type="hidden" name="tenantId" value="@_workspace!.Tenant!.TenantId" />
+                                <input type="hidden" name="view" value="@View" />
+                                <input type="hidden" name="id" value="@existing.Id" />
+                                <input type="hidden" name="action"
+                                       value="@(existing.IsActive ? "deactivate" : "activate")" />
+                                <button type="submit" class="button button--outline">
+                                    @(existing.IsActive ? "Απενεργοποίηση" : "Ενεργοποίηση")
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </section>
+                <p class="catalog-disclaimer">
+                    Δεν καταχωρούνται τιμές, ΦΠΑ, φορολογικοί χαρακτηρισμοί ή υπόλοιπα αποθήκης.
+                    Η επιλογή «Παρακολούθηση αποθέματος» δεν αποτελεί κίνηση αποθήκης.
+                </p>
+            }
+        </div>
+        <footer class="dashboard__footer">
+            © @DateTime.UtcNow.Year Aenaon ERP · by MoonHard
+            <span>Built with .NET &amp; Blazor</span>
+        </footer>
+    </div>
+</main>
+
+@code {
+    [SupplyParameterFromQuery(Name = "view")]
+    public string? View { get; set; }
+
+    [SupplyParameterFromQuery(Name = "id")]
+    public Guid? Id { get; set; }
+
+    [SupplyParameterFromQuery(Name = "tenantId")]
+    public Guid? TenantId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "storeId")]
+    public Guid? StoreId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    private TenantWorkspaceSnapshot? _workspace;
+    private CatalogManageDetails? _details;
+    private string? _csrfToken;
+    private string _userName = "Χρήστης";
+    private bool _denied;
+    private bool _missing;
+    private bool _error;
+
+    private CatalogManagedEntity SelectedEntity => View switch
+    {
+        "categories" => CatalogManagedEntity.Category,
+        "services" => CatalogManagedEntity.Service,
+        _ => CatalogManagedEntity.Product
+    };
+
+    private string Heading => (View, Id.HasValue) switch
+    {
+        ("categories", true) => "Επεξεργασία κατηγορίας",
+        ("categories", false) => "Νέα κατηγορία",
+        ("services", true) => "Επεξεργασία υπηρεσίας",
+        ("services", false) => "Νέα υπηρεσία",
+        (_, true) => "Επεξεργασία προϊόντος",
+        _ => "Νέο προϊόν"
+    };
+
+    private string BackUrl
+    {
+        get
+        {
+            string url = "/catalog?view=" + (View is "products" or "services" or "categories" ? View : "products");
+            if (_workspace?.Tenant is { } tenant)
+            {
+                url += $"&tenantId={tenant.TenantId:D}";
+                if (_workspace.Store is { } store)
+                {
+                    url += $"&storeId={store.StoreId:D}";
+                }
+            }
+
+            return url;
+        }
+    }
+
+    private string CategoryCreateUrl => _workspace?.Tenant is { } tenant
+        ? $"/catalog/manage?view=categories&tenantId={tenant.TenantId:D}"
+        : "/catalog/manage?view=categories";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _error = false;
+        _denied = false;
+        _missing = false;
+        _details = null;
+
+        HttpContext? context = HttpContextAccessor.HttpContext;
+        if (context?.Request.IsHttps != true ||
+            context.User.Identity?.IsAuthenticated != true ||
+            !Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid userId) ||
+            userId == Guid.Empty)
+        {
+            _denied = true;
+            return;
+        }
+
+        _userName = context.User.Identity.Name ?? "Χρήστης";
+        _csrfToken = Antiforgery.GetAndStoreTokens(context).RequestToken;
+        context.Response.Headers.CacheControl = "no-store";
+
+        try
+        {
+            if (View is not ("categories" or "products" or "services") || Id == Guid.Empty)
+            {
+                _missing = true;
+                return;
+            }
+
+            Guid? requestedTenant = TenantId;
+            Guid? requestedStore = StoreId;
+            if (!TenantId.HasValue && !StoreId.HasValue &&
+                Preference.TryRead(context, userId, out Guid preferredTenant, out Guid? preferredStore))
+            {
+                requestedTenant = preferredTenant;
+                requestedStore = preferredStore;
+            }
+
+            _workspace = await WorkspaceResolver.ResolveAsync(
+                userId, requestedTenant, requestedStore, context.RequestAborted);
+            if (_workspace.Status is not (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores))
+            {
+                _denied = true;
+                return;
+            }
+
+            CatalogManageResult result = await Manager.GetDetailsAsync(
+                userId, _workspace.Tenant!.TenantId, SelectedEntity, Id, context.RequestAborted);
+            _denied = !result.IsAuthorized;
+            _details = result.Details;
+            _missing = !_denied && (_details is null ||
+                (Id.HasValue && _details.Record is null));
+        }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Catalog manage page failed");
+            _error = true;
+        }
+    }
+}
