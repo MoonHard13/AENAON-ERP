@@ -22,7 +22,7 @@ internal static class SqlServerSchemaAssertions
 
         var preview = await manager.ExecuteAsync(false, null, cancellationToken);
         Assert.AreEqual(DatabaseSchemaStatus.Ready, preview.Status);
-        Assert.HasCount(5, preview.PendingMigrations!);
+        Assert.HasCount(6, preview.PendingMigrations!);
         Assert.HasCount(0, preview.AppliedMigrations!);
         await AssertUserTableCountAsync(connection, 0, cancellationToken);
 
@@ -39,9 +39,9 @@ internal static class SqlServerSchemaAssertions
 
         var applied = await manager.ExecuteAsync(true, "AenaonERP_CI", cancellationToken);
         Assert.AreEqual(DatabaseSchemaStatus.Updated, applied.Status);
-        Assert.HasCount(5, applied.AppliedMigrations!);
+        Assert.HasCount(6, applied.AppliedMigrations!);
         Assert.HasCount(0, applied.PendingMigrations!);
-        await AssertUserTableCountAsync(connection, 15, cancellationToken);
+        await AssertUserTableCountAsync(connection, 17, cancellationToken);
 
         var options = AenaonDbContextOptions.Create(connectionString, true);
         await using var context = new AenaonDbContext(options);
