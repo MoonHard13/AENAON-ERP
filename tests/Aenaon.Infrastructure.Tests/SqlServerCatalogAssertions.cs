@@ -192,6 +192,12 @@ internal static class SqlServerCatalogAssertions
             new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
                 Code: "FOOD", Name: "Δεύτερη κατηγορία"), token);
         Assert.AreEqual(CatalogChangeStatus.Duplicate, duplicate.Status);
+
+        // Το επόμενο SaveChanges δεν επιτρέπεται να επαναλάβει το αποτυχημένο INSERT.
+        CatalogChangeResult afterDuplicate = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "AFTERDUP", Name: "Μετά από σύγκρουση"), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, afterDuplicate.Status);
     }
 
     private static async Task InsertCategoryAsync(SqlConnection connection, Guid tenantId,
