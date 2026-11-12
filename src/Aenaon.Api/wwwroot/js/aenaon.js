@@ -140,6 +140,14 @@
                 event.preventDefault();
                 window.location.assign("/dashboard");
                 break;
+            case "w": {
+                const workspaceLink = document.querySelector(".workspace-indicator");
+                if (workspaceLink instanceof HTMLAnchorElement) {
+                    event.preventDefault();
+                    window.location.assign(workspaceLink.href);
+                }
+                break;
+            }
             case "c":
                 event.preventDefault();
                 window.location.assign("/catalog");
