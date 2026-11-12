@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.RegularExpressions;
+using Aenaon.Application.Catalog;
 using Aenaon.Domain.Catalog;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
