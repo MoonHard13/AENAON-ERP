@@ -357,6 +357,10 @@ internal sealed class SessionCatalogReadFixture : ICatalogReadStore
                 category.Code.StartsWith(term, StringComparison.OrdinalIgnoreCase) ||
                 category.Name.StartsWith(term, StringComparison.OrdinalIgnoreCase));
         }
+        if (query.ParentCategoryId is { } parentId)
+        {
+            source = source.Where(category => category.ParentCategoryId == parentId);
+        }
         return Task.FromResult(ToPage(source.OrderBy(category => category.Code)
             .ThenBy(category => category.Id), query));
     }
@@ -421,6 +425,15 @@ internal sealed class SessionCatalogWriteFixture : ICatalogWriteStore
         }
         return Task.FromResult(new CatalogChangeResult(CatalogChangeStatus.Saved,
             command.Id ?? Guid.NewGuid()));
+    }
+
+    public Task<IReadOnlyList<CatalogCategoryOption>> SearchCategoriesAsync(
+        Guid tenantId, string? term, Guid? selectedId,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<CatalogCategoryOption> options =
+            [new CatalogCategoryOption(CategoryId, "FOOD", "Φαγητά", "Τρόφιμα / Φαγητά")];
+        return Task.FromResult(options);
     }
 
     public Task<CatalogManageDetails> GetDetailsAsync(Guid tenantId,

@@ -39,7 +39,7 @@ internal static class SqlServerIdentityAssertions
         var preview = await schema.ExecuteAsync(false, null, cancellationToken);
         Assert.AreEqual(DatabaseSchemaStatus.Ready, preview.Status);
         Assert.HasCount(1, preview.AppliedMigrations!);
-        Assert.HasCount(4, preview.PendingMigrations!);
+        Assert.HasCount(5, preview.PendingMigrations!);
         Assert.AreEqual(DatabaseSchemaStatus.Updated,
             (await schema.ExecuteAsync(true, "AenaonERP_Identity_CI", cancellationToken)).Status);
 
@@ -133,7 +133,7 @@ internal static class SqlServerIdentityAssertions
         Assert.AreEqual(1, await context.Stores.CountAsync(cancellationToken));
         var repeated = await schema.ExecuteAsync(true, "AenaonERP_Identity_CI", cancellationToken);
         Assert.AreEqual(DatabaseSchemaStatus.Ready, repeated.Status);
-        Assert.HasCount(5, repeated.AppliedMigrations!);
+        Assert.HasCount(6, repeated.AppliedMigrations!);
         Assert.HasCount(0, repeated.PendingMigrations!);
     }
 

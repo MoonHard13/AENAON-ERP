@@ -23,14 +23,15 @@ public static class CatalogManageCommand
         for (int index = 0; index < args.Length && !invalid;)
         {
             string option = args[index++];
-            if (option is "--apply" or "--dry-run" or "--tracks-stock")
+            if (option is "--apply" or "--dry-run" or "--tracks-stock" or "--auto-code" or "--root")
             {
                 invalid = !flags.Add(option);
                 continue;
             }
 
             if (option is not ("--username" or "--tenant-id" or "--confirm-database" or
-                "--view" or "--action" or "--id" or "--code" or "--name" or "--category-id") ||
+                "--view" or "--action" or "--id" or "--code" or "--name" or "--category-id" or
+                "--parent-category-id") ||
                 index == args.Length ||
                 args[index].StartsWith("--", StringComparison.Ordinal))
             {
@@ -63,10 +64,13 @@ public static class CatalogManageCommand
 
         bool apply = flags.Contains("--apply");
         bool dryRun = flags.Contains("--dry-run");
+        bool autoCode = flags.Contains("--auto-code");
         Guid? id = null;
         Guid? categoryId = null;
+        Guid? parentId = null;
         string? idField = values.GetValueOrDefault("--id");
         string? categoryField = values.GetValueOrDefault("--category-id");
+        string? parentField = values.GetValueOrDefault("--parent-category-id");
         if (Guid.TryParse(idField, out Guid parsedId) && parsedId != Guid.Empty)
         {
             id = parsedId;
@@ -74,6 +78,10 @@ public static class CatalogManageCommand
         if (Guid.TryParse(categoryField, out Guid parsedCategory) && parsedCategory != Guid.Empty)
         {
             categoryId = parsedCategory;
+        }
+        if (Guid.TryParse(parentField, out Guid parsedParent) && parsedParent != Guid.Empty)
+        {
+            parentId = parsedParent;
         }
 
         if (invalid || apply == dryRun || !Enum.IsDefined(entity) ||
@@ -85,10 +93,16 @@ public static class CatalogManageCommand
             (action != CatalogChangeAction.Create && id is null) ||
             (idField is not null && id is null) ||
             (categoryField is not null && categoryId is null) ||
+            (parentField is not null && parentId is null) ||
+            (parentField is not null && entity != CatalogManagedEntity.Category) ||
+            (flags.Contains("--root") && (entity != CatalogManagedEntity.Category ||
+                parentField is not null)) ||
+            (autoCode && (action != CatalogChangeAction.Create ||
+                values.ContainsKey("--code"))) ||
             (entity == CatalogManagedEntity.Category && categoryField is not null) ||
             (entity != CatalogManagedEntity.Product && flags.Contains("--tracks-stock")) ||
             (action is CatalogChangeAction.Create or CatalogChangeAction.Update &&
-             (string.IsNullOrWhiteSpace(values.GetValueOrDefault("--code")) ||
+             ((!autoCode && string.IsNullOrWhiteSpace(values.GetValueOrDefault("--code"))) ||
               string.IsNullOrWhiteSpace(values.GetValueOrDefault("--name")) ||
               (entity != CatalogManagedEntity.Category && !categoryId.HasValue))) ||
             !interactive)
@@ -96,14 +110,15 @@ public static class CatalogManageCommand
             await error.WriteLineAsync(
                 "Χρήση: --manage-catalog --username NAME --tenant-id GUID --confirm-database NAME " +
                 "--view categories|products|services --action create|update|activate|deactivate " +
-                "[--id GUID] [--code CODE --name NAME] [--category-id GUID] " +
+                "[--id GUID] [--code CODE | --auto-code] [--name NAME] " +
+                "[--category-id GUID] [--parent-category-id GUID | --root] " +
                 "[--tracks-stock] (--dry-run | --apply). Απαιτείται διαδραστικό τερματικό.");
             return 2;
         }
 
-        var command = new CatalogChangeCommand(entity, action, id,
+        CatalogChangeCommand command = new(entity, action, id,
             values.GetValueOrDefault("--code"), values.GetValueOrDefault("--name"),
-            categoryId, flags.Contains("--tracks-stock"));
+            categoryId, flags.Contains("--tracks-stock"), parentId, autoCode, Guid.NewGuid());
 
         try
         {
@@ -153,16 +168,28 @@ public static class CatalogManageCommand
                 return 4;
             }
 
+            if (entity == CatalogManagedEntity.Category &&
+                action == CatalogChangeAction.Update &&
+                parentField is null && !flags.Contains("--root"))
+            {
+                // Χωρίς ρητή μετακίνηση, η ενημέρωση διατηρεί τον υπάρχοντα γονέα.
+                command = command with
+                {
+                    ParentCategoryId = existing.Details?.Record?.ParentCategoryId
+                };
+            }
+
             if (action is CatalogChangeAction.Create or CatalogChangeAction.Update)
             {
+                string validationCode = autoCode ? "1" : command.Code ?? "";
                 if (entity == CatalogManagedEntity.Category)
                 {
-                    _ = CatalogCategory.Create(tenantId, command.Code, command.Name);
+                    _ = CatalogCategory.Create(tenantId, validationCode, command.Name);
                 }
                 else
                 {
                     _ = CatalogItem.Create(tenantId, command.CategoryId!.Value,
-                        command.Code, command.Name,
+                        validationCode, command.Name,
                         entity == CatalogManagedEntity.Service
                             ? CatalogItemKind.Service : CatalogItemKind.Product,
                         command.TracksStock);

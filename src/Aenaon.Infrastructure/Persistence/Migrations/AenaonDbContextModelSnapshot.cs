@@ -41,6 +41,9 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     .HasMaxLength(160)
                     .HasColumnType("nvarchar(160)");
 
+                b.Property<Guid?>("ParentCategoryId")
+                    .HasColumnType("uniqueidentifier");
+
                 b.Property<Guid>("TenantId")
                     .HasColumnType("uniqueidentifier");
 
@@ -48,12 +51,16 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
 
                 b.HasAlternateKey("TenantId", "Id");
 
+                b.HasIndex("TenantId", "ParentCategoryId");
+
                 b.HasIndex("TenantId", "Code")
                     .IsUnique();
 
                 b.ToTable("CatalogCategories", "dbo", t =>
                     {
                         t.HasCheckConstraint("CK_CatalogCategories_Code", "LEN(LTRIM(RTRIM([Code]))) > 0");
+
+                        t.HasCheckConstraint("CK_CatalogCategories_Parent_NotSelf", "[ParentCategoryId] IS NULL OR [ParentCategoryId] <> [Id]");
 
                         t.HasCheckConstraint("CK_CatalogCategories_Id", "[Id] <> '00000000-0000-0000-0000-000000000000'");
 
@@ -646,6 +653,12 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("Aenaon.Domain.Catalog.CatalogCategory", b =>
             {
+                b.HasOne("Aenaon.Domain.Catalog.CatalogCategory", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "ParentCategoryId")
+                    .HasPrincipalKey("TenantId", "Id")
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 b.HasOne("Aenaon.Domain.Tenancy.Tenant", null)
                     .WithMany()
                     .HasForeignKey("TenantId")

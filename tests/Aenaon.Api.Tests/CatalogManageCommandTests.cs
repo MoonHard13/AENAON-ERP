@@ -54,6 +54,48 @@ public sealed class CatalogManageCommandTests
     }
 
     [TestMethod]
+    public async Task Apply_CategoryParentFlag_ReachesSharedService()
+    {
+        Guid parent = Guid.Parse("933fe6a9-bd60-40ce-ac35-34fcf264e7d3");
+        string[] args = [.. BaseArgs("--apply")[..^1],
+            "--parent-category-id", parent.ToString("D"), "--apply"];
+        var store = new FakeWriter();
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int code = await CatalogManageCommand.ExecuteAsync(
+            args, new TenantCredentialFixture(true),
+            CreateService(store, TenantMembershipRole.Owner),
+            new TenantAccessSchemaFixture(), NullLogger.Instance,
+            output, error, () => "SampleSecret!91", true);
+
+        Assert.AreEqual(0, code, error.ToString());
+        Assert.AreEqual(1, store.ApplyCalls);
+        Assert.AreEqual(parent, store.LastCommand?.ParentCategoryId);
+    }
+
+    [TestMethod]
+    public async Task Apply_AutoCode_DoesNotRequireManualCode()
+    {
+        string[] args = [.. BaseArgs("--apply")[..^1]
+            .Where(value => value is not "--code" and not "FOOD"),
+            "--auto-code", "--apply"];
+        var store = new FakeWriter();
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int code = await CatalogManageCommand.ExecuteAsync(
+            args, new TenantCredentialFixture(true),
+            CreateService(store, TenantMembershipRole.Owner),
+            new TenantAccessSchemaFixture(), NullLogger.Instance,
+            output, error, () => "SampleSecret!91", true);
+
+        Assert.AreEqual(0, code, error.ToString());
+        Assert.IsTrue(store.LastCommand?.AutoCode == true);
+        Assert.IsNull(store.LastCommand?.Code);
+    }
+
+    [TestMethod]
     public async Task Member_CannotUseApplyEvenWithVerifiedPassword()
     {
         var store = new FakeWriter();
@@ -124,14 +166,21 @@ public sealed class CatalogManageCommandTests
         public int ApplyCalls { get; private set; }
         public int DetailCalls { get; private set; }
         public Guid LastTenant { get; private set; }
+        public CatalogChangeCommand? LastCommand { get; private set; }
 
         public Task<CatalogChangeResult> ApplyAsync(Guid tenantId, CatalogChangeCommand command,
             CancellationToken cancellationToken = default)
         {
             ApplyCalls++;
             LastTenant = tenantId;
+            LastCommand = command;
             return Task.FromResult(new CatalogChangeResult(CatalogChangeStatus.Saved, Guid.NewGuid()));
         }
+
+        public Task<IReadOnlyList<CatalogCategoryOption>> SearchCategoriesAsync(
+            Guid tenantId, string? term, Guid? selectedId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<CatalogCategoryOption>>([]);
 
         public Task<CatalogManageDetails> GetDetailsAsync(Guid tenantId,
             CatalogManagedEntity entity, Guid? id, CancellationToken cancellationToken = default)

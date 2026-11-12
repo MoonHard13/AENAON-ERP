@@ -33,13 +33,21 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
                 category.Code.StartsWith(term) || category.Name.StartsWith(term));
         }
 
+        if (validated.ParentCategoryId is { } parentId)
+        {
+            categories = categories.Where(category => category.ParentCategoryId == parentId);
+        }
+
         // Το επιπλέον record επιτρέπει HasMore χωρίς ανεξάρτητο COUNT query.
         int offset = (validated.Page - 1) * validated.PageSize;
         var rows = await categories.OrderBy(category => category.Code)
             .ThenBy(category => category.Id)
             .Skip(offset).Take(validated.PageSize + 1)
             .Select(category => new CatalogCategorySummary(
-                category.Id, category.Code, category.Name, category.IsActive))
+                category.Id, category.Code, category.Name, category.IsActive,
+                category.ParentCategoryId, null,
+                context.CatalogCategories.Any(child => child.TenantId == category.TenantId &&
+                    child.ParentCategoryId == category.Id && child.IsActive)))
             .ToListAsync(cancellationToken);
         bool hasMore = rows.Count > validated.PageSize;
         if (hasMore)
@@ -47,7 +55,11 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
             rows.RemoveAt(rows.Count - 1);
         }
 
-        return new(rows, validated.Page, validated.PageSize, hasMore);
+        // Η πλήρης διαδρομή υπολογίζεται με περιορισμένες, tenant-scoped αναγνώσεις γονέων.
+        Dictionary<Guid, string> paths = await CatalogCategoryPaths.ResolveAsync(context,
+            tenantId, rows.Select(x => (x.Id, x.ParentCategoryId, x.Name)), cancellationToken);
+        return new(rows.Select(x => x with { CategoryPath = paths.GetValueOrDefault(x.Id, x.Name) })
+            .ToList(), validated.Page, validated.PageSize, hasMore);
     }
 
     public async Task<CatalogReadPage<CatalogItemSummary>> ReadItemsAsync(
@@ -97,6 +109,19 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
             rows.RemoveAt(rows.Count - 1);
         }
 
-        return new(rows, validated.Page, validated.PageSize, hasMore);
+        // Ολοκληρώνουμε τα breadcrumb paths μόνο για τις κατηγορίες της τρέχουσας σελίδας.
+        Guid[] categoryIds = rows.Select(x => x.CategoryId).Distinct().ToArray();
+        var selectedCategories = await context.CatalogCategories.AsNoTracking()
+            .Where(x => x.TenantId == tenantId && categoryIds.Contains(x.Id))
+            .Select(x => new { x.Id, x.ParentCategoryId, x.Name })
+            .ToListAsync(cancellationToken);
+        Dictionary<Guid, string> paths = await CatalogCategoryPaths.ResolveAsync(
+            context, tenantId,
+            selectedCategories.Select(x => (x.Id, x.ParentCategoryId, x.Name)),
+            cancellationToken);
+        return new(rows.Select(x => x with
+        {
+            CategoryPath = paths.GetValueOrDefault(x.CategoryId) ?? x.CategoryName
+        }).ToList(), validated.Page, validated.PageSize, hasMore);
     }
 }

@@ -198,6 +198,119 @@ internal static class SqlServerCatalogAssertions
             new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
                 Code: "AFTERDUP", Name: "Μετά από σύγκρουση"), token);
         Assert.AreEqual(CatalogChangeStatus.Saved, afterDuplicate.Status);
+
+        // Οι κωδικοί 001 και 002 μετρούν ως 1 και 2 χωρίς αλλαγή της υπάρχουσας μορφής τους.
+        CatalogChangeResult oldOne = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "001", Name: "Πρώτη αριθμητική"), token);
+        CatalogChangeResult oldTwo = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "002", Name: "Δεύτερη αριθμητική"), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, oldOne.Status);
+        Assert.AreEqual(CatalogChangeStatus.Saved, oldTwo.Status);
+        Guid request = Guid.NewGuid();
+        CatalogChangeCommand autoCommand = new(CatalogManagedEntity.Category,
+            CatalogChangeAction.Create, Name: "Τρίτη αριθμητική",
+            AutoCode: true, RequestId: request);
+        CatalogChangeResult auto = await writer.ApplyAsync(tenantId, autoCommand, token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, auto.Status);
+        Assert.AreEqual("3", auto.Code);
+        CatalogChangeResult replay = await writer.ApplyAsync(tenantId, autoCommand, token);
+        Assert.AreEqual(auto.Id, replay.Id);
+        Assert.AreEqual(auto.Code, replay.Code);
+        Assert.AreEqual(1, await context.CatalogCategories.AsNoTracking()
+            .CountAsync(x => x.TenantId == tenantId && x.Code == "3", token));
+
+        // Η ιεραρχία δεν δέχεται κύκλους ούτε γονείς ξένης επιχείρησης.
+        CatalogChangeResult parent = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "ROOT", Name: "Ρίζα"), token);
+        CatalogChangeResult child = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "CHILD", Name: "Κλάδος", ParentCategoryId: parent.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, child.Status);
+        CatalogChangeResult grandchild = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "GRAND", Name: "Υποκλάδος", ParentCategoryId: child.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, grandchild.Status);
+
+        CatalogChangeResult cycle = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Update,
+                parent.Id, "ROOT", "Ρίζα", ParentCategoryId: grandchild.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Invalid, cycle.Status);
+        CatalogChangeResult foreignParent = await writer.ApplyAsync(foreignTenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "FOREIGNCHILD", Name: "Απαγορευμένο", ParentCategoryId: parent.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Invalid, foreignParent.Status);
+        CatalogChangeResult blocked = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Deactivate, parent.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Invalid, blocked.Status);
+
+        CatalogReadPage<CatalogCategorySummary> children = await new SqlCatalogReadStore(context)
+            .ReadCategoriesAsync(tenantId,
+                new CatalogReadQuery(1, 25, ParentCategoryId: parent.Id), token);
+        Assert.HasCount(1, children.Rows);
+        Assert.AreEqual("CHILD", children.Rows[0].Code);
+        Assert.AreEqual("Ρίζα / Κλάδος", children.Rows[0].CategoryPath);
+
+        // Το πλήρες μονοπάτι εμφανίζεται επίσης στην προβολή ειδών/υπηρεσιών.
+        CatalogChangeResult deepItem = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Create,
+                Code: "TREEITEM", Name: "Χυμός", CategoryId: grandchild.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, deepItem.Status);
+        CatalogReadPage<CatalogItemSummary> deepItems = await new SqlCatalogReadStore(context)
+            .ReadItemsAsync(tenantId,
+                new CatalogReadQuery(1, 25, Search: "TREEITEM",
+                    Kind: CatalogItemKind.Product), token);
+        Assert.HasCount(1, deepItems.Rows);
+        Assert.AreEqual("Ρίζα / Κλάδος / Υποκλάδος", deepItems.Rows[0].CategoryPath);
+
+        // Οι υπηρεσίες και τα προϊόντα μοιράζονται τον ίδιο αύξοντα χώρο κωδικών.
+        CatalogChangeResult productAuto = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Create,
+                Name: "Προϊόν 1", CategoryId: child.Id, AutoCode: true), token);
+        CatalogChangeResult serviceAuto = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Service, CatalogChangeAction.Create,
+                Name: "Υπηρεσία 2", CategoryId: child.Id, AutoCode: true), token);
+        Assert.AreEqual("1", productAuto.Code);
+        Assert.AreEqual("2", serviceAuto.Code);
+
+        // Ενεργοποίηση είδους δεν επιτρέπεται αν η κατηγορία του έχει απενεργοποιηθεί.
+        CatalogChangeResult temporaryCategory = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "TEMP-GROUP", Name: "Προσωρινή κατηγορία"), token);
+        CatalogChangeResult temporaryItem = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Create,
+                Code: "TEMP-ITEM", Name: "Προσωρινό είδος",
+                CategoryId: temporaryCategory.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, temporaryItem.Status);
+        CatalogChangeResult disabledItem = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Deactivate,
+                temporaryItem.Id), token);
+        CatalogChangeResult disabledCategory = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Deactivate,
+                temporaryCategory.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, disabledItem.Status);
+        Assert.AreEqual(CatalogChangeStatus.Saved, disabledCategory.Status);
+        CatalogChangeResult cannotReactivate = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Activate,
+                temporaryItem.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Invalid, cannotReactivate.Status);
+        Assert.AreEqual("catalog.category.inactive_or_missing", cannotReactivate.Error);
+
+        // Οι δύο παράλληλες SQL sessions δεν πρέπει να αποδώσουν ίδιο αριθμό.
+        string connectionString = context.Database.GetConnectionString()!;
+        await using var contextA = new AenaonDbContext(AenaonDbContextOptions.Create(connectionString, true));
+        await using var contextB = new AenaonDbContext(AenaonDbContextOptions.Create(connectionString, true));
+        Task<CatalogChangeResult> first = new SqlCatalogWriteStore(contextA).ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Name: "Ταυτόχρονη Α", AutoCode: true), token);
+        Task<CatalogChangeResult> second = new SqlCatalogWriteStore(contextB).ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Name: "Ταυτόχρονη Β", AutoCode: true), token);
+        CatalogChangeResult[] parallel = await Task.WhenAll(first, second);
+        Assert.IsTrue(parallel.All(x => x.Status == CatalogChangeStatus.Saved));
+        Assert.AreNotEqual(parallel[0].Code, parallel[1].Code);
     }
 
     private static async Task InsertCategoryAsync(SqlConnection connection, Guid tenantId,

@@ -49,6 +49,18 @@ public sealed class CatalogCategory
         Name = normalizedName;
     }
 
+    /// <summary>Θέτει τον γονέα μετά από έλεγχο ίδιας επιχείρησης και απουσίας κύκλου στην υπηρεσία.</summary>
+    public void ChangeParent(Guid? parentId)
+    {
+        if (parentId == Guid.Empty || parentId == Id)
+        {
+            throw new DomainRuleException("catalog.category.parent.invalid",
+                "Η γονική κατηγορία δεν είναι έγκυρη.");
+        }
+
+        ParentCategoryId = parentId;
+    }
+
     /// <summary>Απενεργοποιεί/ενεργοποιεί χωρίς διαγραφή συνδεδεμένων ειδών.</summary>
     public void ChangeActive(bool active) => SetActive(active);
 
@@ -57,6 +69,7 @@ public sealed class CatalogCategory
     public string Code { get; private set; }
     public string Name { get; private set; }
     public bool IsActive { get; private set; }
+    public Guid? ParentCategoryId { get; private set; }
 
     internal void ChangeCode(string? code)
     {
