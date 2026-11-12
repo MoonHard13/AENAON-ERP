@@ -29,7 +29,10 @@ public sealed record CatalogChangeCommand(
     string? Code = null,
     string? Name = null,
     Guid? CategoryId = null,
-    bool TracksStock = false);
+    bool TracksStock = false,
+    Guid? ParentCategoryId = null,
+    bool AutoCode = false,
+    Guid? RequestId = null);
 
 public enum CatalogChangeStatus
 {
@@ -41,14 +44,16 @@ public enum CatalogChangeStatus
 }
 
 public sealed record CatalogChangeResult(CatalogChangeStatus Status, Guid? Id = null,
-    string? Error = null);
+    string? Error = null, string? Code = null);
 
 /// <summary>Σύνοψη μόνο για επεξεργασία· ο server ανακτά ξανά όλες τις ιδιότητες.</summary>
 public sealed record CatalogManageRecord(
     Guid Id, string Code, string Name, bool IsActive,
-    Guid? CategoryId = null, CatalogItemKind? Kind = null, bool TracksStock = false);
+    Guid? CategoryId = null, CatalogItemKind? Kind = null, bool TracksStock = false,
+    Guid? ParentCategoryId = null);
 
-public sealed record CatalogCategoryOption(Guid Id, string Code, string Name);
+public sealed record CatalogCategoryOption(Guid Id, string Code, string Name,
+    string? Path = null, Guid? ParentId = null);
 
 public sealed record CatalogManageDetails(
     CatalogManageRecord? Record, IReadOnlyList<CatalogCategoryOption> Categories,
@@ -64,6 +69,9 @@ public interface ICatalogWriteStore
 {
     Task<CatalogChangeResult> ApplyAsync(Guid tenantId, CatalogChangeCommand command,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<CatalogCategoryOption>> SearchCategoriesAsync(
+        Guid tenantId, string? term, Guid? selectedId, CancellationToken cancellationToken = default);
 
     Task<CatalogManageDetails> GetDetailsAsync(Guid tenantId,
         CatalogManagedEntity entity, Guid? id, CancellationToken cancellationToken = default);
@@ -90,7 +98,12 @@ public sealed class CatalogWriteService(
             (command.Action != CatalogChangeAction.Create &&
              (!command.Id.HasValue || command.Id == Guid.Empty)) ||
             (command.Action is CatalogChangeAction.Create or CatalogChangeAction.Update &&
-             (command.Code is null || command.Name is null)) ||
+             ((!command.AutoCode && command.Code is null) || command.Name is null)) ||
+            (command.AutoCode && (command.Action != CatalogChangeAction.Create ||
+                !string.IsNullOrWhiteSpace(command.Code))) ||
+            command.ParentCategoryId == Guid.Empty ||
+            command.RequestId == Guid.Empty ||
+            (command.Action != CatalogChangeAction.Create && command.AutoCode) ||
             (command.Entity == CatalogManagedEntity.Category &&
              (command.CategoryId.HasValue || command.TracksStock)) ||
             (command.Entity == CatalogManagedEntity.Service && command.TracksStock))
@@ -123,6 +136,25 @@ public sealed class CatalogWriteService(
         }
 
         return new(true, await store.GetDetailsAsync(tenantId, entity, id, cancellationToken));
+    }
+
+    /// <summary>Αναζήτηση κατηγοριών επιτρέπεται μόνο με δικαίωμα Manage.</summary>
+    public async Task<IReadOnlyList<CatalogCategoryOption>?> SearchCategoriesAsync(
+        Guid userId, Guid tenantId, string? term, Guid? selectedId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await CanManageAsync(userId, tenantId, cancellationToken))
+        {
+            return null;
+        }
+
+        if (term is { Length: > 80 } || term?.Any(char.IsControl) == true)
+        {
+            return [];
+        }
+
+        return await store.SearchCategoriesAsync(tenantId, term?.Trim(), selectedId,
+            cancellationToken);
     }
 
     private async Task<bool> CanManageAsync(Guid userId, Guid tenantId,
