@@ -269,6 +269,159 @@ public sealed class CatalogManagementUiTests
     }
 
     [TestMethod]
+    public async Task CategoryPicker_SsrRendersAccessibleComboboxAndNativeFallback()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string product = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/catalog/manage?view=products&tenantId={Tenant:D}"));
+        Assert.Contains("role=\"combobox\"", product);
+        Assert.Contains("aria-autocomplete=\"list\"", product);
+        Assert.Contains("aria-controls=\"catalog-category-options\"", product);
+        Assert.Contains("role=\"listbox\"", product);
+        Assert.Contains("data-picker-value", product);
+        Assert.Contains("data-picker-native", product);
+        Assert.Contains("name=\"categoryId\"", product);
+        Assert.Contains("data-category-quick-submit", product);
+        Assert.Contains("formaction=\"/ui/catalog/new-category\"", product);
+        Assert.Contains("Περιγραφή *", product);
+
+        // Το κρυφό quick-create submitter ακολουθεί την κύρια αποθήκευση.
+        int normalSubmit = product.IndexOf("name=\"saveMode\" value=\"close\"",
+            StringComparison.Ordinal);
+        int quickSubmit = product.IndexOf("data-category-quick-submit",
+            StringComparison.Ordinal);
+        Assert.IsTrue(normalSubmit >= 0 && quickSubmit > normalSubmit);
+
+        string parent = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/catalog/manage?view=categories&tenantId={Tenant:D}"));
+        Assert.Contains("name=\"parentCategoryId\"", parent);
+        Assert.Contains("Γονική κατηγορία", parent);
+        Assert.DoesNotContain("data-picker-create", parent);
+
+        string services = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/catalog/manage?view=services&tenantId={Tenant:D}"));
+        Assert.Contains("Νέα υπηρεσία", services);
+        Assert.Contains("data-picker-create", services);
+    }
+
+    [TestMethod]
+    public async Task CategoryPicker_JavascriptLoadsWithFingerprintAndAccessibilityGuards()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+
+        string loginPage = await client.GetStringAsync("/login");
+        Match asset = Regex.Match(loginPage,
+            "src=\"([^\"]*aenaon-category-picker\\.js\\?v=[a-f0-9]{16})\"",
+            RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+        Assert.IsTrue(asset.Success, "Το category picker χρειάζεται fingerprinted asset.");
+
+        using var assetResponse = await client.GetAsync(
+            WebUtility.HtmlDecode(asset.Groups[1].Value));
+        Assert.AreEqual(HttpStatusCode.OK, assetResponse.StatusCode);
+        string javascript = await assetResponse.Content.ReadAsStringAsync();
+        Assert.Contains("class CatalogCategoryPicker", javascript);
+        Assert.Contains("new AbortController()", javascript);
+        Assert.Contains("sequence !== this.sequence", javascript);
+        Assert.Contains("aria-activedescendant", javascript);
+        Assert.Contains("event.key === \"Enter\"", javascript);
+        Assert.Contains("event.preventDefault()", javascript);
+        Assert.Contains("this.form.requestSubmit(submit)", javascript);
+        Assert.Contains("textContent", javascript);
+        Assert.DoesNotContain("innerHTML =", javascript);
+    }
+
+    [TestMethod]
+    public async Task StoreContext_IsPreservedThroughQuickCategoryAndCatalogSave()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        Guid store = Guid.Parse("c697b9c3-e221-4156-b533-f54dee27d979");
+        string form = await client.GetStringAsync(
+            $"/catalog/manage?view=products&tenantId={Tenant:D}&storeId={store:D}");
+        Assert.Contains("name=\"storeId\"", form);
+        string token = ExtractToken(form);
+
+        using var start = await client.PostAsync("/ui/catalog/new-category",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["__RequestVerificationToken"] = token,
+                ["tenantId"] = Tenant.ToString("D"),
+                ["storeId"] = store.ToString("D"),
+                ["view"] = "products",
+                ["codeMode"] = "auto",
+                ["name"] = "Προϊόν σε εξέλιξη"
+            }));
+        Assert.AreEqual(HttpStatusCode.Redirect, start.StatusCode);
+        string categoryUrl = start.Headers.Location?.OriginalString ?? "";
+        Assert.Contains($"&storeId={store:D}", categoryUrl);
+
+        string categoryForm = await client.GetStringAsync(categoryUrl);
+        Match draft = Regex.Match(categoryForm,
+            "name=\"returnDraft\"[^>]*value=\"([^\"]+)\"",
+            RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+        Assert.IsTrue(draft.Success);
+        using var created = await client.PostAsync("/ui/catalog/save",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["__RequestVerificationToken"] = ExtractToken(categoryForm),
+                ["tenantId"] = Tenant.ToString("D"),
+                ["storeId"] = store.ToString("D"),
+                ["view"] = "categories",
+                ["action"] = "create",
+                ["codeMode"] = "auto",
+                ["name"] = "Νέα κατηγορία",
+                ["returnDraft"] = draft.Groups[1].Value,
+                ["saveMode"] = "close"
+            }));
+        Assert.AreEqual(HttpStatusCode.Redirect, created.StatusCode);
+        string destination = created.Headers.Location?.OriginalString ?? "";
+        Assert.Contains($"&storeId={store:D}", destination);
+        Assert.Contains("&draft=", destination);
+    }
+
+    [TestMethod]
+    public async Task ForeignStore_CannotBeUsedToGenerateQuickCreateDraftOrSave()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+        string form = await client.GetStringAsync("/catalog/manage?view=products");
+        string token = ExtractToken(form);
+        string foreignStore = Guid.NewGuid().ToString("D");
+
+        using var quick = await client.PostAsync("/ui/catalog/new-category",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["__RequestVerificationToken"] = token,
+                ["tenantId"] = Tenant.ToString("D"),
+                ["storeId"] = foreignStore,
+                ["view"] = "products",
+                ["name"] = "Μη επιτρεπτό"
+            }));
+        Assert.AreEqual(HttpStatusCode.Forbidden, quick.StatusCode);
+
+        using var save = await client.PostAsync("/ui/catalog/save",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["__RequestVerificationToken"] = token,
+                ["tenantId"] = Tenant.ToString("D"),
+                ["storeId"] = foreignStore,
+                ["view"] = "categories",
+                ["action"] = "create",
+                ["codeMode"] = "auto",
+                ["name"] = "Μη επιτρεπτό"
+            }));
+        Assert.AreEqual(HttpStatusCode.Forbidden, save.StatusCode);
+        Assert.AreEqual(0, factory.CatalogWriter.ApplyCalls);
+    }
+
+    [TestMethod]
     public async Task CategoryLookup_IsBoundedAndOwnerOnly()
     {
         await using var factory = new SessionApiFactory();
