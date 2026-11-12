@@ -275,6 +275,29 @@ internal static class SqlServerCatalogAssertions
         Assert.AreEqual("1", productAuto.Code);
         Assert.AreEqual("2", serviceAuto.Code);
 
+        // Ενεργοποίηση είδους δεν επιτρέπεται αν η κατηγορία του έχει απενεργοποιηθεί.
+        CatalogChangeResult temporaryCategory = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "TEMP-GROUP", Name: "Προσωρινή κατηγορία"), token);
+        CatalogChangeResult temporaryItem = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Create,
+                Code: "TEMP-ITEM", Name: "Προσωρινό είδος",
+                CategoryId: temporaryCategory.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, temporaryItem.Status);
+        CatalogChangeResult disabledItem = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Deactivate,
+                temporaryItem.Id), token);
+        CatalogChangeResult disabledCategory = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Deactivate,
+                temporaryCategory.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, disabledItem.Status);
+        Assert.AreEqual(CatalogChangeStatus.Saved, disabledCategory.Status);
+        CatalogChangeResult cannotReactivate = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Activate,
+                temporaryItem.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Invalid, cannotReactivate.Status);
+        Assert.AreEqual("catalog.category.inactive_or_missing", cannotReactivate.Error);
+
         // Οι δύο παράλληλες SQL sessions δεν πρέπει να αποδώσουν ίδιο αριθμό.
         string connectionString = context.Database.GetConnectionString()!;
         await using var contextA = new AenaonDbContext(AenaonDbContextOptions.Create(connectionString, true));
