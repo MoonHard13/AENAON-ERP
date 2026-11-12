@@ -12,8 +12,10 @@
     <script src="@($"/js/aenaon-theme-init.js?v={AssetVersions.ThemeInitialization}")"></script>
     <link rel="stylesheet" href="@($"/css/aenaon.css?v={AssetVersions.Css}")" />
 </head>
-<body>
+<body data-enhance-nav="false">
     <Routes />
+    @* Το Blazor script εφαρμόζει τις τελικές SSR ενημερώσεις που έρχονται μετά το αρχικό loading. *@
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@($"/js/aenaon.js?v={AssetVersions.JavaScript}")" defer></script>
 </body>
 </html>
