@@ -157,6 +157,14 @@
 }
 
 /* Βήμα 9.4B.2 — Κοινές λειτουργικές βελτιώσεις, χωρισμένες από το θεμελιώδες design system. */
+/* Η αυτόματη εστίαση στον τίτλο και οι αγκυρώσεις δεν κρύβονται κάτω από το sticky topbar σε zoom. */
+html {
+    scroll-padding-block-start: 96px;
+}
+.dashboard__heading h1[tabindex="-1"] {
+    scroll-margin-block-start: 96px;
+}
+
 
 /* Το FocusOnNavigate διατηρεί τη σημασιολογική εστίαση χωρίς διακοσμητικό πλαίσιο στο h1. */
 .dashboard__heading h1[tabindex="-1"]:focus {
@@ -301,6 +309,8 @@
     .sidebar__upcoming { display: none; }
 }
 @media (max-width: 540px) {
+    html { scroll-padding-block-start: 82px; }
+    .dashboard__heading h1[tabindex="-1"] { scroll-margin-block-start: 82px; }
     .topbar { height: 62px; min-height: 62px; padding-inline: 12px; }
     .topbar__actions { gap: 6px; }
     .workspace-indicator { max-width: min(50vw, 220px); min-height: 39px; padding: 7px; gap: 5px; }
