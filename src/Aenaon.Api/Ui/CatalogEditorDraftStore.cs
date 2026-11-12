@@ -8,8 +8,12 @@ public sealed record CatalogEditorDraft(
     string Code, string Name, Guid? CategoryId, Guid? ParentCategoryId,
     bool TracksStock, bool AutoCode, string ErrorCode);
 
-public sealed class CatalogEditorDraftStore(IMemoryCache cache)
+public sealed class CatalogEditorDraftStore : IDisposable
 {
+    // Η ξεχωριστή cache έχει αυστηρό όριο για να μην αυξάνεται απεριόριστα η μνήμη.
+    private readonly MemoryCache cache = new(new MemoryCacheOptions { SizeLimit = 500 });
+
+    public void Dispose() => cache.Dispose();
     public Guid Save(CatalogEditorDraft draft)
     {
         Guid token = Guid.NewGuid();
