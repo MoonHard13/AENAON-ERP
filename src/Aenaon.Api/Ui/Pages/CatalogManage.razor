@@ -187,15 +187,6 @@
                             }
                         </div>
 
-                        @* Ο κρυφός submitter έπεται της κύριας αποθήκευσης, για σωστό Enter. *@
-                        @if (View is "products" or "services")
-                        {
-                            <button hidden type="submit" data-category-quick-submit
-                                    formnovalidate formaction="/ui/catalog/new-category"
-                                    formmethod="post" tabindex="-1"
-                                    aria-hidden="true"></button>
-                        }
-
                         <div class="catalog-editor__footer">
                             <button type="submit" class="button button--primary"
                                     name="saveMode" value="close" data-catalog-save
@@ -209,6 +200,15 @@
                             </button>
                             <a class="button button--outline" href="@EditorCancelUrl">Ακύρωση</a>
                         </div>
+                        @* Το κρυφό quick-create submitter πρέπει να ακολουθεί την κύρια αποθήκευση:
+                           το Enter στα κανονικά πεδία ενεργοποιεί την αποθήκευση, όχι τη γρήγορη δημιουργία. *@
+                        @if (View is "products" or "services")
+                        {
+                            <button hidden type="submit" data-category-quick-submit
+                                    formnovalidate formaction="/ui/catalog/new-category"
+                                    formmethod="post" tabindex="-1"
+                                    aria-hidden="true"></button>
+                        }
                     </form>
 
                     @if (_details.Record is { } existing)
