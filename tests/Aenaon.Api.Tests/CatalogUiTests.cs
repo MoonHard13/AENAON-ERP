@@ -61,6 +61,9 @@ public sealed class CatalogUiTests
         Assert.Contains("Πίτσα", html);
         Assert.DoesNotContain("SERV001", html);
         Assert.Contains("Aenaon Demo", html);
+        Assert.Contains("Κεντρικό (MAIN)", html);
+        Assert.Contains("class=\"workspace-indicator\"", html);
+        Assert.DoesNotContain("class=\"catalog-context\"", html);
         Assert.Contains("Μόνο ανάγνωση", html);
         Assert.Contains("action=\"/ui/session/logout\"", html);
         Assert.Contains("name=\"__RequestVerificationToken\"", html);
@@ -89,6 +92,36 @@ public sealed class CatalogUiTests
         Assert.AreEqual(HttpStatusCode.OK, categories.StatusCode);
         Assert.Contains("FOOD", categoriesHtml);
         Assert.AreEqual(1, factory.Catalog.CategoryReads);
+    }
+
+    [TestMethod]
+    public async Task Catalog_EmptyStateIsCompactAndDoesNotShowUselessPager()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.Catalog.Items.Clear();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync("/catalog"));
+
+        Assert.Contains("Δεν υπάρχουν ακόμη προϊόντα.", html);
+        Assert.DoesNotContain("class=\"catalog-pager\"", html);
+        Assert.DoesNotContain("class=\"catalog-context\"", html);
+        Assert.AreEqual(1, factory.Catalog.ItemReads);
+    }
+
+    [TestMethod]
+    public async Task Catalog_FilteredEmptyStateExplainsPrefixSearch()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync("/catalog?search=ZZZZ"));
+
+        Assert.Contains("Δεν βρέθηκαν προϊόντα.", html);
+        Assert.Contains("Δοκιμάστε διαφορετικό πρόθεμα", html);
+        Assert.DoesNotContain("class=\"catalog-pager\"", html);
     }
 
     [TestMethod]
