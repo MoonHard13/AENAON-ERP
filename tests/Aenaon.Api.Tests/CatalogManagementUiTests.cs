@@ -93,7 +93,8 @@ public sealed class CatalogManagementUiTests
         });
 
         Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
-        Assert.AreEqual($"/catalog?view=categories&tenantId={Tenant:D}&saved=1", saved.Headers.Location?.OriginalString);
+        Assert.Contains($"/catalog?view=categories&tenantId={Tenant:D}&saved=1",
+            saved.Headers.Location?.OriginalString ?? "");
         Assert.AreEqual(1, factory.CatalogWriter.ApplyCalls);
         Assert.AreEqual(CatalogChangeAction.Create, factory.CatalogWriter.LastCommand!.Action);
         Assert.AreEqual(CatalogManagedEntity.Category, factory.CatalogWriter.LastCommand.Entity);
@@ -185,7 +186,62 @@ public sealed class CatalogManagementUiTests
             ["name"] = "Ήδη υπάρχει"
         });
         Assert.AreEqual(HttpStatusCode.Redirect, duplicate.StatusCode);
-        Assert.Contains("error=duplicate", duplicate.Headers.Location?.OriginalString ?? "");
+        string redirect = duplicate.Headers.Location?.OriginalString ?? "";
+        Assert.Contains("&draft=", redirect);
+        string errorPage = WebUtility.HtmlDecode(await client.GetStringAsync(redirect));
+        Assert.Contains("Ο κωδικός χρησιμοποιείται ήδη", errorPage);
+        Assert.Contains("EXISTS", errorPage);
+        Assert.Contains("Ήδη υπάρχει", errorPage);
+    }
+
+    [TestMethod]
+    public async Task AutomaticCodeAndSaveNew_UseServerGeneratedRequestId()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string form = await client.GetStringAsync("/catalog/manage?view=categories");
+        Assert.Contains("data-code-mode=\"auto\"", form);
+        Assert.Contains("name=\"parentCategoryId\"", form);
+        Match request = Regex.Match(form, "name=\"requestId\"[^>]*value=\"([^\"]+)\"",
+            RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+        Assert.IsTrue(request.Success);
+
+        using var posted = await PostAsync(client, ExtractToken(form), new()
+        {
+            ["tenantId"] = Tenant.ToString("D"),
+            ["view"] = "categories",
+            ["action"] = "create",
+            ["codeMode"] = "auto",
+            ["name"] = "Αυτόματη κατηγορία",
+            ["requestId"] = request.Groups[1].Value,
+            ["saveMode"] = "new"
+        });
+
+        Assert.AreEqual(HttpStatusCode.Redirect, posted.StatusCode);
+        Assert.Contains("/catalog/manage?view=categories", posted.Headers.Location?.OriginalString ?? "");
+        Assert.IsTrue(factory.CatalogWriter.LastCommand!.AutoCode);
+        Assert.IsNotNull(factory.CatalogWriter.LastCommand.RequestId);
+    }
+
+    [TestMethod]
+    public async Task CategoryLookup_IsBoundedAndOwnerOnly()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        using var response = await client.GetAsync(
+            $"/ui/catalog/categories?tenantId={Tenant:D}&search=FOOD");
+        string body = await response.Content.ReadAsStringAsync();
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Τρόφιμα / Φαγητά", body);
+
+        factory.Access.GrantedRole = Aenaon.Domain.Tenancy.TenantMembershipRole.Member;
+        using var denied = await client.GetAsync(
+            $"/ui/catalog/categories?tenantId={Tenant:D}&search=FOOD");
+        Assert.AreEqual(HttpStatusCode.Forbidden, denied.StatusCode);
     }
 
     [TestMethod]
