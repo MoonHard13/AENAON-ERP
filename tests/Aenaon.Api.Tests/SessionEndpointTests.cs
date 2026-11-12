@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using Aenaon.Api.Contracts;
+using Aenaon.Application.Catalog;
+using Aenaon.Domain.Catalog;
 using Aenaon.Application.Identity;
 using Aenaon.Application.Tenancy;
 using Aenaon.Domain.Tenancy;
@@ -213,6 +215,7 @@ internal sealed class SessionApiFactory(string environment = "Development") : We
 {
     public SessionIdentityFixture Identity { get; } = new();
     public SessionStoreCatalogFixture Stores { get; } = new();
+    public SessionCatalogReadFixture Catalog { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -225,6 +228,8 @@ internal sealed class SessionApiFactory(string environment = "Development") : We
             services.AddSingleton<ITenantAccessStore, SessionTenancyFixture>();
             services.RemoveAll<ITenantStoreCatalog>();
             services.AddSingleton<ITenantStoreCatalog>(Stores);
+            services.RemoveAll<ICatalogReadStore>();
+            services.AddSingleton<ICatalogReadStore>(Catalog);
         });
     }
 
@@ -308,5 +313,84 @@ internal sealed class SessionStoreCatalogFixture : ITenantStoreCatalog
                    new TenantStoreSummary(secondary, TenantId, "BRANCH", "Υποκατάστημα")]
                 : [new TenantStoreSummary(StoreId, TenantId, "MAIN", "Κεντρικό")];
         return Task.FromResult(result);
+    }
+}
+
+internal sealed class SessionCatalogReadFixture : ICatalogReadStore
+{
+    private static readonly Guid CategoryId = Guid.Parse("4111b4bf-fd4c-4c2c-bf4b-c377b7b8a4ac");
+    public List<CatalogCategorySummary> Categories { get; } =
+        [new(CategoryId, "FOOD", "Φαγητά", true)];
+    public List<CatalogItemSummary> Items { get; } =
+    [
+        new(Guid.Parse("519f1811-6215-4841-81d2-62e921b22e3d"), CategoryId,
+            "SKU001", "Πίτσα", CatalogItemKind.Product, true, true, "Φαγητά"),
+        new(Guid.Parse("c6eb9231-b3e0-4e3a-9f92-d4495996fa25"), CategoryId,
+            "SERV001", "Catering", CatalogItemKind.Service, false, true, "Φαγητά")
+    ];
+
+    public int ItemReads { get; private set; }
+    public int CategoryReads { get; private set; }
+    public Guid LastTenant { get; private set; }
+    public CatalogReadQuery? LastQuery { get; private set; }
+
+    public Task<CatalogReadPage<CatalogCategorySummary>> ReadCategoriesAsync(
+        Guid tenantId, CatalogReadQuery query, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        CategoryReads++;
+        LastTenant = tenantId;
+        LastQuery = query;
+        IEnumerable<CatalogCategorySummary> source = Categories;
+        if (!query.IncludeInactive)
+        {
+            source = source.Where(category => category.IsActive);
+        }
+        if (query.Search is { } term)
+        {
+            source = source.Where(category =>
+                category.Code.StartsWith(term, StringComparison.OrdinalIgnoreCase) ||
+                category.Name.StartsWith(term, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(ToPage(source.OrderBy(category => category.Code)
+            .ThenBy(category => category.Id), query));
+    }
+
+    public Task<CatalogReadPage<CatalogItemSummary>> ReadItemsAsync(
+        Guid tenantId, CatalogReadQuery query, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ItemReads++;
+        LastTenant = tenantId;
+        LastQuery = query;
+        IEnumerable<CatalogItemSummary> source = Items;
+        if (!query.IncludeInactive)
+        {
+            source = source.Where(item => item.IsActive);
+        }
+        if (query.Kind is { } kind)
+        {
+            source = source.Where(item => item.Kind == kind);
+        }
+        if (query.Search is { } term)
+        {
+            source = source.Where(item =>
+                item.Code.StartsWith(term, StringComparison.OrdinalIgnoreCase) ||
+                item.Name.StartsWith(term, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(ToPage(source.OrderBy(item => item.Code)
+            .ThenBy(item => item.Id), query));
+    }
+
+    private static CatalogReadPage<T> ToPage<T>(IEnumerable<T> source, CatalogReadQuery query)
+    {
+        List<T> rows = source.Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize + 1).ToList();
+        bool more = rows.Count > query.PageSize;
+        if (more)
+        {
+            rows.RemoveAt(rows.Count - 1);
+        }
+        return new(rows, query.Page, query.PageSize, more);
     }
 }
