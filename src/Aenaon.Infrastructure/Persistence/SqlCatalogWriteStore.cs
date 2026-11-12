@@ -1,6 +1,5 @@
 using System.Data;
 using System.Globalization;
-using System.Text;
 using Aenaon.Application.Catalog;
 using Aenaon.Domain.Catalog;
 using Aenaon.Domain.Exceptions;
