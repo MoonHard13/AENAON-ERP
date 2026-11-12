@@ -72,6 +72,10 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Ο [οδηγός υπό όρους πεδίων IMPACT](docs/33-impact-conditional-field-evidence.md) τεκμηριώνει τη συμπληρωματική **μη δεσμευτική offline καταγραφή παρουσίας** 37 υπό όρους πεδίων στο InvoiceIapr (36 στο B2G), χωρίς ανάγνωση/αποθήκευση τιμών στην αναφορά. Οι 6 εκκρεμείς έλεγχοι, οι 254 μη εγκεκριμένες παρατηρήσεις myDATA και όλες οι απαγορεύσεις φορολογικής έκδοσης **παραμένουν αμετάβλητες**.
 
+## Βήμα 9.4A — Tenant-safe Read-only Catalog Preview
+
+Το [εγχειρίδιο προεπισκόπησης καταλόγου](docs/34-catalog-read-preview.md) περιγράφει το νέο `CatalogReadService` και το Development CLI `--preview-catalog`: πραγματικός Identity credential check, Tenant Read authorization **πριν** από την ανάγνωση, EF Core `AsNoTracking` με υποχρεωτικό φίλτρο `TenantId`, σελίδωση και αναζήτηση ειδών/υπηρεσιών/κατηγοριών. Δεν γίνεται καμία μεταβολή καταλόγου, SQL migration, ΦΠΑ ή έκδοση παραστατικού.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
