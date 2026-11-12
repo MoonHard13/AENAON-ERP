@@ -19,15 +19,15 @@
     <div class="dashboard__content">
         <BackOfficeTopbar ActivePage="catalog" PageTitle="Κατάλογος"
                           UserName="@_userName"
-                          TenantName="@(_workspace?.Tenant?.Name ?? "Aenaon ERP")"
+                          Workspace="@_workspace"
                           CsrfToken="@_csrfToken" TenantId="@TenantId" StoreId="@StoreId" />
 
         <div class="dashboard__body catalog-page">
             <div class="dashboard__heading">
                 <div>
                     <p class="eyebrow eyebrow--green">BACK OFFICE / ΚΑΤΑΛΟΓΟΣ</p>
-                    <h1>Προϊόντα, υπηρεσίες &amp; κατηγορίες</h1>
-                    <p>Οργανωμένη προβολή των δεδομένων της επιλεγμένης επιχείρησης.</p>
+                    <h1>Κατάλογος</h1>
+                    <p>Προϊόντα, υπηρεσίες και κατηγορίες της επιχείρησής σας.</p>
                 </div>
                 <span class="catalog-readonly"><AppIcon Name="shield" /> Μόνο ανάγνωση</span>
             </div>
@@ -68,18 +68,6 @@
             }
             else if (_workspace is { Tenant: not null })
             {
-                <section class="catalog-context" aria-label="Ενεργή επιχείρηση">
-                    <div class="catalog-context__icon"><AppIcon Name="building" /></div>
-                    <div>
-                        <span>ΕΝΕΡΓΗ ΕΠΙΧΕΙΡΗΣΗ</span>
-                        <strong>@_workspace.Tenant.Name</strong>
-                        <small>@(_workspace.Store is null
-                            ? "Κατάλογος ολόκληρης επιχείρησης · Δεν υπάρχει επιλεγμένο κατάστημα"
-                            : $"Κατάστημα: {_workspace.Store.Name} ({_workspace.Store.Code})")</small>
-                    </div>
-                    <span class="catalog-context__scope">Πρόσβαση βάσει Tenant</span>
-                </section>
-
                 <nav class="catalog-tabs" aria-label="Ενότητες καταλόγου">
                     <a class="@TabClass("products")" href="@BuildUrl("products", 1)"
                        aria-current="@(SelectedView == "products" ? "page" : null)">
@@ -98,10 +86,9 @@
                 <section class="surface-card catalog-surface" aria-labelledby="catalog-list-title">
                     <div class="catalog-surface__header">
                         <div>
-                            <p class="eyebrow eyebrow--green">ΣΤΟΙΧΕΙΑ ΚΑΤΑΛΟΓΟΥ</p>
                             <h2 id="catalog-list-title">@SelectedTitle</h2>
                         </div>
-                        @if (_errorCode is null)
+                        @if (_errorCode is null && CurrentRows > 0)
                         {
                             <span class="count-pill">@CurrentRows εγγραφές στη σελίδα</span>
                         }
@@ -221,12 +208,12 @@
                     {
                         <div class="catalog-empty" role="status">
                             <span class="catalog-empty__icon"><AppIcon Name="search" /></span>
-                            <strong>Δεν βρέθηκαν @SelectedTitle.ToLowerInvariant().</strong>
-                            <p>Δεν υπάρχουν εγγραφές για τα επιλεγμένα φίλτρα ή ο κατάλογος είναι ακόμη κενός.</p>
+                            <strong>@EmptyTitle</strong>
+                            <p>@EmptyDescription</p>
                         </div>
                     }
 
-                    @if (_errorCode is null && (_categories is not null || _items is not null))
+                    @if (_errorCode is null && (_categories is not null || _items is not null) && (HasMore || CurrentPage > 1))
                     {
                         <div class="catalog-pager" aria-label="Σελιδοποίηση">
                             <span>Σελίδα @CurrentPage · Έως @CurrentPageSize εγγραφές ανά σελίδα</span>
@@ -302,6 +289,19 @@
         "services" => "Υπηρεσίες",
         _ => "Προϊόντα"
     };
+    private bool HasSearch => !string.IsNullOrWhiteSpace(Search);
+    private string EmptyTitle => HasSearch
+        ? $"Δεν βρέθηκαν {SelectedTitle.ToLowerInvariant()}."
+        : SelectedView switch
+        {
+            "categories" => "Δεν υπάρχουν ακόμη κατηγορίες.",
+            "services" => "Δεν υπάρχουν ακόμη υπηρεσίες.",
+            _ => "Δεν υπάρχουν ακόμη προϊόντα."
+        };
+    private string EmptyDescription => HasSearch
+        ? "Δοκιμάστε διαφορετικό πρόθεμα ή καθαρίστε τα φίλτρα αναζήτησης."
+        : "Ο κατάλογος δεν έχει καταχωρίσεις σε αυτήν την ενότητα. Η διαχείριση ειδών θα προστεθεί στο επόμενο στάδιο.";
+
     private int CurrentRows => _categories?.Rows.Count ?? _items?.Rows.Count ?? 0;
     private int CurrentPage => _categories?.Page ?? _items?.Page ?? (PageNumber ?? 1);
     private int CurrentPageSize => _categories?.PageSize ?? _items?.PageSize ?? (PageSize ?? 25);
