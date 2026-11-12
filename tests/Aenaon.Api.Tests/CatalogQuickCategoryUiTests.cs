@@ -167,13 +167,15 @@ public sealed class CatalogQuickCategoryUiTests
         Assert.Contains(".catalog-manage-page.dashboard__body", css);
         Assert.Contains("max-width: none", css);
         Assert.Contains("width: 100%", css);
-        Assert.Contains(".catalog-editor__category-toolbar", css);
+        Assert.Contains(".catalog-category-picker__popup", css);
         Assert.Contains(".catalog-editor__quick-create:focus-visible", css);
         Assert.Contains("@media (max-width: 800px)", css);
         Assert.DoesNotContain(".catalog-editor { max-width: 950px", css);
         string javascript = await client.GetStringAsync("/js/aenaon.js");
         Assert.Contains("case \"k\"", javascript);
-        Assert.Contains("editor.requestSubmit(quickCreate)", javascript);
+        Assert.Contains("quickCreate.click()", javascript);
+        string picker = await client.GetStringAsync("/js/aenaon-category-picker.js");
+        Assert.Contains("form.requestSubmit(submit)", picker);
     }
 
     private static async Task LoginAsync(HttpClient client)
