@@ -86,11 +86,15 @@ public sealed class CatalogUiTests
         Assert.Contains("SERV001", servicesHtml);
         Assert.DoesNotContain("SKU001", servicesHtml);
         Assert.AreEqual(CatalogItemKind.Service, factory.Catalog.LastQuery!.Kind);
+        Assert.Contains("Νέα υπηρεσία", servicesHtml);
+        Assert.DoesNotContain("Νέο υπηρεσία", servicesHtml);
 
         using var categories = await client.GetAsync("/catalog?view=categories");
         string categoriesHtml = WebUtility.HtmlDecode(await categories.Content.ReadAsStringAsync());
         Assert.AreEqual(HttpStatusCode.OK, categories.StatusCode);
         Assert.Contains("FOOD", categoriesHtml);
+        Assert.Contains("Νέα κατηγορία", categoriesHtml);
+        Assert.DoesNotContain("Νέο κατηγορία", categoriesHtml);
         Assert.AreEqual(1, factory.Catalog.CategoryReads);
     }
 
