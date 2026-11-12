@@ -54,6 +54,39 @@ public sealed class CatalogItem
         IsActive = true;
     }
 
+    /// <summary>Δημιουργεί προϊόν ή υπηρεσία με αμετάβλητο Tenant, κατηγορία και τύπο.</summary>
+    public static CatalogItem Create(Guid tenantId, Guid categoryId,
+        string? code, string? name, CatalogItemKind kind, bool tracksStock) =>
+        new(tenantId, categoryId, code, name, kind, tracksStock);
+
+    /// <summary>Ελέγχει όλα τα πεδία πριν τροποποιηθεί η καταχωρημένη οντότητα.</summary>
+    public void Update(Guid categoryId, string? code, string? name, bool tracksStock)
+    {
+        if (categoryId == Guid.Empty)
+        {
+            throw new DomainRuleException("catalog.category.not_found",
+                "Απαιτείται κατηγορία είδους.");
+        }
+
+        string normalizedCode = CatalogText.RequiredCode(code, MaxCodeLength,
+            "Κωδικός είδους", "catalog.item.code.invalid");
+        string normalizedName = CatalogText.RequiredName(name, MaxNameLength,
+            "Περιγραφή είδους", "catalog.item.name.invalid");
+        if (Kind == CatalogItemKind.Service && tracksStock)
+        {
+            throw new DomainRuleException("catalog.item.service.stock_forbidden",
+                "Οι υπηρεσίες δεν μπορούν να παρακολουθούν απόθεμα.");
+        }
+
+        CategoryId = categoryId;
+        Code = normalizedCode;
+        Name = normalizedName;
+        TracksStock = tracksStock;
+    }
+
+    /// <summary>Αλλάζει μόνο την κατάσταση και ποτέ τον τύπο του είδους.</summary>
+    public void ChangeActive(bool active) => SetActive(active);
+
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
     public Guid CategoryId { get; private set; }

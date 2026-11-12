@@ -1,6 +1,7 @@
 using System.Data;
 using Aenaon.Application.Catalog;
 using Aenaon.Domain.Catalog;
+using Aenaon.Domain.Exceptions;
 using Aenaon.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -127,6 +128,76 @@ internal static class SqlServerCatalogAssertions
         }
 
         Assert.AreEqual(3, await context.CatalogItems.CountAsync(cancellationToken));
+        await AssertCatalogWriteStoreAsync(context, firstTenantId, secondTenantId,
+            firstCategory.Id, cancellationToken);
+    }
+
+    private static async Task AssertCatalogWriteStoreAsync(
+        AenaonDbContext context, Guid tenantId, Guid foreignTenantId,
+        Guid categoryId, CancellationToken token)
+    {
+        // Πραγματική SQL εγγραφή σε απομονωμένη βάση μόνο του CI.
+        context.ChangeTracker.Clear();
+        var writer = new SqlCatalogWriteStore(context);
+        CatalogChangeResult category = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "DRINKS", Name: "Ποτά"), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, category.Status);
+        Assert.IsNotNull(category.Id);
+
+        CatalogChangeResult item = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Create,
+                Code: "COLA001", Name: "Αναψυκτικό", CategoryId: category.Id,
+                TracksStock: true), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, item.Status);
+        Assert.IsNotNull(item.Id);
+
+        CatalogManageDetails details = await writer.GetDetailsAsync(
+            tenantId, CatalogManagedEntity.Product, item.Id, token);
+        Assert.AreEqual("COLA001", details.Record?.Code);
+        Assert.IsTrue(details.Categories.Any(x => x.Id == category.Id));
+
+        CatalogChangeResult edited = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Update,
+                item.Id, "COLA002", "Αναψυκτικό 330ml", categoryId, false), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, edited.Status);
+
+        CatalogChangeResult disabled = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Deactivate, item.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, disabled.Status);
+        Assert.IsFalse(await context.CatalogItems.AsNoTracking()
+            .Where(x => x.TenantId == tenantId && x.Id == item.Id)
+            .Select(x => x.IsActive).SingleAsync(token));
+
+        CatalogChangeResult enabled = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Activate, item.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, enabled.Status);
+
+        CatalogChangeResult foreignEdit = await writer.ApplyAsync(foreignTenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Deactivate, item.Id), token);
+        Assert.AreEqual(CatalogChangeStatus.Missing, foreignEdit.Status);
+        CatalogManageDetails foreignDetails = await writer.GetDetailsAsync(
+            foreignTenantId, CatalogManagedEntity.Product, item.Id, token);
+        Assert.IsNull(foreignDetails.Record);
+
+        DomainRuleException serviceStock = await Assert.ThrowsExactlyAsync<DomainRuleException>(
+            () => writer.ApplyAsync(tenantId,
+                new(CatalogManagedEntity.Service, CatalogChangeAction.Create,
+                    Code: "STOCKSERVICE", Name: "Λάθος υπηρεσία",
+                    CategoryId: category.Id, TracksStock: true), token));
+        Assert.AreEqual("catalog.item.service.stock_forbidden", serviceStock.Code);
+
+        // Ο μοναδικός SQL index επιστρέφει φιλικό Duplicate status χωρίς δημιουργία δεύτερης εγγραφής.
+        CatalogChangeResult duplicate = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "FOOD", Name: "Δεύτερη κατηγορία"), token);
+        Assert.AreEqual(CatalogChangeStatus.Duplicate, duplicate.Status);
+
+        // Το επόμενο SaveChanges δεν επιτρέπεται να επαναλάβει το αποτυχημένο INSERT.
+        CatalogChangeResult afterDuplicate = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "AFTERDUP", Name: "Μετά από σύγκρουση"), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, afterDuplicate.Status);
     }
 
     private static async Task InsertCategoryAsync(SqlConnection connection, Guid tenantId,

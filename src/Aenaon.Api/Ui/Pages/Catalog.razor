@@ -4,6 +4,7 @@
 @layout MainLayout
 @using Aenaon.Application.Catalog
 @using Aenaon.Domain.Catalog
+@using Aenaon.Domain.Tenancy
 @using Aenaon.Domain.Exceptions
 @inject IHttpContextAccessor HttpContextAccessor
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
@@ -29,7 +30,16 @@
                     <h1>Κατάλογος</h1>
                     <p>Προϊόντα, υπηρεσίες και κατηγορίες της επιχείρησής σας.</p>
                 </div>
-                <span class="catalog-readonly"><AppIcon Name="shield" /> Μόνο ανάγνωση</span>
+                @if (CanManage)
+                {
+                    <a class="button button--primary catalog-create" href="@BuildManageUrl(SelectedView)">
+                        <AppIcon Name="catalog" /> Νέο @NewLabel
+                    </a>
+                }
+                else
+                {
+                    <span class="catalog-readonly"><AppIcon Name="shield" /> Μόνο ανάγνωση</span>
+                }
             </div>
 
             @if (_loading)
@@ -68,6 +78,13 @@
             }
             else if (_workspace is { Tenant: not null })
             {
+                @if (Saved == 1)
+                {
+                    <div class="catalog-success" role="status">
+                        <AppIcon Name="check" /> Η καταχώρηση αποθηκεύτηκε επιτυχώς.
+                    </div>
+                }
+
                 <nav class="catalog-tabs" aria-label="Ενότητες καταλόγου">
                     <a class="@TabClass("products")" href="@BuildUrl("products", 1)"
                        aria-current="@(SelectedView == "products" ? "page" : null)">
@@ -154,7 +171,8 @@
                              aria-label="Πίνακας κατηγοριών με οριζόντια κύλιση">
                             <table class="catalog-table">
                                 <thead>
-                                    <tr><th scope="col">Κωδικός</th><th scope="col">Κατηγορία</th><th scope="col">Κατάσταση</th></tr>
+                                    <tr><th scope="col">Κωδικός</th><th scope="col">Κατηγορία</th><th scope="col">Κατάσταση</th>
+                                        @if (CanManage) { <th scope="col">Ενέργειες</th> }</tr>
                                 </thead>
                                 <tbody>
                                     @foreach (CatalogCategorySummary row in _categories.Rows)
@@ -165,6 +183,11 @@
                                             <td><span class="@StatusClass(row.IsActive)">
                                                 @(row.IsActive ? "Ενεργή" : "Ανενεργή")
                                             </span></td>
+                                            @if (CanManage)
+                                            {
+                                                <td><a class="catalog-edit-link" href="@BuildManageUrl("categories", row.Id)"
+                                                       aria-label="Επεξεργασία κατηγορίας @row.Code">Επεξεργασία</a></td>
+                                            }
                                         </tr>
                                     }
                                 </tbody>
@@ -184,6 +207,7 @@
                                         <th scope="col">Τύπος</th>
                                         <th scope="col">Απόθεμα</th>
                                         <th scope="col">Κατάσταση</th>
+                                        @if (CanManage) { <th scope="col">Ενέργειες</th> }
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -198,6 +222,11 @@
                                             <td><span class="@StatusClass(row.IsActive)">
                                                 @(row.IsActive ? "Ενεργό" : "Ανενεργό")
                                             </span></td>
+                                            @if (CanManage)
+                                            {
+                                                <td><a class="catalog-edit-link" href="@BuildManageUrl(SelectedView, row.Id)"
+                                                       aria-label="Επεξεργασία είδους @row.Code">Επεξεργασία</a></td>
+                                            }
                                         </tr>
                                     }
                                 </tbody>
@@ -274,6 +303,9 @@
     [SupplyParameterFromQuery(Name = "inactive")]
     public bool? IncludeInactive { get; set; }
 
+    [SupplyParameterFromQuery(Name = "saved")]
+    public int? Saved { get; set; }
+
     private TenantWorkspaceSnapshot? _workspace;
     private CatalogReadPage<CatalogCategorySummary>? _categories;
     private CatalogReadPage<CatalogItemSummary>? _items;
@@ -283,6 +315,15 @@
     private bool _loading = true;
 
     private string SelectedView => string.IsNullOrEmpty(View) ? "products" : View;
+    private bool CanManage => _workspace?.Tenant?.Role == TenantMembershipRole.Owner &&
+        _workspace.Status is (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores);
+    private string NewLabel => SelectedView switch
+    {
+        "categories" => "κατηγορία",
+        "services" => "υπηρεσία",
+        _ => "προϊόν"
+    };
+
     private string SelectedTitle => SelectedView switch
     {
         "categories" => "Κατηγορίες",
@@ -425,6 +466,21 @@
 
     private static string StatusClass(bool active) =>
         active ? "catalog-status catalog-status--active" : "catalog-status catalog-status--inactive";
+
+    private string BuildManageUrl(string view, Guid? id = null)
+    {
+        string url = $"/catalog/manage?view={Uri.EscapeDataString(view)}";
+        if (_workspace?.Tenant is { } tenant)
+        {
+            url += $"&tenantId={tenant.TenantId:D}";
+            if (_workspace.Store is { } store)
+            {
+                url += $"&storeId={store.StoreId:D}";
+            }
+        }
+
+        return id.HasValue ? url + $"&id={id.Value:D}" : url;
+    }
 
     private string BuildResetUrl() => BuildUrl(SelectedView, 1, reset: true);
 

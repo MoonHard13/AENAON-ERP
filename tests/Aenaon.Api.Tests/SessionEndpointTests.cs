@@ -216,6 +216,8 @@ internal sealed class SessionApiFactory(string environment = "Development") : We
     public SessionIdentityFixture Identity { get; } = new();
     public SessionStoreCatalogFixture Stores { get; } = new();
     public SessionCatalogReadFixture Catalog { get; } = new();
+    public SessionCatalogWriteFixture CatalogWriter { get; } = new();
+    public SessionTenancyFixture Access { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -225,11 +227,13 @@ internal sealed class SessionApiFactory(string environment = "Development") : We
             services.RemoveAll<ISessionIdentityService>();
             services.AddSingleton<ISessionIdentityService>(Identity);
             services.RemoveAll<ITenantAccessStore>();
-            services.AddSingleton<ITenantAccessStore, SessionTenancyFixture>();
+            services.AddSingleton<ITenantAccessStore>(Access);
             services.RemoveAll<ITenantStoreCatalog>();
             services.AddSingleton<ITenantStoreCatalog>(Stores);
             services.RemoveAll<ICatalogReadStore>();
             services.AddSingleton<ICatalogReadStore>(Catalog);
+            services.RemoveAll<ICatalogWriteStore>();
+            services.AddSingleton<ICatalogWriteStore>(CatalogWriter);
         });
     }
 
@@ -272,12 +276,13 @@ internal sealed class SessionTenancyFixture : ITenantAccessStore
     private static readonly Guid UserId = Guid.Parse("76d2c37f-2e26-4311-a129-e6073057c8dd");
     private static readonly Guid TenantId = Guid.Parse("9698df79-3c31-41c9-b292-b7240c7265fb");
     private static readonly Guid StoreId = Guid.Parse("c697b9c3-e221-4156-b533-f54dee27d979");
+    public TenantMembershipRole GrantedRole { get; set; } = TenantMembershipRole.Owner;
 
     public Task<TenantMembershipRole?> GetMembershipRoleAsync(Guid userId, Guid tenantId,
         CancellationToken cancellationToken = default)
     {
         TenantMembershipRole? role = userId == UserId && tenantId == TenantId
-            ? TenantMembershipRole.Owner : null;
+            ? GrantedRole : null;
         return Task.FromResult(role);
     }
 
@@ -291,7 +296,7 @@ internal sealed class SessionTenancyFixture : ITenantAccessStore
         CancellationToken cancellationToken = default)
     {
         IReadOnlyList<AccessibleTenant> tenants = userId == UserId
-            ? [new AccessibleTenant(TenantId, "Aenaon Demo", TenantMembershipRole.Owner)]
+            ? [new AccessibleTenant(TenantId, "Aenaon Demo", GrantedRole)]
             : [];
         return Task.FromResult(tenants);
     }
@@ -392,5 +397,43 @@ internal sealed class SessionCatalogReadFixture : ICatalogReadStore
             rows.RemoveAt(rows.Count - 1);
         }
         return new(rows, query.Page, query.PageSize, more);
+    }
+}
+
+internal sealed class SessionCatalogWriteFixture : ICatalogWriteStore
+{
+    public static readonly Guid CategoryId = Guid.Parse("4111b4bf-fd4c-4c2c-bf4b-c377b7b8a4ac");
+    public static readonly Guid ItemId = Guid.Parse("519f1811-6215-4841-81d2-62e921b22e3d");
+    public int ApplyCalls { get; private set; }
+    public int DetailCalls { get; private set; }
+    public Guid LastTenant { get; private set; }
+    public CatalogChangeCommand? LastCommand { get; private set; }
+
+    public Task<CatalogChangeResult> ApplyAsync(Guid tenantId,
+        CatalogChangeCommand command, CancellationToken cancellationToken = default)
+    {
+        ApplyCalls++;
+        LastTenant = tenantId;
+        LastCommand = command;
+        if (command.Code == "EXISTS")
+        {
+            return Task.FromResult(new CatalogChangeResult(CatalogChangeStatus.Duplicate));
+        }
+        return Task.FromResult(new CatalogChangeResult(CatalogChangeStatus.Saved,
+            command.Id ?? Guid.NewGuid()));
+    }
+
+    public Task<CatalogManageDetails> GetDetailsAsync(Guid tenantId,
+        CatalogManagedEntity entity, Guid? id, CancellationToken cancellationToken = default)
+    {
+        DetailCalls++;
+        CatalogManageRecord? record = id == CategoryId && entity == CatalogManagedEntity.Category
+            ? new(CategoryId, "FOOD", "Φαγητά", true)
+            : id == ItemId && entity == CatalogManagedEntity.Product
+                ? new(ItemId, "SKU001", "Πίτσα", true, CategoryId, CatalogItemKind.Product, true)
+                : null;
+        return Task.FromResult(new CatalogManageDetails(record,
+            entity == CatalogManagedEntity.Category ? [] :
+                [new CatalogCategoryOption(CategoryId, "FOOD", "Φαγητά")]));
     }
 }
