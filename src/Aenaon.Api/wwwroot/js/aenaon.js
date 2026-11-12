@@ -118,6 +118,10 @@
         const auto = event.target.value === "auto";
         input.disabled = auto;
         input.required = !auto;
+        const label = document.querySelector("[data-code-label]");
+        if (label instanceof HTMLLabelElement) {
+            label.textContent = auto ? "Κωδικός (αυτόματος)" : "Κωδικός *";
+        }
         document.querySelectorAll("[data-auto-code-hint]").forEach(element => {
             element.hidden = !auto;
         });
