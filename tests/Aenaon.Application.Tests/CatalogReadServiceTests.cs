@@ -41,6 +41,21 @@ public sealed class CatalogReadServiceTests
     }
 
     [TestMethod]
+    public async Task ItemKindFilter_IsPassedToAuthorizedStore()
+    {
+        var store = new FakeCatalogStore();
+        var service = new CatalogReadService(
+            new TenantAuthorizationService(new FakeTenantAccessStore()), store);
+
+        CatalogReadResult<CatalogItemSummary> result = await service.ReadItemsAsync(
+            OwnerUser, Tenant, new CatalogReadQuery(1, 25, Kind: CatalogItemKind.Service));
+
+        Assert.IsTrue(result.IsAuthorized);
+        Assert.AreEqual(CatalogItemKind.Service, store.LastQuery!.Kind);
+        Assert.AreEqual(1, store.ItemReads);
+    }
+
+    [TestMethod]
     public async Task ForeignTenantAndUnknownIdentity_AreDeniedWithoutDatabaseCatalogReads()
     {
         var store = new FakeCatalogStore();
@@ -92,7 +107,8 @@ public sealed class CatalogReadServiceTests
             new(1, 0),
             new(1, 101),
             new(1, 25, new string('x', 81)),
-            new(1, 25, "bad\nline")
+            new(1, 25, "bad\nline"),
+            new(1, 25, Kind: (CatalogItemKind)999)
         ];
 
         foreach (CatalogReadQuery query in invalid)

@@ -33,7 +33,8 @@ public sealed class SessionCookieEvents(IServiceScopeFactory scopeFactory) : Coo
 
     public override Task RedirectToLogin(RedirectContext<CookieAuthenticationOptions> context)
     {
-        if (context.Request.Path.StartsWithSegments("/dashboard"))
+        if (context.Request.Path.StartsWithSegments("/dashboard") ||
+            context.Request.Path.StartsWithSegments("/catalog"))
         {
             context.Response.Redirect("/login");
         }

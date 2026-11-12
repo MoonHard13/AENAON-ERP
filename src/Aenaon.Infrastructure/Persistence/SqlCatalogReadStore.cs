@@ -73,13 +73,23 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
                 item.Code.StartsWith(term) || item.Name.StartsWith(term));
         }
 
+        if (validated.Kind is { } kind)
+        {
+            items = items.Where(item => item.Kind == kind);
+        }
+
+        // Το σύνθετο join δεν επιτρέπει την ανάκτηση ονόματος κατηγορίας από άλλο Tenant.
         int offset = (validated.Page - 1) * validated.PageSize;
-        var rows = await items.OrderBy(item => item.Code)
-            .ThenBy(item => item.Id)
-            .Skip(offset).Take(validated.PageSize + 1)
-            .Select(item => new CatalogItemSummary(
+        var rows = await (
+            from item in items
+            join category in context.CatalogCategories.AsNoTracking()
+                on new { item.TenantId, Id = item.CategoryId }
+                equals new { category.TenantId, category.Id }
+            orderby item.Code, item.Id
+            select new CatalogItemSummary(
                 item.Id, item.CategoryId, item.Code, item.Name,
-                item.Kind, item.TracksStock, item.IsActive))
+                item.Kind, item.TracksStock, item.IsActive, category.Name))
+            .Skip(offset).Take(validated.PageSize + 1)
             .ToListAsync(cancellationToken);
         bool hasMore = rows.Count > validated.PageSize;
         if (hasMore)

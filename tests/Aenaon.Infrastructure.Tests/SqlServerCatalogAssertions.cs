@@ -59,6 +59,22 @@ internal static class SqlServerCatalogAssertions
         Assert.AreEqual("SKU01", nextPage.Rows[0].Code);
         Assert.IsFalse(nextPage.HasMore);
 
+        // Ο τύπος εφαρμόζεται στη SQL πριν από την σελιδοποίηση και την εμφάνιση.
+        CatalogReadPage<CatalogItemSummary> services = await reader.ReadItemsAsync(
+            firstTenantId, new CatalogReadQuery(1, 1, Kind: CatalogItemKind.Service),
+            cancellationToken);
+        Assert.HasCount(1, services.Rows);
+        Assert.AreEqual("SERV01", services.Rows[0].Code);
+        Assert.AreEqual("Φαγητά", services.Rows[0].CategoryName);
+        Assert.IsFalse(services.HasMore);
+
+        CatalogReadPage<CatalogItemSummary> products = await reader.ReadItemsAsync(
+            firstTenantId, new CatalogReadQuery(1, 1, Kind: CatalogItemKind.Product),
+            cancellationToken);
+        Assert.HasCount(1, products.Rows);
+        Assert.AreEqual("SKU01", products.Rows[0].Code);
+        Assert.IsFalse(products.HasMore);
+
         CatalogReadPage<CatalogItemSummary> otherTenant = await reader.ReadItemsAsync(
             secondTenantId, new CatalogReadQuery(1, 20, "SKU"), cancellationToken);
         Assert.HasCount(1, otherTenant.Rows);

@@ -1,0 +1,59 @@
+@* Κοινή πλοήγηση για όλες τις οθόνες του Back Office. *@
+<aside class="sidebar">
+    <a class="sidebar__brand" href="@DashboardHref" aria-label="Aenaon ERP — Επισκόπηση">
+        <div class="sidebar__logo">
+            <img src="/images/aenaon-favicon.png" alt="" width="48" height="48" />
+        </div>
+        <div class="sidebar__brand-text">
+            <strong>AENAON</strong><span>ERP · MOONHARD</span>
+        </div>
+    </a>
+
+    <div class="sidebar__section-title">ΠΛΟΗΓΗΣΗ</div>
+    <nav class="sidebar__nav" aria-label="Κύρια πλοήγηση">
+        <a class="@LinkClass("dashboard")" href="@DashboardHref"
+           aria-current="@(ActivePage == "dashboard" ? "page" : null)">
+            <AppIcon Name="overview" /> Επισκόπηση
+        </a>
+        <a class="@LinkClass("catalog")" href="@CatalogHref"
+           aria-current="@(ActivePage == "catalog" ? "page" : null)">
+            <AppIcon Name="catalog" /> Κατάλογος
+        </a>
+        <span class="sidebar__link sidebar__link--disabled">
+            <AppIcon Name="sales" /> Εμπορική διαχείριση <small>Σύντομα</small>
+        </span>
+        <span class="sidebar__link sidebar__link--disabled">
+            <AppIcon Name="warehouse" /> Αποθήκη <small>Σύντομα</small>
+        </span>
+        <span class="sidebar__link sidebar__link--disabled">
+            <AppIcon Name="settings" /> Ρυθμίσεις <small>Σύντομα</small>
+        </span>
+    </nav>
+    <div class="sidebar__foot">
+        <span class="sidebar__status-dot"></span> ΠΕΡΙΒΑΛΛΟΝ ΑΝΑΠΤΥΞΗΣ
+        <span class="sidebar__version">Aenaon ERP · Build @UiAppInfo.Version</span>
+    </div>
+</aside>
+
+@code {
+    [Parameter] public string ActivePage { get; set; } = "dashboard";
+    [Parameter] public Guid? TenantId { get; set; }
+    [Parameter] public Guid? StoreId { get; set; }
+
+    private string DashboardHref => Href("/dashboard");
+    private string CatalogHref => Href("/catalog");
+
+    private string LinkClass(string page) =>
+        ActivePage == page ? "sidebar__link sidebar__link--active" : "sidebar__link";
+
+    private string Href(string path)
+    {
+        if (!TenantId.HasValue)
+        {
+            return path;
+        }
+
+        string url = $"{path}?tenantId={TenantId.Value:D}";
+        return StoreId.HasValue ? $"{url}&storeId={StoreId.Value:D}" : url;
+    }
+}

@@ -1,0 +1,74 @@
+@* Ενιαία γραμμή πλοήγησης, προφίλ και CSRF-protected αποσύνδεσης. *@
+<header class="topbar">
+    <details class="mobile-navigation">
+        <summary aria-label="Άνοιγμα πλοήγησης"><AppIcon Name="menu" /> Μενού</summary>
+        <nav aria-label="Πλοήγηση μικρής οθόνης">
+            <a href="@DashboardHref" aria-current="@(ActivePage == "dashboard" ? "page" : null)">
+                <AppIcon Name="overview" /> Επισκόπηση
+            </a>
+            <a href="@CatalogHref" aria-current="@(ActivePage == "catalog" ? "page" : null)">
+                <AppIcon Name="catalog" /> Κατάλογος
+            </a>
+            <span><AppIcon Name="sales" /> Εμπορική διαχείριση · Σύντομα</span>
+            <span><AppIcon Name="warehouse" /> Αποθήκη · Σύντομα</span>
+            <span><AppIcon Name="settings" /> Ρυθμίσεις · Σύντομα</span>
+        </nav>
+    </details>
+    <div class="breadcrumb">Εφαρμογή <span>/</span> <strong>@PageTitle</strong></div>
+    <div class="topbar__actions">
+        <button type="button" class="theme-toggle" data-theme-toggle aria-label="Εναλλαγή θέματος">
+            <AppIcon Name="sun-moon" /> <span data-theme-label>Θέμα</span>
+        </button>
+        <details class="user-menu">
+            <summary aria-label="Μενού χρήστη @UserName">
+                <span class="topbar__avatar" aria-hidden="true">@Initials</span>
+                <span class="topbar__username">@UserName</span>
+                <AppIcon Name="chevron" />
+            </summary>
+            <div class="user-menu__panel">
+                <div class="user-menu__identity">
+                    <span class="user-menu__avatar">@Initials</span>
+                    <div>
+                        <strong>@UserName</strong>
+                        <small>@TenantName</small>
+                    </div>
+                </div>
+                <div class="user-menu__section-label">ΛΟΓΑΡΙΑΣΜΟΣ</div>
+                @if (!string.IsNullOrWhiteSpace(CsrfToken))
+                {
+                    <form method="post" action="/ui/session/logout" class="logout-form user-menu__logout">
+                        <input type="hidden" name="__RequestVerificationToken" value="@CsrfToken" />
+                        <button type="submit"><AppIcon Name="logout" /> Αποσύνδεση</button>
+                    </form>
+                }
+            </div>
+        </details>
+    </div>
+</header>
+
+@code {
+    [Parameter, EditorRequired] public string PageTitle { get; set; } = string.Empty;
+    [Parameter] public string ActivePage { get; set; } = "dashboard";
+    [Parameter] public string UserName { get; set; } = "Χρήστης";
+    [Parameter] public string TenantName { get; set; } = "Aenaon ERP";
+    [Parameter] public string? CsrfToken { get; set; }
+    [Parameter] public Guid? TenantId { get; set; }
+    [Parameter] public Guid? StoreId { get; set; }
+
+    private string Initials =>
+        string.IsNullOrWhiteSpace(UserName) ? "A" : UserName[..1].ToUpperInvariant();
+
+    private string DashboardHref => Href("/dashboard");
+    private string CatalogHref => Href("/catalog");
+
+    private string Href(string path)
+    {
+        if (!TenantId.HasValue)
+        {
+            return path;
+        }
+
+        string url = $"{path}?tenantId={TenantId.Value:D}";
+        return StoreId.HasValue ? $"{url}&storeId={StoreId.Value:D}" : url;
+    }
+}

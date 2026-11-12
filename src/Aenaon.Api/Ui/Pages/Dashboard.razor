@@ -10,79 +10,13 @@
 <PageTitle>Επισκόπηση | Aenaon ERP</PageTitle>
 
 <main class="dashboard">
-    <aside class="sidebar">
-        <a class="sidebar__brand" href="/dashboard" aria-label="Aenaon ERP — Επισκόπηση">
-            <div class="sidebar__logo">
-                <img src="/images/aenaon-favicon.png" alt="" width="48" height="48" />
-            </div>
-            <div class="sidebar__brand-text">
-                <strong>AENAON</strong><span>ERP · MOONHARD</span>
-            </div>
-        </a>
-
-        <div class="sidebar__section-title">ΠΛΟΗΓΗΣΗ</div>
-        <nav class="sidebar__nav" aria-label="Κύρια πλοήγηση">
-            <a class="sidebar__link sidebar__link--active" href="/dashboard" aria-current="page">
-                <AppIcon Name="overview" /> Επισκόπηση
-            </a>
-            <span class="sidebar__link sidebar__link--disabled">
-                <AppIcon Name="sales" /> Εμπορική διαχείριση <small>Σύντομα</small>
-            </span>
-            <span class="sidebar__link sidebar__link--disabled">
-                <AppIcon Name="warehouse" /> Αποθήκη <small>Σύντομα</small>
-            </span>
-            <span class="sidebar__link sidebar__link--disabled">
-                <AppIcon Name="settings" /> Ρυθμίσεις <small>Σύντομα</small>
-            </span>
-        </nav>
-        <div class="sidebar__foot">
-            <span class="sidebar__status-dot"></span> ΠΕΡΙΒΑΛΛΟΝ ΑΝΑΠΤΥΞΗΣ
-            <span class="sidebar__version">Aenaon ERP · Build @UiAppInfo.Version</span>
-        </div>
-    </aside>
+    <BackOfficeSidebar ActivePage="dashboard" TenantId="@TenantId" StoreId="@StoreId" />
 
     <div class="dashboard__content">
-        <header class="topbar">
-            <details class="mobile-navigation">
-                <summary aria-label="Άνοιγμα πλοήγησης"><AppIcon Name="menu" /> Μενού</summary>
-                <nav aria-label="Πλοήγηση μικρής οθόνης">
-                    <a href="/dashboard" aria-current="page"><AppIcon Name="overview" /> Επισκόπηση</a>
-                    <span><AppIcon Name="sales" /> Εμπορική διαχείριση · Σύντομα</span>
-                    <span><AppIcon Name="warehouse" /> Αποθήκη · Σύντομα</span>
-                    <span><AppIcon Name="settings" /> Ρυθμίσεις · Σύντομα</span>
-                </nav>
-            </details>
-            <div class="breadcrumb">Εφαρμογή <span>/</span> <strong>Επισκόπηση</strong></div>
-            <div class="topbar__actions">
-                <button type="button" class="theme-toggle" data-theme-toggle aria-label="Εναλλαγή θέματος">
-                    <AppIcon Name="sun-moon" /> <span data-theme-label>Θέμα</span>
-                </button>
-                <details class="user-menu">
-                    <summary aria-label="Μενού χρήστη @_userName">
-                        <span class="topbar__avatar" aria-hidden="true">@_initials</span>
-                        <span class="topbar__username">@_userName</span>
-                        <AppIcon Name="chevron" />
-                    </summary>
-                    <div class="user-menu__panel">
-                        <div class="user-menu__identity">
-                            <span class="user-menu__avatar">@_initials</span>
-                            <div>
-                                <strong>@_userName</strong>
-                                <small>@(_workspace?.Tenant?.Name ?? "Aenaon ERP")</small>
-                            </div>
-                        </div>
-                        <div class="user-menu__section-label">ΛΟΓΑΡΙΑΣΜΟΣ</div>
-                        @if (!string.IsNullOrWhiteSpace(_csrfToken))
-                        {
-                            <form method="post" action="/ui/session/logout" class="logout-form user-menu__logout">
-                                <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
-                                <button type="submit"><AppIcon Name="logout" /> Αποσύνδεση</button>
-                            </form>
-                        }
-                    </div>
-                </details>
-            </div>
-        </header>
+        <BackOfficeTopbar ActivePage="dashboard" PageTitle="Επισκόπηση"
+                          UserName="@_userName"
+                          TenantName="@(_workspace?.Tenant?.Name ?? "Aenaon ERP")"
+                          CsrfToken="@_csrfToken" TenantId="@TenantId" StoreId="@StoreId" />
 
         <div class="dashboard__body">
             <div class="dashboard__heading">
@@ -262,7 +196,6 @@
 
     private TenantWorkspaceSnapshot? _workspace;
     private string _userName = "Χρήστης";
-    private string _initials = "A";
     private string? _csrfToken;
     private bool _error;
 
@@ -277,7 +210,6 @@
         }
 
         _userName = context.User.Identity.Name ?? "Χρήστης";
-        _initials = _userName.Length > 0 ? _userName[..1].ToUpperInvariant() : "A";
         _csrfToken = Antiforgery.GetAndStoreTokens(context).RequestToken;
         context.Response.Headers.CacheControl = "no-store";
         _error = false;

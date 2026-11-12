@@ -1,0 +1,473 @@
+@page "/catalog"
+@attribute [Authorize]
+@attribute [StreamRendering]
+@layout MainLayout
+@using Aenaon.Application.Catalog
+@using Aenaon.Domain.Catalog
+@using Aenaon.Domain.Exceptions
+@inject IHttpContextAccessor HttpContextAccessor
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject TenantWorkspaceResolver WorkspaceResolver
+@inject WorkspacePreferenceService Preference
+@inject CatalogReadService CatalogReader
+@inject ILogger<Catalog> Logger
+
+<PageTitle>Κατάλογος | Aenaon ERP</PageTitle>
+
+<main class="dashboard">
+    <BackOfficeSidebar ActivePage="catalog" TenantId="@TenantId" StoreId="@StoreId" />
+    <div class="dashboard__content">
+        <BackOfficeTopbar ActivePage="catalog" PageTitle="Κατάλογος"
+                          UserName="@_userName"
+                          TenantName="@(_workspace?.Tenant?.Name ?? "Aenaon ERP")"
+                          CsrfToken="@_csrfToken" TenantId="@TenantId" StoreId="@StoreId" />
+
+        <div class="dashboard__body catalog-page">
+            <div class="dashboard__heading">
+                <div>
+                    <p class="eyebrow eyebrow--green">BACK OFFICE / ΚΑΤΑΛΟΓΟΣ</p>
+                    <h1>Προϊόντα, υπηρεσίες &amp; κατηγορίες</h1>
+                    <p>Οργανωμένη προβολή των δεδομένων της επιλεγμένης επιχείρησης.</p>
+                </div>
+                <span class="catalog-readonly"><AppIcon Name="shield" /> Μόνο ανάγνωση</span>
+            </div>
+
+            @if (_loading)
+            {
+                <section class="surface-card catalog-loading" aria-busy="true" role="status">
+                    <span class="catalog-loading__indicator" aria-hidden="true"></span>
+                    <span>Φόρτωση καταλόγου και επαλήθευση πρόσβασης…</span>
+                </section>
+            }
+            else if (_workspace is null || _errorCode is "database")
+            {
+                <div class="form-alert" role="alert">
+                    Δεν ήταν δυνατή η φόρτωση του καταλόγου. Ελέγξτε τη σύνδεση και δοκιμάστε ξανά.
+                </div>
+            }
+            else if (_workspace.Status is TenantWorkspaceStatus.InvalidTenant)
+            {
+                <div class="workspace-alert" role="alert">
+                    Η επιλεγμένη επιχείρηση δεν είναι διαθέσιμη στον λογαριασμό σας.
+                </div>
+                <a class="button button--outline" href="/dashboard">Επιλογή επιχείρησης</a>
+            }
+            else if (_workspace.Status is TenantWorkspaceStatus.InvalidStore)
+            {
+                <div class="workspace-alert" role="alert">
+                    Το επιλεγμένο κατάστημα δεν είναι διαθέσιμο στην επιχείρησή σας.
+                </div>
+                <a class="button button--outline" href="/dashboard">Επιλογή καταστήματος</a>
+            }
+            else if (_workspace.Status is TenantWorkspaceStatus.NoTenants)
+            {
+                <div class="workspace-alert" role="status">
+                    Δεν υπάρχει επιχείρηση με δικαίωμα πρόσβασης για τον λογαριασμό σας.
+                </div>
+                <a class="button button--outline" href="/dashboard">Πίσω στην επισκόπηση</a>
+            }
+            else if (_workspace is { Tenant: not null })
+            {
+                <section class="catalog-context" aria-label="Ενεργή επιχείρηση">
+                    <div class="catalog-context__icon"><AppIcon Name="building" /></div>
+                    <div>
+                        <span>ΕΝΕΡΓΗ ΕΠΙΧΕΙΡΗΣΗ</span>
+                        <strong>@_workspace.Tenant.Name</strong>
+                        <small>@(_workspace.Store is null
+                            ? "Κατάλογος ολόκληρης επιχείρησης · Δεν υπάρχει επιλεγμένο κατάστημα"
+                            : $"Κατάστημα: {_workspace.Store.Name} ({_workspace.Store.Code})")</small>
+                    </div>
+                    <span class="catalog-context__scope">Πρόσβαση βάσει Tenant</span>
+                </section>
+
+                <nav class="catalog-tabs" aria-label="Ενότητες καταλόγου">
+                    <a class="@TabClass("products")" href="@BuildUrl("products", 1)"
+                       aria-current="@(SelectedView == "products" ? "page" : null)">
+                        <AppIcon Name="catalog" /> Προϊόντα
+                    </a>
+                    <a class="@TabClass("services")" href="@BuildUrl("services", 1)"
+                       aria-current="@(SelectedView == "services" ? "page" : null)">
+                        <AppIcon Name="sales" /> Υπηρεσίες
+                    </a>
+                    <a class="@TabClass("categories")" href="@BuildUrl("categories", 1)"
+                       aria-current="@(SelectedView == "categories" ? "page" : null)">
+                        <AppIcon Name="warehouse" /> Κατηγορίες
+                    </a>
+                </nav>
+
+                <section class="surface-card catalog-surface" aria-labelledby="catalog-list-title">
+                    <div class="catalog-surface__header">
+                        <div>
+                            <p class="eyebrow eyebrow--green">ΣΤΟΙΧΕΙΑ ΚΑΤΑΛΟΓΟΥ</p>
+                            <h2 id="catalog-list-title">@SelectedTitle</h2>
+                        </div>
+                        @if (_errorCode is null)
+                        {
+                            <span class="count-pill">@CurrentRows εγγραφές στη σελίδα</span>
+                        }
+                    </div>
+
+                    <form class="catalog-filters" method="get" action="/catalog" role="search"
+                          aria-label="Αναζήτηση και φίλτρα καταλόγου">
+                        <input type="hidden" name="view" value="@SelectedView" />
+                        @if (TenantId.HasValue)
+                        {
+                            <input type="hidden" name="tenantId" value="@TenantId.Value" />
+                        }
+                        @if (StoreId.HasValue)
+                        {
+                            <input type="hidden" name="storeId" value="@StoreId.Value" />
+                        }
+                        <div class="catalog-field catalog-field--search">
+                            <label for="catalog-search">Κωδικός ή περιγραφή (αρχίζει από)</label>
+                            <div class="catalog-search">
+                                <AppIcon Name="search" />
+                                <input id="catalog-search" name="search" type="search"
+                                       value="@Search" maxlength="80" autocomplete="off"
+                                       placeholder="Αναζήτηση με πρόθεμα…" />
+                            </div>
+                        </div>
+                        <div class="catalog-field catalog-field--size">
+                            <label for="catalog-page-size">Εγγραφές</label>
+                            <select id="catalog-page-size" name="pageSize">
+                                <option value="25" selected="@(PageSize is null or 25)">25</option>
+                                <option value="50" selected="@(PageSize == 50)">50</option>
+                                <option value="100" selected="@(PageSize == 100)">100</option>
+                            </select>
+                        </div>
+                        <label class="catalog-checkbox">
+                            <input type="checkbox" name="inactive" value="true"
+                                   checked="@(IncludeInactive == true)" />
+                            Εμφάνιση ανενεργών
+                        </label>
+                        <button class="button button--primary catalog-filter-button" type="submit">
+                            <AppIcon Name="search" /> Αναζήτηση
+                        </button>
+                        <a class="catalog-reset" href="@BuildResetUrl()" aria-label="Καθαρισμός φίλτρων">
+                            Καθαρισμός
+                        </a>
+                    </form>
+
+                    @if (_errorCode == "query")
+                    {
+                        <div class="form-alert" role="alert">
+                            Μη έγκυρα φίλτρα. Επιτρέπονται σελίδες 1–1000, μεγέθη 25/50/100
+                            και αναζήτηση έως 80 χαρακτήρες.
+                        </div>
+                    }
+                    else if (_errorCode == "access")
+                    {
+                        <div class="workspace-alert" role="alert">
+                            Δεν επιτρέπεται η προβολή του καταλόγου για αυτήν την επιχείρηση.
+                        </div>
+                    }
+                    else if (_categories?.Rows.Count > 0)
+                    {
+                        <div class="catalog-table-wrap" tabindex="0" role="region"
+                             aria-label="Πίνακας κατηγοριών με οριζόντια κύλιση">
+                            <table class="catalog-table">
+                                <thead>
+                                    <tr><th scope="col">Κωδικός</th><th scope="col">Κατηγορία</th><th scope="col">Κατάσταση</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (CatalogCategorySummary row in _categories.Rows)
+                                    {
+                                        <tr>
+                                            <td><span class="catalog-code">@row.Code</span></td>
+                                            <td class="catalog-table__name">@row.Name</td>
+                                            <td><span class="@StatusClass(row.IsActive)">
+                                                @(row.IsActive ? "Ενεργή" : "Ανενεργή")
+                                            </span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else if (_items?.Rows.Count > 0)
+                    {
+                        <div class="catalog-table-wrap" tabindex="0" role="region"
+                             aria-label="Πίνακας ειδών με οριζόντια κύλιση">
+                            <table class="catalog-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Κωδικός</th>
+                                        <th scope="col">Περιγραφή</th>
+                                        <th scope="col">Κατηγορία</th>
+                                        <th scope="col">Τύπος</th>
+                                        <th scope="col">Απόθεμα</th>
+                                        <th scope="col">Κατάσταση</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (CatalogItemSummary row in _items.Rows)
+                                    {
+                                        <tr>
+                                            <td><span class="catalog-code">@row.Code</span></td>
+                                            <td class="catalog-table__name">@row.Name</td>
+                                            <td>@(row.CategoryName ?? "—")</td>
+                                            <td>@(row.Kind == CatalogItemKind.Service ? "Υπηρεσία" : "Προϊόν")</td>
+                                            <td>@(row.TracksStock ? "Ναι" : "Όχι")</td>
+                                            <td><span class="@StatusClass(row.IsActive)">
+                                                @(row.IsActive ? "Ενεργό" : "Ανενεργό")
+                                            </span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="catalog-empty" role="status">
+                            <span class="catalog-empty__icon"><AppIcon Name="search" /></span>
+                            <strong>Δεν βρέθηκαν @SelectedTitle.ToLowerInvariant().</strong>
+                            <p>Δεν υπάρχουν εγγραφές για τα επιλεγμένα φίλτρα ή ο κατάλογος είναι ακόμη κενός.</p>
+                        </div>
+                    }
+
+                    @if (_errorCode is null && (_categories is not null || _items is not null))
+                    {
+                        <div class="catalog-pager" aria-label="Σελιδοποίηση">
+                            <span>Σελίδα @CurrentPage · Έως @CurrentPageSize εγγραφές ανά σελίδα</span>
+                            <div class="catalog-pager__actions">
+                                @if (CurrentPage > 1)
+                                {
+                                    <a href="@BuildUrl(SelectedView, CurrentPage - 1)" rel="prev">Προηγούμενη</a>
+                                }
+                                else
+                                {
+                                    <span class="catalog-pager__disabled">Προηγούμενη</span>
+                                }
+                                @if (HasMore && CurrentPage < CatalogReadQuery.MaxPage)
+                                {
+                                    <a href="@BuildUrl(SelectedView, CurrentPage + 1)" rel="next">Επόμενη</a>
+                                }
+                                else
+                                {
+                                    <span class="catalog-pager__disabled">Επόμενη</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </section>
+
+                <p class="catalog-disclaimer">
+                    Η οθόνη είναι μόνο για ανάγνωση. Δεν ενημερώνει τιμές, ΦΠΑ, απόθεμα
+                    ή φορολογικές ταξινομήσεις και δεν εκδίδει παραστατικά.
+                </p>
+            }
+        </div>
+        <footer class="dashboard__footer">
+            © @DateTime.UtcNow.Year Aenaon ERP · by MoonHard
+            <span>Built with .NET &amp; Blazor</span>
+        </footer>
+    </div>
+</main>
+
+@code {
+    [SupplyParameterFromQuery(Name = "tenantId")]
+    public Guid? TenantId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "storeId")]
+    public Guid? StoreId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "view")]
+    public string? View { get; set; }
+
+    [SupplyParameterFromQuery(Name = "search")]
+    public string? Search { get; set; }
+
+    [SupplyParameterFromQuery(Name = "page")]
+    public int? PageNumber { get; set; }
+
+    [SupplyParameterFromQuery(Name = "pageSize")]
+    public int? PageSize { get; set; }
+
+    [SupplyParameterFromQuery(Name = "inactive")]
+    public bool? IncludeInactive { get; set; }
+
+    private TenantWorkspaceSnapshot? _workspace;
+    private CatalogReadPage<CatalogCategorySummary>? _categories;
+    private CatalogReadPage<CatalogItemSummary>? _items;
+    private string _userName = "Χρήστης";
+    private string? _csrfToken;
+    private string? _errorCode;
+    private bool _loading = true;
+
+    private string SelectedView => string.IsNullOrEmpty(View) ? "products" : View;
+    private string SelectedTitle => SelectedView switch
+    {
+        "categories" => "Κατηγορίες",
+        "services" => "Υπηρεσίες",
+        _ => "Προϊόντα"
+    };
+    private int CurrentRows => _categories?.Rows.Count ?? _items?.Rows.Count ?? 0;
+    private int CurrentPage => _categories?.Page ?? _items?.Page ?? (PageNumber ?? 1);
+    private int CurrentPageSize => _categories?.PageSize ?? _items?.PageSize ?? (PageSize ?? 25);
+    private bool HasMore => _categories?.HasMore ?? _items?.HasMore ?? false;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _workspace = null;
+        _categories = null;
+        _items = null;
+        _errorCode = null;
+        _loading = true;
+
+        HttpContext? context = HttpContextAccessor.HttpContext;
+        if (context?.Request.IsHttps != true ||
+            context.User.Identity?.IsAuthenticated != true ||
+            !Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid userId) ||
+            userId == Guid.Empty)
+        {
+            _errorCode = "database";
+            _loading = false;
+            return;
+        }
+
+        _userName = context.User.Identity.Name ?? "Χρήστης";
+        _csrfToken = Antiforgery.GetAndStoreTokens(context).RequestToken;
+        context.Response.Headers.CacheControl = "no-store";
+
+        try
+        {
+            Guid? requestedTenant = TenantId;
+            Guid? requestedStore = StoreId;
+
+            // Το κρυπτογραφημένο cookie χρησιμοποιείται μόνο χωρίς ρητή επιλογή URL.
+            if (!TenantId.HasValue && !StoreId.HasValue &&
+                Preference.TryRead(context, userId, out Guid preferredTenant, out Guid? preferredStore))
+            {
+                requestedTenant = preferredTenant;
+                requestedStore = preferredStore;
+            }
+
+            _workspace = await WorkspaceResolver.ResolveAsync(
+                userId, requestedTenant, requestedStore, context.RequestAborted);
+
+            // Τα μη έγκυρα Tenants/Stores δεν οδηγούν ποτέ σε fallback ανάγνωση.
+            if (_workspace.Status is not (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores))
+            {
+                return;
+            }
+
+            if (SelectedView is not ("products" or "services" or "categories") ||
+                PageSize is not (null or 25 or 50 or 100))
+            {
+                _errorCode = "query";
+                return;
+            }
+
+            CatalogItemKind? kind = SelectedView switch
+            {
+                "products" => CatalogItemKind.Product,
+                "services" => CatalogItemKind.Service,
+                _ => null
+            };
+            CatalogReadQuery query = new(
+                PageNumber ?? 1, PageSize ?? 25, Search, IncludeInactive == true, kind);
+            query = query.Validated();
+
+            if (SelectedView == "categories")
+            {
+                CatalogReadResult<CatalogCategorySummary> result =
+                    await CatalogReader.ReadCategoriesAsync(
+                        userId, _workspace.Tenant!.TenantId, query, context.RequestAborted);
+                _errorCode = result.IsAuthorized ? null : "access";
+                _categories = result.Page;
+            }
+            else
+            {
+                CatalogReadResult<CatalogItemSummary> result =
+                    await CatalogReader.ReadItemsAsync(
+                        userId, _workspace.Tenant!.TenantId, query, context.RequestAborted);
+                _errorCode = result.IsAuthorized ? null : "access";
+                _items = result.Page;
+            }
+
+            if (_errorCode is null)
+            {
+                Logger.LogInformation(
+                    "Catalog UI read for {UserId} {TenantId} {View} page {Page} size {PageSize}",
+                    userId, _workspace.Tenant!.TenantId, SelectedView, query.Page, query.PageSize);
+            }
+            else
+            {
+                Logger.LogWarning(
+                    "Catalog UI access denied for {UserId} {TenantId}",
+                    userId, _workspace.Tenant!.TenantId);
+            }
+        }
+        catch (DomainRuleException)
+        {
+            _errorCode = "query";
+        }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Catalog UI load failed");
+            _categories = null;
+            _items = null;
+            _errorCode = "database";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private string TabClass(string view) =>
+        SelectedView == view ? "catalog-tabs__link catalog-tabs__link--active" : "catalog-tabs__link";
+
+    private static string StatusClass(bool active) =>
+        active ? "catalog-status catalog-status--active" : "catalog-status catalog-status--inactive";
+
+    private string BuildResetUrl() => BuildUrl(SelectedView, 1, reset: true);
+
+    private string BuildUrl(string view, int page, bool reset = false)
+    {
+        var parameters = new List<string>
+        {
+            $"view={Uri.EscapeDataString(view)}"
+        };
+
+        if (TenantId.HasValue)
+        {
+            parameters.Add($"tenantId={TenantId.Value:D}");
+        }
+
+        if (StoreId.HasValue)
+        {
+            parameters.Add($"storeId={StoreId.Value:D}");
+        }
+
+        if (!reset)
+        {
+            if (!string.IsNullOrWhiteSpace(Search) && Search.Length <= CatalogReadQuery.MaxSearchLength)
+            {
+                parameters.Add($"search={Uri.EscapeDataString(Search.Trim())}");
+            }
+
+            if (IncludeInactive == true)
+            {
+                parameters.Add("inactive=true");
+            }
+
+            if (PageSize is 50 or 100)
+            {
+                parameters.Add($"pageSize={PageSize.Value}");
+            }
+        }
+
+        if (page > 1)
+        {
+            parameters.Add($"page={page}");
+        }
+
+        return "/catalog?" + string.Join("&", parameters);
+    }
+}
