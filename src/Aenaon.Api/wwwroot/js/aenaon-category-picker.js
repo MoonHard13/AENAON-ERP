@@ -40,8 +40,9 @@
                 .map(option => ({
                     id: option.value,
                     code: option.textContent?.split(" — ")[0] || "",
-                    name: option.textContent?.trim() || "",
-                    path: option.textContent?.split(" — ").slice(1).join(" — ") || ""
+                    name: option.textContent?.split(" — ").slice(1).join(" — ")
+                        .trim().split(" / ").at(-1) || "",
+                    path: option.textContent?.split(" — ").slice(1).join(" — ").trim() || ""
                 }));
 
             // Η εναλλαγή γίνεται μόνο αφού ολοκληρωθεί πλήρως η αρχικοποίηση.
@@ -141,7 +142,8 @@
                     return;
                 }
                 if (this.hidden.value ||
-                    (!this.required && !this.input.value.trim())) {
+                    (!this.required && (!this.input.value.trim() ||
+                        (this.selectedId === "" && this.input.value === this.selectedLabel)))) {
                     this.hideError();
                     return;
                 }
@@ -187,7 +189,9 @@
 
             this.render(this.initialItems, false);
             // Επιλογή ήδη καταχωρισμένης κατηγορίας δεν πρέπει να χρησιμοποιείται ως όρος αναζήτησης.
-            this.scheduleSearch(this.hidden.value ? "" : this.input.value.trim());
+            this.scheduleSearch(this.hidden.value ||
+                this.input.value === "Καμία — κύρια κατηγορία"
+                ? "" : this.input.value.trim());
         }
 
         close() {
@@ -208,13 +212,15 @@
         }
 
         choose(item) {
-            if (!item || !item.id || item.id === this.excludedId) {
+            if (!item || (!item.id && !item.isRoot) ||
+                (item.id && item.id === this.excludedId)) {
                 return;
             }
 
-            this.selectedId = item.id;
-            this.selectedLabel = item.code + " — " + (item.path || item.name);
-            this.hidden.value = item.id;
+            this.selectedId = item.isRoot ? "" : item.id;
+            this.selectedLabel = item.isRoot ? "Καμία — κύρια κατηγορία"
+                : item.code + " — " + (item.path || item.name);
+            this.hidden.value = this.selectedId;
             this.input.value = this.selectedLabel;
             this.hideError();
             this.close();
@@ -306,8 +312,14 @@
         }
 
         render(items, fetched) {
-            this.items = (Array.isArray(items) ? items : [])
-                .filter(item => item?.id && item.id !== this.excludedId)
+            const candidates = Array.isArray(items) ? items : [];
+            const selectable = !this.required
+                ? [{ id: "", code: "", name: "Καμία — κύρια κατηγορία",
+                     path: "", isRoot: true }, ...candidates]
+                : candidates;
+            this.items = selectable
+                .filter(item => (item?.id || item?.isRoot) &&
+                    item.id !== this.excludedId)
                 .filter(item => !fetched || !this.input.value.trim() ||
                     !this.hidden.value || item.id === this.selectedId ||
                     item.code?.toLocaleLowerCase("el").startsWith(
@@ -326,17 +338,20 @@
 
                 const icon = document.createElement("span");
                 icon.className = "catalog-category-picker__option-icon";
-                icon.textContent = item.parentId ? "↳" : "▤";
+                icon.textContent = item.isRoot ? "—" : item.parentId ? "↳" : "▤";
 
                 const texts = document.createElement("span");
                 texts.className = "catalog-category-picker__option-text";
                 const title = document.createElement("strong");
                 title.textContent = item.name || item.path || item.code || "";
                 const path = document.createElement("small");
-                path.textContent = (item.path || item.name || "") + " · Κωδικός " + (item.code || "");
+                path.textContent = item.isRoot
+                    ? "Χωρίς γονική κατηγορία"
+                    : (item.path || item.name || "") + " · Κωδικός " + (item.code || "");
                 texts.append(title, path);
                 option.append(icon, texts);
-                if (item.id === this.selectedId) {
+                if ((item.isRoot && this.selectedId === "") ||
+                    (item.id && item.id === this.selectedId)) {
                     const check = document.createElement("span");
                     check.className = "catalog-category-picker__selected-indicator";
                     check.textContent = "✓";
