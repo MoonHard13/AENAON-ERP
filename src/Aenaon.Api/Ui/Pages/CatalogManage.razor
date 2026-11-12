@@ -291,8 +291,8 @@
     private string CurrentCode => _draft?.Code ?? _details?.Record?.Code ?? "";
     private string CurrentName => _draft?.Name ?? _details?.Record?.Name ?? "";
     private Guid? CurrentSelectedCategory => View == "categories"
-        ? _draft?.ParentCategoryId ?? _details?.Record?.ParentCategoryId
-        : _draft?.CategoryId ?? _details?.Record?.CategoryId;
+        ? (_draft is not null ? _draft.ParentCategoryId : _details?.Record?.ParentCategoryId)
+        : (_draft is not null ? _draft.CategoryId : _details?.Record?.CategoryId);
     private bool CurrentTracksStock =>
         _draft?.TracksStock ?? _details?.Record?.TracksStock ?? false;
 
@@ -396,6 +396,20 @@
             if (!_denied && !_missing && DraftToken is { } token)
             {
                 _draft = Drafts.Read(token, userId, _workspace.Tenant.TenantId, Id, View!);
+                if (_draft is not null && CurrentSelectedCategory is { } categoryId &&
+                    _details is not null &&
+                    _details.Categories.All(option => option.Id != categoryId))
+                {
+                    // Μετά από validation error διατηρούμε ακόμη και κατηγορία εκτός πρώτης σελίδας.
+                    IReadOnlyList<CatalogCategoryOption>? options =
+                        await Manager.SearchCategoriesAsync(userId,
+                            _workspace.Tenant.TenantId, null, categoryId,
+                            context.RequestAborted);
+                    if (options is not null)
+                    {
+                        _details = _details with { Categories = options };
+                    }
+                }
             }
         }
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
