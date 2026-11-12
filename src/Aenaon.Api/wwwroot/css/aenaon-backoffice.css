@@ -335,3 +335,75 @@ html {
 @media (prefers-reduced-motion: reduce) {
     .workspace-indicator, .sidebar__upcoming > summary .app-icon:last-child { transition: none; }
 }
+
+/* Βήμα 9.4C — Ασφαλής επεξεργασία μη φορολογικού καταλόγου. */
+.catalog-create { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.catalog-create .app-icon { width: 17px; height: 17px; flex: 0 0 17px; }
+.catalog-success {
+    display: flex; align-items: center; gap: 9px;
+    padding: 13px 17px; background: var(--positive-soft); color: var(--positive);
+    border: 1px solid var(--border); border-radius: 11px;
+    font-size: 13px; font-weight: 750; margin-bottom: 15px;
+}
+.catalog-success .app-icon { width: 19px; height: 19px; flex: 0 0 19px; }
+.catalog-edit-link {
+    display: inline-flex; align-items: center;
+    font-size: 12px; font-weight: 750; color: var(--positive);
+    padding: 7px 10px; border: 1px solid var(--border);
+    border-radius: 8px; white-space: nowrap;
+}
+.catalog-edit-link:hover { background: var(--positive-soft); border-color: var(--positive); }
+.catalog-editor { max-width: 950px; min-height: 0; padding: 0; overflow: hidden; }
+.catalog-editor__header {
+    display: flex; justify-content: space-between; align-items: center; gap: 15px;
+    padding: 23px 27px; border-bottom: 1px solid var(--border);
+}
+.catalog-editor__header h2 { font-size: 20px; margin: 0 0 4px; }
+.catalog-editor__header p { font-size: 13px; color: var(--muted); margin: 0; }
+.catalog-editor__form { display: grid; gap: 24px; padding: 25px 27px; }
+.catalog-editor__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 20px; }
+.catalog-editor__field { display: grid; gap: 8px; align-content: start; }
+.catalog-editor__field--wide { grid-column: 1 / -1; }
+.catalog-editor__field label { font-size: 13px; font-weight: 750; color: var(--muted-strong); }
+.catalog-editor__field input, .catalog-editor__field select {
+    min-height: 46px; padding: 10px 13px;
+    width: 100%; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--input-bg); color: var(--text);
+    font: inherit; font-size: 14px;
+}
+.catalog-editor__field input:focus-visible,
+.catalog-editor__field select:focus-visible {
+    outline: 3px solid var(--positive); outline-offset: 2px;
+}
+.catalog-editor__field small { font-size: 12px; color: var(--muted); }
+.catalog-editor__checkbox {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--text); font-size: 13px; font-weight: 700;
+}
+.catalog-editor__checkbox input { width: 17px; height: 17px; accent-color: var(--positive); }
+.catalog-editor__footer { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.catalog-editor__footer .button { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; }
+.catalog-editor__footer .button .app-icon { width: 17px; height: 17px; flex: 0 0 17px; }
+.catalog-editor__footer button:disabled { opacity: .6; cursor: not-allowed; }
+.catalog-editor__hint { margin: 14px 27px; padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: 9px; color: var(--muted-strong); font-size: 12px; }
+.catalog-editor__danger {
+    padding: 20px 27px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+    gap: 16px; border-top: 1px solid var(--border); background: var(--surface-alt);
+}
+.catalog-editor__danger strong { font-size: 13px; }
+.catalog-editor__danger p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+.catalog-editor__danger form { margin: 0; }
+.catalog-editor__danger .button { font-size: 12px; min-height: 40px; }
+.catalog-editor .workspace-alert { margin: 17px 27px 0; }
+.catalog-editor .workspace-alert a { color: var(--positive); font-weight: 750; text-decoration: underline; }
+@media (max-width: 800px) {
+    .catalog-editor__header, .catalog-editor__form, .catalog-editor__danger { padding: 18px 20px; }
+    .catalog-editor__grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 540px) {
+    .catalog-create { margin-top: 13px; }
+    .catalog-manage-page .dashboard__heading .button { margin-top: 13px; }
+    .catalog-editor__header, .catalog-editor__form, .catalog-editor__danger { padding: 16px; }
+}
