@@ -76,9 +76,13 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Το [εγχειρίδιο προεπισκόπησης καταλόγου](docs/34-catalog-read-preview.md) περιγράφει το νέο `CatalogReadService` και το Development CLI `--preview-catalog`: πραγματικός Identity credential check, Tenant Read authorization **πριν** από την ανάγνωση, EF Core `AsNoTracking` με υποχρεωτικό φίλτρο `TenantId`, σελίδωση και αναζήτηση ειδών/υπηρεσιών/κατηγοριών. Δεν γίνεται καμία μεταβολή καταλόγου, SQL migration, ΦΠΑ ή έκδοση παραστατικού.
 
+## Βήμα 9.4B — Blazor Back Office Catalog (Read-only)
+
+Το [εγχειρίδιο του Blazor Back Office Catalog](docs/35-blazor-back-office-catalog.md) παρουσιάζει τη νέα προστατευμένη οθόνη **`/catalog`** με καρτέλες προϊόντων/υπηρεσιών/κατηγοριών, αναζήτηση προθέματος, ανενεργά, 25/50/100 εγγραφές ανά σελίδα, responsive πίνακες, loading/empty/error states και keyboard shortcuts. Το κοινό `CatalogReadService` κάνει εξουσιοδότηση ανά Tenant πριν από τη SQL· το νέο προαιρετικό `Kind` φιλτράρεται στον SQL Server πριν από το paging και εμφανίζεται το όνομα της κατηγορίας με tenant-safe join. **Χωρίς** νέα migration, νέο πακέτο, δημόσιο Catalog API, CRUD, τιμές/ΦΠΑ, φορολογική έγκριση ή διαβιβάσεις. Η οθόνη παραμένει Development-only.
+
 ## Τρέχον στάδιο
 
-**Βήμα 9.2 — Product Catalog SQL Persistence (Development).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
+**Βήμα 9.4B — Blazor Back Office Catalog (Development, μόνο ανάγνωση).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login/Dashboard παραμένει Development-only. Δεν προστέθηκε ακόμη UI ειδών ή CLI καταχώρησης.
 
 Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
 
