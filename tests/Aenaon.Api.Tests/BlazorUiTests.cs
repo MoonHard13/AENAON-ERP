@@ -178,8 +178,11 @@ public sealed class BlazorUiTests
         string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("ΕΝΕΡΓΟ ΠΛΑΙΣΙΟ ΕΡΓΑΣΙΑΣ", html);
-        Assert.Contains("Aenaon Demo / Κεντρικό", html);
+        Assert.Contains("class=\"workspace-indicator\"", html);
+        Assert.Contains("Aenaon Demo", html);
+        Assert.Contains("Κεντρικό (MAIN)", html);
+        Assert.Contains("id=\"workspace-selection\"", html);
+        Assert.DoesNotContain("class=\"active-workspace\"", html);
         Assert.Contains($"name=\"storeId\" value=\"{storeId:D}\"", html);
         Assert.Contains("store-entry store-entry--active", html);
     }
@@ -246,6 +249,7 @@ public sealed class BlazorUiTests
         foreach (string path in new[]
         {
             "/css/aenaon.css",
+            "/css/aenaon-backoffice.css",
             "/js/aenaon.js",
             "/js/aenaon-theme-init.js",
             "/images/aenaon-favicon.png"
@@ -262,6 +266,30 @@ public sealed class BlazorUiTests
                 .ToLowerInvariant()[..16];
             Assert.AreEqual(expectedVersion, match.Groups[1].Value);
         }
+    }
+
+    [TestMethod]
+    public async Task BackOfficeFocusAndNavigation_KeepAccessibleFocusWithoutHeadingOutline()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string dashboard = await client.GetStringAsync("/dashboard");
+        string catalog = await client.GetStringAsync("/catalog");
+
+        Assert.Contains("id=\"workspace-selection\"", dashboard);
+        Assert.DoesNotContain("class=\"active-workspace\"", dashboard);
+        Assert.Contains("class=\"workspace-indicator\"", dashboard);
+        Assert.Contains("class=\"workspace-indicator\"", catalog);
+        Assert.Contains("href=\"/dashboard?tenantId=", catalog);
+        Assert.DoesNotContain("class=\"catalog-context\"", catalog);
+        Assert.Contains("class=\"sidebar__upcoming\"", dashboard);
+
+        string css = await client.GetStringAsync("/css/aenaon-backoffice.css");
+        Assert.Contains(".dashboard__heading h1[tabindex=\"-1\"]:focus", css);
+        Assert.Contains(".workspace-indicator:focus-visible", css);
+        Assert.Contains("position: sticky", css);
     }
 
     [TestMethod]
@@ -310,11 +338,11 @@ public sealed class BlazorUiTests
 
         using var dashboard = await client.GetAsync("/dashboard");
         string html = WebUtility.HtmlDecode(await dashboard.Content.ReadAsStringAsync());
-        Assert.Contains("Aenaon Demo / Υποκατάστημα", html);
-        Assert.Contains("Κωδικός καταστήματος: BRANCH", html);
+        Assert.Contains("Υποκατάστημα (BRANCH)", html);
+        Assert.Contains("Κωδικός: BRANCH", html);
 
         using var again = await client.GetAsync("/dashboard");
-        Assert.Contains("Aenaon Demo / Υποκατάστημα",
+        Assert.Contains("Υποκατάστημα (BRANCH)",
             WebUtility.HtmlDecode(await again.Content.ReadAsStringAsync()));
     }
 
@@ -345,7 +373,7 @@ public sealed class BlazorUiTests
         Assert.AreEqual(HttpStatusCode.Forbidden, wrongTenant.StatusCode);
 
         using var dashboard = await client.GetAsync("/dashboard");
-        Assert.Contains("Aenaon Demo / Κεντρικό",
+        Assert.Contains("Κεντρικό (MAIN)",
             WebUtility.HtmlDecode(await dashboard.Content.ReadAsStringAsync()));
     }
 
@@ -370,7 +398,7 @@ public sealed class BlazorUiTests
             WebUtility.HtmlDecode(await invalid.Content.ReadAsStringAsync()));
 
         using var restored = await client.GetAsync("/dashboard");
-        Assert.Contains("Aenaon Demo / Υποκατάστημα",
+        Assert.Contains("Υποκατάστημα (BRANCH)",
             WebUtility.HtmlDecode(await restored.Content.ReadAsStringAsync()));
     }
 
