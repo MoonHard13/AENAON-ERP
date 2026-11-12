@@ -109,6 +109,19 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
             rows.RemoveAt(rows.Count - 1);
         }
 
-        return new(rows, validated.Page, validated.PageSize, hasMore);
+        // Ολοκληρώνουμε τα breadcrumb paths μόνο για τις κατηγορίες της τρέχουσας σελίδας.
+        Guid[] categoryIds = rows.Select(x => x.CategoryId).Distinct().ToArray();
+        var selectedCategories = await context.CatalogCategories.AsNoTracking()
+            .Where(x => x.TenantId == tenantId && categoryIds.Contains(x.Id))
+            .Select(x => new { x.Id, x.ParentCategoryId, x.Name })
+            .ToListAsync(cancellationToken);
+        Dictionary<Guid, string> paths = await CatalogCategoryPaths.ResolveAsync(
+            context, tenantId,
+            selectedCategories.Select(x => (x.Id, x.ParentCategoryId, x.Name)),
+            cancellationToken);
+        return new(rows.Select(x => x with
+        {
+            CategoryPath = paths.GetValueOrDefault(x.CategoryId, x.CategoryName)
+        }).ToList(), validated.Page, validated.PageSize, hasMore);
     }
 }
