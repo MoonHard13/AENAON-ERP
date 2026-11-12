@@ -161,8 +161,7 @@
                                 <strong>@(existing.IsActive ? "Απενεργοποίηση" : "Ενεργοποίηση")</strong>
                                 <p>Δεν διαγράφονται δεδομένα ούτε μεταβάλλονται συνδεδεμένα είδη.</p>
                             </div>
-                            <form method="post" action="/ui/catalog/save"
-                                  onsubmit="return confirm('Επιβεβαιώνετε την αλλαγή κατάστασης;');">
+                            <form method="post" action="/ui/catalog/save" class="catalog-state-form">
                                 <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
                                 <input type="hidden" name="tenantId" value="@_workspace!.Tenant!.TenantId" />
                                 <input type="hidden" name="view" value="@View" />
