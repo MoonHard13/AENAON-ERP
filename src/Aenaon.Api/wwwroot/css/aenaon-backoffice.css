@@ -1032,3 +1032,82 @@ html {
     .price-list-amount { width: 125px; }
     .price-list-toolbar .button { width: 100%; }
 }
+
+
+/* 9.5B.2 — Προσβάσιμη, μόνιμη σύμπτυξη του desktop sidebar. */
+.sidebar__collapse-toggle {
+    display: flex; align-items: center; gap: 10px; margin: -14px 6px 18px;
+    padding: 9px 11px; min-height: 42px; border: 1px solid #386453;
+    border-radius: 10px; background: #154536; color: #defff0;
+    cursor: pointer; font: inherit; font-size: 12px; font-weight: 650; text-align: left;
+}
+.sidebar__collapse-toggle:hover { background: #1c5a45; }
+.sidebar__collapse-toggle:focus-visible,
+.sidebar__link:focus-visible { outline: 3px solid #50d9ac; outline-offset: 2px; }
+.sidebar__collapse-toggle .app-icon { flex: 0 0 20px; width: 20px; height: 20px; }
+.sidebar__toggle-label { overflow: hidden; white-space: nowrap; }
+.sidebar__link-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+@media (min-width: 851px) {
+    .dashboard { transition: grid-template-columns .18s ease; }
+    :root[data-sidebar="collapsed"] .dashboard {
+        grid-template-columns: 76px minmax(0, 1fr);
+    }
+    :root[data-sidebar="collapsed"] .sidebar { padding: 18px 10px; }
+    :root[data-sidebar="collapsed"] .sidebar__brand {
+        padding: 3px 0 19px; justify-content: center;
+    }
+    :root[data-sidebar="collapsed"] .sidebar__logo { flex: 0 0 42px; width: 42px; }
+    :root[data-sidebar="collapsed"] .sidebar__logo img { width: 42px; height: 42px; }
+    :root[data-sidebar="collapsed"] .sidebar__brand-text,
+    :root[data-sidebar="collapsed"] .sidebar__section-title,
+    :root[data-sidebar="collapsed"] .sidebar__link-label,
+    :root[data-sidebar="collapsed"] .sidebar__upcoming,
+    :root[data-sidebar="collapsed"] .sidebar__version,
+    :root[data-sidebar="collapsed"] .sidebar__toggle-label { display: none; }
+    :root[data-sidebar="collapsed"] .sidebar__collapse-toggle {
+        justify-content: center; margin: 1px 0 18px; padding: 10px;
+    }
+    :root[data-sidebar="collapsed"] .sidebar__collapse-toggle .app-icon {
+        transform: scaleX(-1);
+    }
+    :root[data-sidebar="collapsed"] .sidebar__link {
+        justify-content: center; padding-inline: 10px; gap: 0;
+    }
+    :root[data-sidebar="collapsed"] .sidebar__link .app-icon {
+        width: 20px; height: 20px; flex-basis: 20px;
+    }
+    :root[data-sidebar="collapsed"] .sidebar__foot {
+        display: flex; align-items: center; justify-content: center; padding: 18px 0 0;
+    }
+}
+@media (max-width: 850px) {
+    .sidebar__collapse-toggle { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .dashboard { transition: none; }
+}
+
+/* Η σελιδοποίηση εμφανίζεται μόνο όταν υπάρχει προηγούμενη ή επόμενη σελίδα. */
+.price-list-remove-confirm {
+    margin-top: 5px; max-width: 185px; font-size: 12px; color: var(--muted-strong);
+}
+.price-list-remove-confirm summary {
+    cursor: pointer; color: #b04438; font-size: 12px; font-weight: 700;
+}
+.price-list-remove-confirm[open] {
+    border-radius: 9px; border: 1px solid var(--border);
+    padding: 8px 10px; background: var(--surface-alt);
+}
+.price-list-remove-confirm .price-list-remove-submit {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 7px; padding: 7px 10px;
+    border: 1px solid #b04438; border-radius: 8px;
+    background: transparent; color: #b04438;
+    cursor: pointer; font: inherit; font-weight: 700;
+}
+.price-list-remove-confirm .app-icon { width: 15px; height: 15px; }
+.price-list-remove-confirm summary:focus-visible,
+.price-list-remove-submit:focus-visible {
+    outline: 3px solid var(--positive); outline-offset: 2px;
+}
