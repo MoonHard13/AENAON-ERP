@@ -21,12 +21,8 @@
                           UserName="@_userName" Workspace="@_workspace"
                           CsrfToken="@_csrfToken" TenantId="@TenantId" StoreId="@StoreId" />
         <div class="dashboard__body catalog-page catalog-manage-page">
-            <div class="dashboard__heading">
-                <div>
-                    <p class="eyebrow eyebrow--green">ΚΑΤΑΛΟΓΟΣ / ΔΙΑΧΕΙΡΙΣΗ</p>
-                    <h1>@Heading</h1>
-                    <p>Συμπληρώστε τα βασικά στοιχεία του καταλόγου.</p>
-                </div>
+            @* Η πλοήγηση και ο τίτλος του editor επαρκούν χωρίς επαναλαμβανόμενο heading. *@
+            <div class="catalog-editor__toolbar">
                 <a class="button button--outline" href="@EditorCancelUrl">
                     <AppIcon Name="chevron" />
                     @(_returnEditor is null ? "Επιστροφή στον κατάλογο" : "Πίσω στην καταχώρηση")
@@ -70,7 +66,7 @@
                 <section class="surface-card catalog-editor">
                     <div class="catalog-editor__header">
                         <div>
-                            <h2>Βασικά στοιχεία</h2>
+                            <h1>Βασικά στοιχεία</h1>
                             <p>Τα υποχρεωτικά πεδία σημειώνονται με *.</p>
                         </div>
                         @if (_details.Record is { } record)
