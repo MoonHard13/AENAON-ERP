@@ -8,14 +8,15 @@ namespace Aenaon.Application.Catalog;
 /// <summary>Ενέργειες συντήρησης τιμοκαταλόγων χωρίς φορολογική επεξεργασία.</summary>
 public enum PriceListAction { Create, Update, Activate, Deactivate }
 
-public enum PriceListStatus { Saved, Denied, Missing, Invalid, Duplicate }
+public enum PriceListStatus { Saved, Denied, Missing, Invalid, Duplicate, Conflict }
 
 public sealed record PriceListChange(PriceListAction Action, Guid? Id = null,
     string? Code = null, string? Name = null, Guid? StoreId = null,
     PriceListChannel Channel = PriceListChannel.All, bool PricesIncludeVat = true,
     DateOnly ValidFrom = default, DateOnly? ValidUntil = null);
 
-public sealed record PriceListPriceChange(Guid CatalogItemId, decimal UnitPrice);
+public sealed record PriceListPriceChange(Guid CatalogItemId, decimal UnitPrice,
+    decimal? ExpectedUnitPrice = null, bool CheckExpected = false);
 
 public sealed record PriceListResult(PriceListStatus Status, Guid? Id = null, string? Error = null);
 
@@ -152,7 +153,10 @@ public sealed class PriceListManagementService(
         if (listId == Guid.Empty || changes.Count is < 1 or > 50 ||
             changes.Any(x => x.CatalogItemId == Guid.Empty ||
                 x.UnitPrice < 0 || x.UnitPrice > PriceListItem.MaxUnitPrice ||
-                decimal.Round(x.UnitPrice, 4) != x.UnitPrice) ||
+                decimal.Round(x.UnitPrice, 4) != x.UnitPrice ||
+                (x.CheckExpected && x.ExpectedUnitPrice is { } expected &&
+                 (expected < 0 || expected > PriceListItem.MaxUnitPrice ||
+                  decimal.Round(expected, 4) != expected))) ||
             changes.Select(x => x.CatalogItemId).Distinct().Count() != changes.Count)
         {
             return new(PriceListStatus.Invalid);
