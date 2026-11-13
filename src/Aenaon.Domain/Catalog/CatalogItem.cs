@@ -16,7 +16,9 @@ public sealed class CatalogItem
     }
 
     internal CatalogItem(Guid tenantId, Guid categoryId, string? code, string? name,
-        CatalogItemKind kind, bool tracksStock)
+        CatalogItemKind kind, bool tracksStock,
+        CatalogUnitOfMeasure? unitOfMeasure = null,
+        CatalogAccountingType? accountingType = null)
     {
         if (tenantId == Guid.Empty)
         {
@@ -44,6 +46,12 @@ public sealed class CatalogItem
                 "Οι υπηρεσίες δεν μπορούν να παρακολουθούν απόθεμα.");
         }
 
+        CatalogUnitOfMeasure selectedUnit = unitOfMeasure ??
+            (kind == CatalogItemKind.Service ? CatalogUnitOfMeasure.Service : CatalogUnitOfMeasure.Piece);
+        CatalogAccountingType selectedAccounting = accountingType ??
+            (kind == CatalogItemKind.Service ? CatalogAccountingType.Service : CatalogAccountingType.Merchandise);
+        ValidateCommercial(kind, selectedUnit, selectedAccounting);
+
         Id = Guid.NewGuid();
         TenantId = tenantId;
         CategoryId = categoryId;
@@ -51,16 +59,22 @@ public sealed class CatalogItem
         Name = normalizedName;
         Kind = kind;
         TracksStock = tracksStock;
+        UnitOfMeasure = selectedUnit;
+        AccountingType = selectedAccounting;
         IsActive = true;
     }
 
     /// <summary>Δημιουργεί προϊόν ή υπηρεσία με αμετάβλητο Tenant, κατηγορία και τύπο.</summary>
     public static CatalogItem Create(Guid tenantId, Guid categoryId,
-        string? code, string? name, CatalogItemKind kind, bool tracksStock) =>
-        new(tenantId, categoryId, code, name, kind, tracksStock);
+        string? code, string? name, CatalogItemKind kind, bool tracksStock,
+        CatalogUnitOfMeasure? unitOfMeasure = null,
+        CatalogAccountingType? accountingType = null) =>
+        new(tenantId, categoryId, code, name, kind, tracksStock, unitOfMeasure, accountingType);
 
     /// <summary>Ελέγχει όλα τα πεδία πριν τροποποιηθεί η καταχωρημένη οντότητα.</summary>
-    public void Update(Guid categoryId, string? code, string? name, bool tracksStock)
+    public void Update(Guid categoryId, string? code, string? name, bool tracksStock,
+        CatalogUnitOfMeasure? unitOfMeasure = null,
+        CatalogAccountingType? accountingType = null)
     {
         if (categoryId == Guid.Empty)
         {
@@ -78,10 +92,16 @@ public sealed class CatalogItem
                 "Οι υπηρεσίες δεν μπορούν να παρακολουθούν απόθεμα.");
         }
 
+        CatalogUnitOfMeasure selectedUnit = unitOfMeasure ?? UnitOfMeasure;
+        CatalogAccountingType selectedAccounting = accountingType ?? AccountingType;
+        ValidateCommercial(Kind, selectedUnit, selectedAccounting);
+
         CategoryId = categoryId;
         Code = normalizedCode;
         Name = normalizedName;
         TracksStock = tracksStock;
+        UnitOfMeasure = selectedUnit;
+        AccountingType = selectedAccounting;
     }
 
     /// <summary>Αλλάζει μόνο την κατάσταση και ποτέ τον τύπο του είδους.</summary>
@@ -94,7 +114,41 @@ public sealed class CatalogItem
     public string Name { get; private set; }
     public CatalogItemKind Kind { get; private set; }
     public bool TracksStock { get; private set; }
+    public CatalogUnitOfMeasure UnitOfMeasure { get; private set; }
+    public CatalogAccountingType AccountingType { get; private set; }
     public bool IsActive { get; private set; }
+
+    /// <summary>Επικυρώνει εμπορικές επιλογές χωρίς αυτόματες φορολογικές αντιστοιχίσεις.</summary>
+    private static void ValidateCommercial(CatalogItemKind kind,
+        CatalogUnitOfMeasure unit, CatalogAccountingType accounting)
+    {
+        if (!Enum.IsDefined(unit))
+        {
+            throw new DomainRuleException("catalog.item.unit.invalid",
+                "Η μονάδα μέτρησης δεν είναι έγκυρη.");
+        }
+
+        if (!Enum.IsDefined(accounting))
+        {
+            throw new DomainRuleException("catalog.item.accounting.invalid",
+                "Η λογιστική κατηγορία δεν είναι έγκυρη.");
+        }
+
+        if (kind == CatalogItemKind.Service &&
+            (accounting != CatalogAccountingType.Service ||
+             unit is not (CatalogUnitOfMeasure.Service or CatalogUnitOfMeasure.Hour)))
+        {
+            throw new DomainRuleException("catalog.item.service.profile.invalid",
+                "Οι υπηρεσίες απαιτούν λογιστικό τύπο Υπηρεσία και μονάδα Υπηρεσία ή Ώρα.");
+        }
+
+        if (kind == CatalogItemKind.Product &&
+            (accounting == CatalogAccountingType.Service || unit == CatalogUnitOfMeasure.Service))
+        {
+            throw new DomainRuleException("catalog.item.product.profile.invalid",
+                "Τα είδη δεν μπορούν να έχουν λογιστικό τύπο ή μονάδα Υπηρεσία.");
+        }
+    }
 
     internal void ChangeCode(string? code)
     {
