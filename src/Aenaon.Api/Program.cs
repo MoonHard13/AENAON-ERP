@@ -50,7 +50,7 @@ public partial class Program
             return 2;
         }
 
-        var builder = WebApplication.CreateBuilder(manageCatalog || previewCatalog || inspectImpactPayload || inspectImpactContract || triageFiscalSemantics || verifyFiscalXlsxExport || inspectFiscalXlsx || inspectFiscalMatrix || inspectFiscalImport || checkDatabase || configureDatabase || migrateDatabase || initializeBusiness || initializeAdmin || fixAdminEmail || verifyCredentials || checkTenantAccess ? [] : args);
+        var builder = WebApplication.CreateBuilder(managePriceLists || manageCatalog || previewCatalog || inspectImpactPayload || inspectImpactContract || triageFiscalSemantics || verifyFiscalXlsxExport || inspectFiscalXlsx || inspectFiscalMatrix || inspectFiscalImport || checkDatabase || configureDatabase || migrateDatabase || initializeBusiness || initializeAdmin || fixAdminEmail || verifyCredentials || checkTenantAccess ? [] : args);
         builder.Services.AddApiServices(builder.Configuration, builder.Environment);
         builder.Logging.ClearProviders();
         builder.Logging.AddJsonConsole(options =>
