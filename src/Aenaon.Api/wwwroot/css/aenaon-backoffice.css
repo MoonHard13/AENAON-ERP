@@ -813,3 +813,47 @@ html {
 .catalog-category-picker__popup--compact .catalog-category-picker__status {
     display: none;
 }
+
+/* 9.4C.4 — Εμφανείς, προσβάσιμες επικεφαλίδες ταξινόμησης των SQL πινάκων. */
+.catalog-sort-header {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 9px;
+    min-height: 34px;
+    margin: -7px -9px;
+    padding: 7px 9px;
+    border-radius: 7px;
+    color: inherit;
+    font: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    text-align: left;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: color .15s ease, background-color .15s ease;
+}
+.catalog-sort-header:hover,
+.catalog-sort-header--active {
+    background: var(--positive-soft);
+    color: var(--positive);
+}
+.catalog-sort-header:focus-visible {
+    outline: 3px solid var(--positive);
+    outline-offset: 2px;
+}
+.catalog-sort-header__arrow {
+    flex: 0 0 auto;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 15px;
+    color: var(--muted-strong);
+    font-size: 15px;
+    line-height: 1;
+    font-weight: 800;
+}
+.catalog-sort-header--active .catalog-sort-header__arrow { color: var(--positive); }
+@media (prefers-reduced-motion: reduce) {
+    .catalog-sort-header { transition: none; }
+}
