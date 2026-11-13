@@ -72,6 +72,9 @@
 
         installHandlers() {
             this.input.addEventListener("focus", () => this.open());
+            // Αν η επιλογή έκλεισε το popup ενώ το input έχει ακόμη focus,
+            // ένα δεύτερο click πρέπει πάντα να ανοίγει ξανά τις κατηγορίες.
+            this.input.addEventListener("click", () => this.open());
             this.input.addEventListener("input", () => {
                 this.hidden.value = "";
                 this.hideError();
