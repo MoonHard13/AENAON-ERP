@@ -56,7 +56,7 @@
                         <div class="catalog-surface__actions">
                             @if (CanManage)
                             {
-                                <a class="button button--primary catalog-create" href="@ManageUrl()">
+                                <a class="button button--primary catalog-create" href="@ManageUrl()" accesskey="n" title="Νέος τιμοκατάλογος (συντόμευση N)">
                                     <AppIcon Name="plus" /> Νέος τιμοκατάλογος
                                 </a>
                             }
@@ -77,7 +77,7 @@
                         }
                         <div class="catalog-search">
                             <label for="price-list-search">Κωδικός ή περιγραφή</label>
-                            <input id="price-list-search" name="search" type="search"
+                            <input id="price-list-search" name="search" type="search" accesskey="f"
                                    maxlength="80" value="@Search" placeholder="Αναζήτηση…" />
                         </div>
                         <label class="price-list-check">
