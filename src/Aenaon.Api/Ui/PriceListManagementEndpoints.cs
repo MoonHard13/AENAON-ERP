@@ -27,7 +27,7 @@ public static class PriceListManagementEndpoints
 
     private static async Task<IResult> SaveAsync(HttpContext context,
         IAntiforgery csrf, PriceListManagementService service,
-        TenantAuthorizationService authorization)
+        TenantAuthorizationService authorization, ILoggerFactory loggerFactory)
     {
         if (!await VerifyRequestAsync(context, csrf) ||
             !TryIdentity(context, out Guid userId))
@@ -128,6 +128,9 @@ public static class PriceListManagementEndpoints
             new PriceListChange(action, id, code, name,
                 action == PriceListAction.Create ? scopeStore : null,
                 channel, includeVat, from, until), context.RequestAborted);
+        loggerFactory.CreateLogger(nameof(PriceListManagementEndpoints)).LogInformation(
+            "Price list SSR action {Action} {Status} user {UserId} tenant {TenantId} list {ListId}",
+            action, result.Status, userId, tenant.Value, result.Id ?? id);
 
         if (result.Status == PriceListStatus.Denied)
         {
@@ -218,6 +221,9 @@ public static class PriceListManagementEndpoints
 
         PriceListResult result = await service.SetPricesAsync(
             userId, tenant.Value, id.Value, changes, context.RequestAborted);
+        loggerFactory.CreateLogger(nameof(PriceListManagementEndpoints)).LogInformation(
+            "Price list SSR prices {Status} user {UserId} tenant {TenantId} list {ListId} rows {Count}",
+            result.Status, userId, tenant.Value, id.Value, changes.Count);
         if (result.Status == PriceListStatus.Denied)
         {
             return Results.Forbid();
