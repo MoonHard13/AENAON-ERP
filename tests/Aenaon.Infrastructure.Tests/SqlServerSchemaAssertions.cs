@@ -88,6 +88,7 @@ internal static class SqlServerSchemaAssertions
         Assert.AreEqual(4, await context.Stores.CountAsync(cancellationToken));
 
         await SqlServerCatalogAssertions.RunAsync(connection, context, first.Id, second.Id, cancellationToken);
+        await SqlServerPriceListAssertions.RunAsync(context, first.Id, second.Id, cancellationToken);
         await SqlServerFiscalAssertions.RunAsync(connection, context, first.Id, second.Id, cancellationToken);
         await SqlServerFiscalStagingAssertions.RunAsync(connection, context, cancellationToken);
 
