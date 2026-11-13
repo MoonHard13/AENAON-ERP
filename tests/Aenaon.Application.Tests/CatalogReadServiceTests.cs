@@ -106,14 +106,14 @@ public sealed class CatalogReadServiceTests
                 SortBy: "name", Descending: true));
         Assert.IsTrue(items.IsAuthorized);
         Assert.AreEqual("name", store.LastQuery?.SortBy);
-        Assert.IsTrue(store.LastQuery?.Descending);
+        Assert.IsTrue(store.LastQuery?.Descending == true);
         Assert.AreEqual(2, store.LastQuery?.Page);
 
         CatalogReadResult<CatalogCategorySummary> categories = await service.ReadCategoriesAsync(
             MemberUser, Tenant, new CatalogReadQuery(SortBy: "status"));
         Assert.IsTrue(categories.IsAuthorized);
         Assert.AreEqual("status", store.LastQuery?.SortBy);
-        Assert.IsFalse(store.LastQuery?.Descending);
+        Assert.IsTrue(store.LastQuery?.Descending == false);
     }
 
     [TestMethod]
