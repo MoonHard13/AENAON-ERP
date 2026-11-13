@@ -32,7 +32,7 @@ public sealed class BackOfficeLayoutUiTests
         Assert.Contains("Άνοιγμα καταλόγου", html);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("products", "Προϊόντα", "Νέο προϊόν")]
     [DataRow("services", "Υπηρεσίες", "Νέα υπηρεσία")]
     [DataRow("categories", "Κατηγορίες", "Νέα κατηγορία")]
