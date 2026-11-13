@@ -126,8 +126,15 @@ public static class CatalogManagementEndpoints
             string.Equals(fields["codeMode"], "auto", StringComparison.Ordinal);
         bool tracksStock = entity == CatalogManagedEntity.Product &&
             string.Equals(fields["tracksStock"], "true", StringComparison.Ordinal);
+        if (!TryCommercialFields(fields, entity, out var unitOfMeasure,
+            out var accountingType))
+        {
+            return Results.BadRequest();
+        }
+
         var draft = new CatalogEditorDraft(userId, tenantId, id, view, code, name,
-            categoryId, null, tracksStock, autoCode, "", storeId);
+            categoryId, null, tracksStock, autoCode, "", storeId,
+            unitOfMeasure, accountingType);
         Guid returnDraft = drafts.Save(draft);
         context.Response.Headers.CacheControl = "no-store";
         string storeQuery = storeId.HasValue ? $"&storeId={storeId.Value:D}" : "";
@@ -334,6 +341,14 @@ public static class CatalogManagementEndpoints
 
         bool tracksStock = entity == CatalogManagedEntity.Product &&
             string.Equals(fields["tracksStock"], "true", StringComparison.Ordinal);
+        CatalogUnitOfMeasure? unitOfMeasure = null;
+        CatalogAccountingType? accountingType = null;
+        if (writingFields && !TryCommercialFields(fields, entity,
+            out unitOfMeasure, out accountingType))
+        {
+            invalidField = "accounting";
+        }
+
         if (code.Length > CatalogItem.MaxCodeLength + 8 ||
             name.Length > CatalogItem.MaxNameLength + 8)
         {
@@ -360,7 +375,8 @@ public static class CatalogManagementEndpoints
 
         CatalogChangeCommand command = new(entity, action, id,
             writingFields && autoCode ? null : code,
-            name, categoryId, tracksStock, parentCategoryId, autoCode, requestId);
+            name, categoryId, tracksStock, parentCategoryId, autoCode, requestId,
+            unitOfMeasure, accountingType);
         CatalogChangeResult result = await manager.ApplyAsync(
             userId, tenantId, command, context.RequestAborted);
 
@@ -410,6 +426,10 @@ public static class CatalogManagementEndpoints
                 "catalog.parent.invalid" => "parent",
                 "catalog.category.in_use" => "inuse",
                 "catalog.category.inactive_or_missing" => "category",
+                "catalog.item.unit.invalid" => "unit",
+                "catalog.item.accounting.invalid" or
+                "catalog.item.service.profile.invalid" or
+                "catalog.item.product.profile.invalid" => "accounting",
                 "catalog.code.exhausted" => "code",
                 _ => "invalid"
             };
@@ -430,7 +450,7 @@ public static class CatalogManagementEndpoints
             // Η προεπισκόπηση/επεξεργασία απαιτεί ξανά authorization μετά το redirect.
             var draft = new CatalogEditorDraft(userId, tenantId, id, view,
                 code, name, categoryId, parentCategoryId, tracksStock, autoCode,
-                codeError, storeId);
+                codeError, storeId, unitOfMeasure, accountingType);
             Guid token = drafts.Save(draft);
             return Results.Redirect(
                 $"/catalog/manage?view={view}&tenantId={tenantId:D}" +
@@ -440,6 +460,47 @@ public static class CatalogManagementEndpoints
                 (returnDraftToken.HasValue ? $"&returnDraft={returnDraftToken.Value:D}" : ""),
                 permanent: false);
         }
+    }
+
+    /// <summary>Αποδέχεται μόνο καθορισμένες μονάδες και τύπους, χωρίς φορολογική αντιστοίχιση.</summary>
+    private static bool TryCommercialFields(IFormCollection fields,
+        CatalogManagedEntity entity, out CatalogUnitOfMeasure? unit,
+        out CatalogAccountingType? accounting)
+    {
+        unit = null;
+        accounting = null;
+        string unitText = fields["unitOfMeasure"].ToString();
+        string accountingText = fields["accountingType"].ToString();
+
+        if (entity == CatalogManagedEntity.Category)
+        {
+            return unitText.Length == 0 && accountingText.Length == 0;
+        }
+
+        // Συμβατότητα παλιών φορμών/CLI: ο Domain διατηρεί τις προεπιλογές.
+        if (unitText.Length > 0)
+        {
+            if (!int.TryParse(unitText, out int value) ||
+                !Enum.IsDefined((CatalogUnitOfMeasure)value))
+            {
+                return false;
+            }
+
+            unit = (CatalogUnitOfMeasure)value;
+        }
+
+        if (accountingText.Length > 0)
+        {
+            if (!int.TryParse(accountingText, out int value) ||
+                !Enum.IsDefined((CatalogAccountingType)value))
+            {
+                return false;
+            }
+
+            accounting = (CatalogAccountingType)value;
+        }
+
+        return true;
     }
 
     private static bool TryIdentity(HttpContext context, out Guid userId)
