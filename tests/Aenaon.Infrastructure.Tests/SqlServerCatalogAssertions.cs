@@ -221,6 +221,32 @@ internal static class SqlServerCatalogAssertions
         Assert.AreEqual(1, await context.CatalogCategories.AsNoTracking()
             .CountAsync(x => x.TenantId == tenantId && x.Code == "3", token));
 
+        // Η πραγματική SQL ταξινομεί αριθμούς φυσικά: 001, 002, 3, 10.
+        CatalogChangeResult tenCategory = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "10", Name: "Δέκα"), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, tenCategory.Status);
+        var sortingReader = new SqlCatalogReadStore(context);
+        CatalogReadPage<CatalogCategorySummary> sortedCodes =
+            await sortingReader.ReadCategoriesAsync(tenantId,
+                new CatalogReadQuery(1, 4, SortBy: "code"), token);
+        CollectionAssert.AreEqual(new[] { "001", "002", "3", "10" },
+            sortedCodes.Rows.Select(x => x.Code).ToArray());
+
+        CatalogReadPage<CatalogCategorySummary> descendingCodes =
+            await sortingReader.ReadCategoriesAsync(tenantId,
+                new CatalogReadQuery(1, 4, SortBy: "code", Descending: true), token);
+        CollectionAssert.AreEqual(new[] { "10", "3", "002", "001" },
+            descendingCodes.Rows.Select(x => x.Code).ToArray());
+
+        CatalogReadPage<CatalogCategorySummary> nameSort =
+            await sortingReader.ReadCategoriesAsync(tenantId,
+                new CatalogReadQuery(1, 25, SortBy: "name"), token);
+        Assert.IsTrue(nameSort.Rows.Count > 0);
+        Assert.AreEqual(nameSort.Rows.OrderBy(x => x.Name, StringComparer.Create(
+            System.Globalization.CultureInfo.GetCultureInfo("el-GR"), false))
+            .First().Name, nameSort.Rows[0].Name);
+
         // Η ιεραρχία δεν δέχεται κύκλους ούτε γονείς ξένης επιχείρησης.
         CatalogChangeResult parent = await writer.ApplyAsync(tenantId,
             new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
@@ -274,6 +300,28 @@ internal static class SqlServerCatalogAssertions
                 Name: "Υπηρεσία 2", CategoryId: child.Id, AutoCode: true), token);
         Assert.AreEqual("1", productAuto.Code);
         Assert.AreEqual("2", serviceAuto.Code);
+
+        // Το sort εκτελείται στον SQL Server πριν από την αλλαγή σελίδας.
+        CatalogChangeResult tenItem = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Create,
+                Code: "10", Name: "Δέκα προϊόν", CategoryId: categoryId), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, tenItem.Status);
+        CatalogReadPage<CatalogItemSummary> firstNumeric =
+            await new SqlCatalogReadStore(context).ReadItemsAsync(tenantId,
+                new CatalogReadQuery(1, 1, Kind: CatalogItemKind.Product,
+                    SortBy: "code"), token);
+        CatalogReadPage<CatalogItemSummary> secondNumeric =
+            await new SqlCatalogReadStore(context).ReadItemsAsync(tenantId,
+                new CatalogReadQuery(2, 1, Kind: CatalogItemKind.Product,
+                    SortBy: "code"), token);
+        Assert.AreEqual("1", firstNumeric.Rows[0].Code);
+        Assert.AreEqual("10", secondNumeric.Rows[0].Code);
+
+        CatalogReadPage<CatalogItemSummary> byCategory = await new SqlCatalogReadStore(context)
+            .ReadItemsAsync(tenantId, new CatalogReadQuery(1, 25,
+                Kind: CatalogItemKind.Product, SortBy: "category"), token);
+        Assert.IsTrue(byCategory.Rows.Count > 0);
+        Assert.IsTrue(byCategory.Rows.All(x => x.CategoryName is not null));
 
         // Ενεργοποίηση είδους δεν επιτρέπεται αν η κατηγορία του έχει απενεργοποιηθεί.
         CatalogChangeResult temporaryCategory = await writer.ApplyAsync(tenantId,
