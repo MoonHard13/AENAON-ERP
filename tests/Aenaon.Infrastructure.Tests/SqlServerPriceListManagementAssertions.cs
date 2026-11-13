@@ -44,15 +44,24 @@ internal static class SqlServerPriceListManagementAssertions
         Assert.AreEqual(PriceListStatus.Invalid, foreign.Status);
 
         PriceListResult priced = await store.SetPricesAsync(tenant, created.Id.Value,
-            [new PriceListPriceChange(itemId, 9.8765m)], token);
+            [new PriceListPriceChange(itemId, 9.8765m, null, CheckExpected: true)], token);
         Assert.AreEqual(PriceListStatus.Saved, priced.Status);
         PriceListItemsPage? rows = await store.ReadItemsAsync(tenant, created.Id.Value, null, 1, 25, token);
         Assert.IsNotNull(rows);
         Assert.IsTrue(rows.Rows.Any(x => x.Id == itemId && x.UnitPrice == 9.8765m));
 
         PriceListResult modified = await store.SetPricesAsync(tenant, created.Id.Value,
-            [new PriceListPriceChange(itemId, 12.5000m)], token);
+            [new PriceListPriceChange(itemId, 12.5000m, 9.8765m, CheckExpected: true)], token);
         Assert.AreEqual(PriceListStatus.Saved, modified.Status);
+        Assert.AreEqual(12.5000m, await context.PriceListItems.AsNoTracking()
+            .Where(x => x.TenantId == tenant && x.PriceListId == created.Id.Value &&
+                x.CatalogItemId == itemId)
+            .Select(x => x.UnitPrice).SingleAsync(token));
+
+        // Η παρωχημένη αρχική τιμή δεν επιτρέπεται να αντικαταστήσει νεότερη αλλαγή.
+        PriceListResult stale = await store.SetPricesAsync(tenant, created.Id.Value,
+            [new PriceListPriceChange(itemId, 99m, 9.8765m, CheckExpected: true)], token);
+        Assert.AreEqual(PriceListStatus.Conflict, stale.Status);
         Assert.AreEqual(12.5000m, await context.PriceListItems.AsNoTracking()
             .Where(x => x.TenantId == tenant && x.PriceListId == created.Id.Value &&
                 x.CatalogItemId == itemId)
