@@ -857,3 +857,42 @@ html {
 @media (prefers-reduced-motion: reduce) {
     .catalog-sort-header { transition: none; }
 }
+
+/* 9.5A — Η εμπορική/λογιστική ενότητα χρησιμοποιεί το υπάρχον design system. */
+.catalog-editor__section-title {
+    padding-top: 20px;
+    margin-top: 5px;
+    border-top: 1px solid var(--border);
+}
+.catalog-editor__section-title h3 {
+    margin: 0 0 6px;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text);
+}
+.catalog-editor__section-title p {
+    margin: 0;
+    color: var(--muted-strong);
+    font-size: 13px;
+    line-height: 1.6;
+}
+.catalog-editor__field select#edit-unit,
+.catalog-editor__field select#edit-accounting {
+    width: 100%;
+    min-height: 49px;
+    padding-right: 40px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text);
+    background-color: var(--input-bg);
+    border-radius: 11px;
+}
+.catalog-editor__field select#edit-unit:hover,
+.catalog-editor__field select#edit-accounting:hover {
+    border-color: var(--positive);
+}
+.catalog-editor__field select#edit-unit:focus-visible,
+.catalog-editor__field select#edit-accounting:focus-visible {
+    outline: 3px solid var(--positive);
+    outline-offset: 2px;
+}
