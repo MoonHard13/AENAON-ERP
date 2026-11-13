@@ -678,3 +678,132 @@ html {
 @media (prefers-reduced-motion: reduce) {
     .catalog-category-picker__control { transition: none; }
 }
+
+
+/* 9.4C.3 — Το popup τοποθετείται από τη JavaScript εντός του ορατού viewport.
+   Μόνο η λίστα κάνει scroll· ενέργειες και μηνύματα παραμένουν ορατά. */
+.catalog-category-picker__popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(620px, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    gap: 0;
+    z-index: 1200;
+    padding: 6px;
+    border-color: var(--border);
+    background: var(--surface-raised);
+    box-shadow: 0 18px 48px rgb(8 29 23 / 18%);
+}
+.catalog-category-picker__options {
+    display: block;
+    min-height: 0;
+    flex: 0 1 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: 300px;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.catalog-category-picker__option {
+    min-width: 0;
+    min-height: 51px;
+    margin-bottom: 2px;
+}
+.catalog-category-picker__option:hover,
+.catalog-category-picker__option--active {
+    border-color: var(--border);
+    background: var(--positive-soft);
+}
+.catalog-category-picker__option[aria-selected="true"] {
+    color: var(--text);
+    border-left: 3px solid var(--positive);
+}
+.catalog-category-picker__option-text strong { font-size: 14px; line-height: 1.35; }
+.catalog-category-picker__option-text small { font-size: 12px; line-height: 1.5; }
+.catalog-category-picker__status {
+    flex: 0 0 auto;
+    border-top: 1px solid var(--border);
+    padding: 9px 11px;
+    background: var(--surface-raised);
+    color: var(--muted-strong);
+    font-size: 12px;
+}
+.catalog-category-picker__create {
+    flex: 0 0 auto;
+    min-height: 46px;
+    width: 100%;
+    margin: 0;
+    border: 1px solid transparent;
+    border-top-color: var(--border);
+    border-radius: 0 0 8px 8px;
+    background: var(--surface-alt);
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: normal;
+}
+.catalog-category-picker__inline-action { display: none; }
+.catalog-category-picker--ready .catalog-category-picker__inline-action {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 32px;
+    margin-top: 1px;
+}
+.catalog-category-picker__inline-create {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 100%;
+    padding: 6px 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--positive);
+    font-size: 13px;
+    font-weight: 750;
+    line-height: 1.45;
+    text-align: left;
+    white-space: normal;
+    cursor: pointer;
+}
+.catalog-category-picker__inline-create:hover { text-decoration: underline; }
+.catalog-category-picker__inline-create:focus-visible {
+    outline: 3px solid var(--positive);
+    outline-offset: 3px;
+}
+.catalog-category-picker__inline-create .app-icon {
+    flex: 0 0 17px;
+    width: 17px;
+    height: 17px;
+}
+.catalog-category-picker__help,
+.catalog-editor__field small,
+.catalog-disclaimer {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--muted-strong);
+}
+.catalog-editor__field input:disabled {
+    opacity: 1;
+    color: var(--muted-strong);
+    background: var(--surface-alt);
+    border-color: var(--border);
+}
+.catalog-category-picker__popup[hidden],
+.catalog-category-picker__error[hidden] {
+    display: none !important;
+}
+@media (max-width: 650px) {
+    .catalog-category-picker__popup {
+        width: calc(100vw - 24px);
+        max-height: calc(100dvh - 24px);
+    }
+    .catalog-category-picker__inline-create {
+        font-size: 13px;
+    }
+}
