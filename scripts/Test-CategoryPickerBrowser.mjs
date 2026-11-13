@@ -316,7 +316,30 @@ try {
     assert.equal(received[0].name, "");
     assert.equal(received[0].tenantId, "9698df79-3c31-41c9-b292-b7240c7265fb");
 
-    process.stdout.write("Category Picker Chromium smoke: 4 viewports, focus, keyboard, real popup click + POST OK\n");
+    // Ελέγχουμε και το μόνιμο κουμπί έξω από το dropdown σε νέα πλοήγηση.
+    await cdp.command("Page.navigate", {
+        url: "http://127.0.0.1:" + httpPort + "/"
+    });
+    await waitFor(() => cdp.evaluate(
+        'document.querySelector("[data-catalog-picker]")?.classList.contains("catalog-category-picker--ready")'),
+        "Δεν επαναφορτώθηκε ο επιλογέας.");
+    const inline = await cdp.evaluate(`(() => {
+        const button = document.querySelector(".catalog-category-picker__inline-create");
+        const rect = button.getBoundingClientRect();
+        return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2,
+                 visible: rect.width > 0 && rect.height > 0 };
+    })()`);
+    assert.ok(inline.visible, "Το μόνιμο κουμπί νέας κατηγορίας δεν εμφανίζεται.");
+    await cdp.command("Input.dispatchMouseEvent", {
+        type: "mousePressed", x: inline.x, y: inline.y, button: "left", clickCount: 1
+    });
+    await cdp.command("Input.dispatchMouseEvent", {
+        type: "mouseReleased", x: inline.x, y: inline.y, button: "left", clickCount: 1
+    });
+    await waitFor(() => received.length === 2, "Το μόνιμο κουμπί δεν υπέβαλε POST.");
+    assert.equal(received[1].view, "products");
+
+    process.stdout.write("Category Picker Chromium smoke: 4 viewports, focus, keyboard, popup and inline clicks + 2 POSTs OK\\n");
 } finally {
     websocket?.close();
     browser?.kill("SIGKILL");
