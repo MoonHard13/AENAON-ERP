@@ -46,6 +46,7 @@
 
     private string DashboardHref => Href("/dashboard");
     private string CatalogHref => Href("/catalog");
+    private string PriceListsHref => Href("/price-lists");
 
     private string LinkClass(string page) =>
         ActivePage == page ? "sidebar__link sidebar__link--active" : "sidebar__link";
