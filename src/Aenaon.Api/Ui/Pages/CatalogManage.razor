@@ -330,6 +330,15 @@
         _ => "Νέο προϊόν"
     };
 
+    private string CatalogSection => View switch
+    {
+        "categories" => "Κατηγορίες",
+        "services" => "Υπηρεσίες",
+        _ => "Προϊόντα"
+    };
+
+    private string CatalogSectionHref => BackUrl;
+
     private string BackUrl
     {
         get
