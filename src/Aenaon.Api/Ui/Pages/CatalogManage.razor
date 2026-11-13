@@ -16,7 +16,7 @@
 <main class="dashboard">
     <BackOfficeSidebar ActivePage="catalog" TenantId="@TenantId" StoreId="@StoreId" />
     <div class="dashboard__content">
-        <BackOfficeTopbar ActivePage="catalog" PageTitle="Διαχείριση καταλόγου"
+        <BackOfficeTopbar ActivePage="catalog" PageTitle="@Heading" BreadcrumbSection="@CatalogSection" BreadcrumbSectionHref="@CatalogSectionHref"
                           UserName="@_userName" Workspace="@_workspace"
                           CsrfToken="@_csrfToken" TenantId="@TenantId" StoreId="@StoreId" />
         <div class="dashboard__body catalog-page catalog-manage-page">
@@ -329,6 +329,15 @@
         (_, true) => "Επεξεργασία προϊόντος",
         _ => "Νέο προϊόν"
     };
+
+    private string CatalogSection => View switch
+    {
+        "categories" => "Κατηγορίες",
+        "services" => "Υπηρεσίες",
+        _ => "Προϊόντα"
+    };
+
+    private string CatalogSectionHref => BackUrl;
 
     private string BackUrl
     {

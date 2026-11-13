@@ -98,6 +98,12 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 Η έκδοση παραμένει **Development-only**, με Owner/Manage, HTTPS, anti-CSRF και tenant-scoped SQL. **Δεν** υπάρχουν νέες migrations, αλλαγές σε τιμές/ΦΠΑ, myDATA/IMPACT ή έκδοση παραστατικών.
 
+## Βήμα 9.4C.3 — Category Picker Stability & UI Finalization
+
+Το [ελληνικό εγχειρίδιο 9.4C.3](docs/40-category-picker-stability.md) περιγράφει τη διόρθωση του αυτόματου outline στους τίτλους, τη γεωμετρία του ενιαίου Category Picker μέσα στο viewport (άνω/κάτω με εσωτερικό scroll), το πάντοτε ορατό κουμπί **Νέα κατηγορία** και την αξιόπιστη επιστροφή στην αρχική φόρμα. Οι λειτουργίες περιλαμβάνουν ένα debounce ανά αναζήτηση, `AbortController`, πληκτρολόγιο και βελτιωμένο contrast, καθώς και ενιαία ελληνικά breadcrumbs.
+
+Το CI ελέγχει και **πραγματικό Chrome smoke σε desktop/mobile μέσω CDP χωρίς npm εξαρτήσεις** (`scripts/Test-CategoryPickerBrowser.mjs`). Όλα παραμένουν **Development-only**, με Owner/Manage, HTTPS και anti-CSRF. **Δεν απαιτείται νέα migration** και δεν αλλάζουν myDATA/IMPACT ή παραστατικά.
+
 ## Τρέχον στάδιο
 
 **Βήμα 9.4C.2 — Back Office UI Polish & Category Picker (Development, Owner write / Member read).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login, το Dashboard και ο νέος κατάλογος `/catalog` παραμένουν Development-only. Υπάρχει πλέον ασφαλής προβολή καταλόγου για Owner/Member και περιορισμένη δημιουργία/επεξεργασία/αλλαγή ενεργής κατάστασης από Owner μέσω UI και CLI.

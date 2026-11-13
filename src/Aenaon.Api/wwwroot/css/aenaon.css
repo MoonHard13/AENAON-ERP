@@ -69,6 +69,12 @@ a { color: inherit; text-decoration: none; }
 button { cursor: pointer; }
 img { display: block; max-width: 100%; }
 :focus-visible { outline: 3px solid #38cda4; outline-offset: 4px; }
+/* Η εστίαση τίτλων από Blazor FocusOnNavigate παραμένει προσβάσιμη στους
+   αναγνώστες οθόνης χωρίς το παραπλανητικό περίγραμμα μεγάλου κειμένου.
+   Η κανονική εστίαση πληκτρολογίου στα controls δεν επηρεάζεται. */
+h1[tabindex="-1"]:focus-visible {
+    outline: none;
+}
 ::selection { color: #092f24; background: #a3efd0; }
 .app-shell { min-height: 100vh; }
 .eyebrow { font-size: 11px; font-weight: 750; letter-spacing: .17em; text-transform: uppercase; }
@@ -176,6 +182,10 @@ img { display: block; max-width: 100%; }
 .breadcrumb { font-size: 13px; color: var(--muted); }
 .breadcrumb span { padding: 0 10px; color: #a4aaa7; }
 .breadcrumb strong { color: var(--text); font-weight: 600; }
+.breadcrumb a { color: var(--muted-strong); transition: color .15s ease; }
+.breadcrumb a:hover { color: var(--positive); text-decoration: underline; }
+.breadcrumb a:focus-visible { outline: 2px solid var(--positive); outline-offset: 3px; border-radius: 3px; }
+
 .topbar__actions { display: flex; align-items: center; gap: 14px; }
 .topbar__avatar { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; color: #ecfff5; background: #155a44; border-radius: 10px; font-weight: 800; }
 .topbar__username { font-weight: 750; font-size: 12px; }

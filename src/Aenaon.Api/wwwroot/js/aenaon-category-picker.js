@@ -1,13 +1,16 @@
-/* Προσβάσιμο category combobox: ο native select παραμένει fallback χωρίς JavaScript. */
+/* Προσβάσιμο combobox με προσαρμογή viewport, ασφαλή αναζήτηση και native fallback. */
 (() => {
     "use strict";
 
-    const MAX_RESULTS = 30;
     const SEARCH_DELAY_MS = 220;
+    const MAX_RESULTS = 30;
+    const VIEWPORT_MARGIN = 12;
+    const POPUP_GAP = 7;
 
     class CatalogCategoryPicker {
         constructor(root) {
             this.root = root;
+            this.control = root.querySelector("[data-picker-control]");
             this.input = root.querySelector("[data-picker-search]");
             this.toggle = root.querySelector("[data-picker-toggle]");
             this.popup = root.querySelector("[data-picker-popup]");
@@ -16,70 +19,80 @@
             this.error = root.querySelector("[data-picker-error]");
             this.native = root.querySelector("[data-picker-native]");
             this.hidden = root.querySelector("[data-picker-value]");
-            this.create = root.querySelector("[data-picker-create]");
             this.form = root.closest("form");
+            this.createButtons = [...root.querySelectorAll("[data-picker-create]")];
+            this.createPopup = this.popup?.querySelector("[data-picker-create]");
             this.tenantId = root.dataset.tenantId;
             this.excludedId = root.dataset.selfId || "";
             this.required = root.dataset.required === "true";
+
             this.items = [];
             this.activeIndex = -1;
-            this.searchDelay = null;
             this.request = null;
+            this.searchDelay = null;
             this.sequence = 0;
             this.isOpen = false;
+            this.isSubmittingQuickCreate = false;
 
-            if (!this.input || !this.list || !this.native || !this.hidden ||
-                !this.form || !this.tenantId) {
+            if (!this.control || !this.input || !this.toggle || !this.popup ||
+                !this.list || !this.status || !this.error || !this.native ||
+                !this.hidden || !this.form || !this.tenantId) {
                 return;
             }
 
-            const nativeSelected = this.native.selectedOptions[0];
             this.selectedId = this.native.value;
-            this.selectedLabel = this.selectedId ? nativeSelected?.textContent?.trim() || "" : "";
-            this.initialItems = [...this.native.options].filter(option => option.value)
-                .map(option => ({
-                    id: option.value,
-                    code: option.textContent?.split(" — ")[0] || "",
-                    name: option.textContent?.split(" — ").slice(1).join(" — ")
-                        .trim().split(" / ").at(-1) || "",
-                    path: option.textContent?.split(" — ").slice(1).join(" — ").trim() || ""
-                }));
+            this.selectedLabel = this.selectedId
+                ? this.native.selectedOptions[0]?.textContent?.trim() || ""
+                : "";
 
-            // Η εναλλαγή γίνεται μόνο αφού ολοκληρωθεί πλήρως η αρχικοποίηση.
-            this.native.disabled = true;
-            this.hidden.disabled = false;
-            this.hidden.value = this.selectedId;
-            this.root.classList.add("catalog-category-picker--ready");
-            this.input.value = this.selectedLabel;
+            // Το native select παρέχει τις αρχικές επιλογές αν το δίκτυο καθυστερεί.
+            this.initialItems = [...this.native.options]
+                .filter(option => option.value)
+                .map(option => {
+                    const label = option.textContent?.trim() || "";
+                    const separator = label.indexOf(" — ");
+                    const path = separator < 0 ? label : label.slice(separator + 3);
+                    return {
+                        id: option.value,
+                        code: separator < 0 ? "" : label.slice(0, separator),
+                        name: path.split(" / ").at(-1) || path,
+                        path
+                    };
+                });
+
             this.installHandlers();
+
+            // Προοδευτική ενεργοποίηση μόνο αφού είναι διαθέσιμο όλο το control.
+            this.hidden.value = this.selectedId;
+            this.hidden.disabled = false;
+            this.native.disabled = true;
+            this.input.value = this.selectedLabel;
+            this.root.classList.add("catalog-category-picker--ready");
         }
 
         installHandlers() {
             this.input.addEventListener("focus", () => this.open());
+            // Αν η επιλογή έκλεισε το popup ενώ το input έχει ακόμη focus,
+            // ένα δεύτερο click πρέπει πάντα να ανοίγει ξανά τις κατηγορίες.
+            this.input.addEventListener("click", () => this.open());
             this.input.addEventListener("input", () => {
                 this.hidden.value = "";
                 this.hideError();
-                const search = this.input.value.trim();
-                if (!search && !this.required) {
-                    this.selectedId = "";
-                    this.selectedLabel = "";
-                }
-                this.open();
-                this.scheduleSearch(search);
+                this.open(false);
+                // Ένα μόνο debounce ανά αλλαγή, όχι open() + δεύτερο scheduleSearch().
+                this.scheduleSearch(this.input.value.trim());
             });
 
             this.input.addEventListener("keydown", event => {
                 if (event.key === "ArrowDown" || event.key === "ArrowUp") {
                     event.preventDefault();
-                    if (!this.isOpen) {
-                        this.open();
-                    }
+                    this.open();
                     this.moveActive(event.key === "ArrowDown" ? 1 : -1);
                     return;
                 }
 
                 if (event.key === "Enter") {
-                    // Το Enter δεν πρέπει ποτέ να υποβάλει έμμεσα την κύρια φόρμα.
+                    // Το Enter επιλέγει κατηγορία και δεν υποβάλλει τη φόρμα.
                     event.preventDefault();
                     if (this.isOpen && this.activeIndex >= 0) {
                         this.choose(this.items[this.activeIndex]);
@@ -89,28 +102,25 @@
                     return;
                 }
 
-                if (event.key === "Escape") {
-                    if (this.isOpen) {
-                        event.preventDefault();
-                        this.restoreSelected();
-                        this.close();
-                    }
+                if (event.key === "Escape" && this.isOpen) {
+                    event.preventDefault();
+                    this.restoreSelected();
+                    this.hideError();
+                    this.close();
                     return;
                 }
 
-                if (event.key === "Tab") {
-                    this.restoreSelected();
-                    if (!event.shiftKey && this.create && this.isOpen) {
-                        // Το Tab επιτρέπει πρόσβαση και στη δημιουργία κατηγορίας.
+                if (event.key === "Tab" && this.isOpen) {
+                    if (!event.shiftKey && this.createPopup) {
                         event.preventDefault();
-                        this.create.focus();
+                        this.createPopup.focus({ preventScroll: true });
                     } else {
                         this.close();
                     }
                 }
             });
 
-            this.toggle?.addEventListener("click", () => {
+            this.toggle.addEventListener("click", () => {
                 if (this.isOpen) {
                     this.close();
                 } else {
@@ -119,34 +129,44 @@
                 }
             });
 
-            // Mousedown πριν από blur: διατηρούμε εστίαση στο input για ARIA active-descendant.
-            this.list.addEventListener("pointerdown", event => {
-                if (event.target instanceof Element && event.target.closest('[role="option"]')) {
+            // Η απώλεια focus από το input δεν πρέπει να κλείνει το popup
+            // προτού παραδοθεί το click σε επιλογή ή στο κουμπί νέας κατηγορίας.
+            this.popup.addEventListener("mousedown", event => {
+                if (event.target instanceof Element &&
+                    event.target.closest('[role="option"], [data-picker-create]')) {
                     event.preventDefault();
                 }
             });
+
             this.list.addEventListener("click", event => {
                 if (!(event.target instanceof Element)) {
                     return;
                 }
-                const element = event.target.closest("[data-option-index]");
-                const index = Number(element?.getAttribute("data-option-index"));
-                if (element && Number.isInteger(index) && index >= 0 && index < this.items.length) {
+                const option = event.target.closest("[data-option-index]");
+                const index = Number(option?.getAttribute("data-option-index"));
+                if (option && Number.isInteger(index) &&
+                    index >= 0 && index < this.items.length) {
                     this.choose(this.items[index]);
                 }
             });
 
+            for (const button of this.createButtons) {
+                button.addEventListener("click", event => {
+                    event.preventDefault();
+                    this.requestQuickCreate();
+                });
+            }
+
             document.addEventListener("pointerdown", event => {
                 if (!this.root.contains(event.target)) {
-                    // Δεν υποκαθιστούμε σιωπηρά ένα μη επιλεγμένο νέο κείμενο
-                    // με την παλιά κατηγορία. Η υποβολή θα ζητήσει ρητή επιλογή.
                     this.close();
                 }
             });
 
             this.root.addEventListener("focusout", () => {
                 window.queueMicrotask(() => {
-                    if (!this.root.contains(document.activeElement)) {
+                    if (!this.root.contains(document.activeElement) &&
+                        !this.isSubmittingQuickCreate) {
                         this.close();
                     }
                 });
@@ -156,9 +176,12 @@
                 if (event.submitter?.matches("[data-category-quick-submit]")) {
                     return;
                 }
-                if (this.hidden.value ||
-                    (!this.required && (!this.input.value.trim() ||
-                        (this.selectedId === "" && this.input.value === this.selectedLabel)))) {
+
+                const emptyAllowed = !this.required &&
+                    (!this.input.value.trim() ||
+                     (this.selectedId === "" &&
+                      this.input.value === this.selectedLabel));
+                if (this.hidden.value || emptyAllowed) {
                     this.hideError();
                     return;
                 }
@@ -170,55 +193,75 @@
                 this.open();
             }, true);
 
-            this.create?.addEventListener("click", () => this.requestQuickCreate());
+            // Έλεγχος θέσης σε window scroll, εσωτερικό scroll φόρμας και zoom.
+            const adjust = event => {
+                if (this.isOpen && event.target !== this.list) {
+                    this.positionPopup();
+                }
+            };
+            window.addEventListener("resize", adjust, { passive: true });
+            window.addEventListener("scroll", adjust, { capture: true, passive: true });
+            window.visualViewport?.addEventListener("resize", adjust, { passive: true });
+            window.visualViewport?.addEventListener("scroll", adjust, { passive: true });
         }
 
         requestQuickCreate() {
-            if (!this.form) {
+            if (!this.form || this.isSubmittingQuickCreate) {
                 return;
             }
 
-            let submit = this.form.querySelector("[data-category-quick-submit]");
+            const submit = this.form.querySelector("[data-category-quick-submit]");
             if (!(submit instanceof HTMLButtonElement)) {
-                submit = document.createElement("button");
-                submit.type = "submit";
-                submit.hidden = true;
-                submit.tabIndex = -1;
-                submit.dataset.categoryQuickSubmit = "true";
-                submit.formAction = "/ui/catalog/new-category";
-                submit.formMethod = "post";
-                submit.formNoValidate = true;
-                this.form.appendChild(submit);
+                this.status.textContent = "Δεν είναι διαθέσιμη η δημιουργία κατηγορίας.";
+                this.open(false);
+                return;
             }
 
+            this.isSubmittingQuickCreate = true;
             this.close();
-            this.form.requestSubmit(submit);
+
+            // Χρησιμοποιούμε το πραγματικό HTML submitter με formaction/formnovalidate,
+            // ώστε ο server να κρατήσει τα πρόχειρα στοιχεία και το εγκεκριμένο store.
+            try {
+                this.form.requestSubmit(submit);
+            } catch {
+                this.isSubmittingQuickCreate = false;
+                this.status.textContent = "Η μετάβαση δεν ολοκληρώθηκε. Δοκιμάστε ξανά.";
+                this.open(false);
+            }
         }
 
-        open() {
-            if (!this.isOpen) {
+        open(search = true) {
+            const wasOpen = this.isOpen;
+            if (!wasOpen) {
                 this.popup.hidden = false;
                 this.input.setAttribute("aria-expanded", "true");
                 this.isOpen = true;
+                this.render(this.initialItems);
             }
 
-            this.render(this.initialItems);
-            // Επιλογή ήδη καταχωρισμένης κατηγορίας δεν πρέπει να χρησιμοποιείται ως όρος αναζήτησης.
-            this.scheduleSearch(this.hidden.value ||
-                this.input.value === "Καμία — κύρια κατηγορία"
-                ? "" : this.input.value.trim());
+            this.positionPopup();
+            if (search && !wasOpen) {
+                const isCommitted = this.input.value === this.selectedLabel;
+                this.scheduleSearch(isCommitted ? "" : this.input.value.trim());
+            }
         }
 
         close() {
+            if (!this.isOpen) {
+                return;
+            }
             this.popup.hidden = true;
             this.input.setAttribute("aria-expanded", "false");
             this.input.removeAttribute("aria-activedescendant");
+            this.root.removeAttribute("aria-busy");
             this.isOpen = false;
             this.activeIndex = -1;
             this.sequence++;
             this.request?.abort();
             this.request = null;
             window.clearTimeout(this.searchDelay);
+            this.searchDelay = null;
         }
 
         restoreSelected() {
@@ -256,12 +299,14 @@
         updateActive() {
             [...this.list.children].forEach((element, index) => {
                 const active = index === this.activeIndex;
-                element.setAttribute("aria-selected", active ? "true" : "false");
+                element.classList.toggle("catalog-category-picker__option--active", active);
+                element.setAttribute("data-active", active ? "true" : "false");
                 if (active) {
                     this.input.setAttribute("aria-activedescendant", element.id);
-                    element.scrollIntoView({ block: "nearest" });
+                    element.scrollIntoView({ block: "nearest", inline: "nearest" });
                 }
             });
+
             if (this.activeIndex < 0) {
                 this.input.removeAttribute("aria-activedescendant");
             }
@@ -274,10 +319,11 @@
             this.request = null;
             const current = this.sequence;
             this.status.textContent = "Αναζήτηση κατηγοριών…";
-            this.status.hidden = false;
             this.root.setAttribute("aria-busy", "true");
-            this.searchDelay = window.setTimeout(() => this.search(term, current),
-                SEARCH_DELAY_MS);
+            this.searchDelay = window.setTimeout(() => {
+                this.searchDelay = null;
+                void this.search(term, current);
+            }, SEARCH_DELAY_MS);
         }
 
         async search(term, sequence) {
@@ -290,6 +336,7 @@
             if (this.selectedId) {
                 params.set("selectedId", this.selectedId);
             }
+
             try {
                 const response = await window.fetch(
                     "/ui/catalog/categories?" + params.toString(), {
@@ -299,7 +346,7 @@
                         signal: controller.signal
                     });
                 if (!response.ok) {
-                    throw new Error("Unable to retrieve categories");
+                    throw new Error("Category lookup failed");
                 }
                 const items = await response.json();
                 if (sequence !== this.sequence || !this.isOpen) {
@@ -310,17 +357,19 @@
                 this.status.textContent = !this.items.length
                     ? "Δεν βρέθηκαν κατηγορίες."
                     : this.items.length === MAX_RESULTS
-                        ? "Εμφανίζονται έως 30 κατηγορίες. Πληκτρολογήστε για πιο συγκεκριμένη αναζήτηση."
+                        ? "Εμφανίζονται έως 30 κατηγορίες. Περιορίστε την αναζήτηση."
                         : this.items.length === 1
                             ? "Βρέθηκε 1 κατηγορία."
                             : `Βρέθηκαν ${this.items.length} κατηγορίες.`;
-            } catch (error) {
-                if (controller.signal.aborted || sequence !== this.sequence) {
-                    return;
+                this.positionPopup();
+            } catch {
+                if (!controller.signal.aborted && sequence === this.sequence) {
+                    this.status.textContent = "Η αναζήτηση απέτυχε. Πληκτρολογήστε ξανά.";
+                    this.positionPopup();
                 }
-                this.status.textContent = "Η αναζήτηση απέτυχε. Δοκιμάστε ξανά.";
             } finally {
                 if (sequence === this.sequence) {
+                    this.request = null;
                     this.root.removeAttribute("aria-busy");
                 }
             }
@@ -332,10 +381,9 @@
                 ? [{ id: "", code: "", name: "Καμία — κύρια κατηγορία",
                      path: "", isRoot: true }, ...candidates]
                 : candidates;
-            const currentText = this.input.value.trim();
-            const committedDisplay = currentText === this.selectedLabel;
-            const searchTerm = committedDisplay ? ""
-                : currentText.toLocaleLowerCase("el");
+            const term = this.input.value.trim();
+            const committed = term === this.selectedLabel;
+            const searchTerm = committed ? "" : term.toLocaleLowerCase("el");
             this.items = selectable
                 .filter(item => (item?.id || item?.isRoot) &&
                     item.id !== this.excludedId)
@@ -343,13 +391,15 @@
                     item.code?.toLocaleLowerCase("el").startsWith(searchTerm) ||
                     item.name?.toLocaleLowerCase("el").startsWith(searchTerm))
                 .slice(0, MAX_RESULTS);
-            const options = document.createDocumentFragment();
+
+            const fragment = document.createDocumentFragment();
             this.items.forEach((item, index) => {
                 const option = document.createElement("div");
                 option.id = this.list.id + "-option-" + index;
                 option.className = "catalog-category-picker__option";
                 option.setAttribute("role", "option");
-                option.setAttribute("aria-selected", "false");
+                option.setAttribute("aria-selected",
+                    item.id === this.selectedId ? "true" : "false");
                 option.dataset.optionIndex = String(index);
 
                 const icon = document.createElement("span");
@@ -361,11 +411,14 @@
                 const title = document.createElement("strong");
                 title.textContent = item.name || item.path || item.code || "";
                 const path = document.createElement("small");
+                const pathText = item.path && item.path !== item.name
+                    ? item.path + " · " : "";
                 path.textContent = item.isRoot
                     ? "Χωρίς γονική κατηγορία"
-                    : (item.path || item.name || "") + " · Κωδικός " + (item.code || "");
+                    : pathText + "Κωδικός " + (item.code || "");
                 texts.append(title, path);
                 option.append(icon, texts);
+
                 if ((item.isRoot && this.selectedId === "") ||
                     (item.id && item.id === this.selectedId)) {
                     const check = document.createElement("span");
@@ -374,11 +427,67 @@
                     check.setAttribute("aria-hidden", "true");
                     option.appendChild(check);
                 }
-                options.appendChild(option);
+                fragment.appendChild(option);
             });
-            this.list.replaceChildren(options);
+
+            this.list.replaceChildren(fragment);
             this.activeIndex = -1;
             this.input.removeAttribute("aria-activedescendant");
+        }
+
+        positionPopup() {
+            if (!this.isOpen) {
+                return;
+            }
+
+            const rect = this.control.getBoundingClientRect();
+            const viewport = window.visualViewport;
+            const top = viewport?.offsetTop || 0;
+            const left = viewport?.offsetLeft || 0;
+            const width = viewport?.width || window.innerWidth;
+            const height = viewport?.height || window.innerHeight;
+            const bottom = top + height;
+            const right = left + width;
+            const availableBelow = Math.max(0, bottom - rect.bottom - POPUP_GAP -
+                VIEWPORT_MARGIN);
+            const availableAbove = Math.max(0, rect.top - top - POPUP_GAP -
+                VIEWPORT_MARGIN);
+            const openAbove = availableBelow < 270 && availableAbove > availableBelow;
+            const available = openAbove ? availableAbove : availableBelow;
+            // Αν δεν χωράει ούτε πάνω ούτε κάτω, χρησιμοποιούμε συμπαγές
+            // viewport panel ώστε το κουμπί δημιουργίας να μην αποκοπεί.
+            const useViewportPanel = available < 175;
+            const fullHeight = Math.max(0, height - VIEWPORT_MARGIN * 2);
+            const panelHeight = Math.min(370,
+                useViewportPanel ? fullHeight : Math.min(available, fullHeight));
+            this.popup.classList.toggle("catalog-category-picker__popup--compact",
+                panelHeight < 160);
+            const safeWidth = Math.max(0, width - VIEWPORT_MARGIN * 2);
+            const panelWidth = Math.min(620, rect.width, safeWidth);
+            const panelLeft = Math.max(left + VIEWPORT_MARGIN,
+                Math.min(rect.left, right - VIEWPORT_MARGIN - panelWidth));
+            const footerHeight = this.createPopup?.offsetHeight || 0;
+            const statusHeight = Math.max(this.status.offsetHeight, 36);
+            const reservedHeight = footerHeight + (panelHeight < 160 ? 0 : statusHeight) + 23;
+            const listHeight = Math.max(0, panelHeight - reservedHeight);
+
+            this.list.style.maxHeight = Math.min(300, listHeight) + "px";
+            this.popup.style.width = panelWidth + "px";
+            this.popup.style.left = panelLeft + "px";
+            this.popup.style.maxHeight = panelHeight + "px";
+
+            const actualHeight = Math.min(this.popup.offsetHeight, panelHeight);
+            const idealTop = useViewportPanel
+                ? top + VIEWPORT_MARGIN
+                : openAbove
+                    ? rect.top - POPUP_GAP - actualHeight
+                    : rect.bottom + POPUP_GAP;
+            const panelTop = Math.max(top + VIEWPORT_MARGIN,
+                Math.min(idealTop, bottom - VIEWPORT_MARGIN - actualHeight));
+
+            this.popup.style.top = panelTop + "px";
+            this.popup.dataset.placement = useViewportPanel
+                ? "viewport" : openAbove ? "top" : "bottom";
         }
 
         showError() {
@@ -397,8 +506,10 @@
             if (root.dataset.pickerInitialized === "true") {
                 return;
             }
-            root.dataset.pickerInitialized = "true";
-            new CatalogCategoryPicker(root);
+            const picker = new CatalogCategoryPicker(root);
+            if (picker.input && picker.hidden && picker.form) {
+                root.dataset.pickerInitialized = "true";
+            }
         });
     }
 
@@ -406,5 +517,10 @@
         document.addEventListener("DOMContentLoaded", initialize, { once: true });
     } else {
         initialize();
+    }
+
+    // Αν ενεργοποιηθεί enhanced navigation, αρχικοποιούμε ξανά τα νέα SSR elements.
+    if (window.Blazor && typeof window.Blazor.addEventListener === "function") {
+        window.Blazor.addEventListener("enhancedload", initialize);
     }
 })();

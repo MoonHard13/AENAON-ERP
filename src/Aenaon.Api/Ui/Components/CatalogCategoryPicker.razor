@@ -52,6 +52,19 @@
         }
     </div>
 
+    @* Η ενέργεια μένει ορατή ακόμη κι όταν το popup κλείσει ή η λίστα γεμίσει.
+       Η κανονική αποθήκευση εξακολουθεί να είναι το πρώτο submitter της φόρμας. *@
+    @if (AllowCreate)
+    {
+        <div class="catalog-category-picker__inline-action" data-picker-inline-action>
+            <button type="button" class="catalog-category-picker__inline-create"
+                    data-picker-create aria-label="Δημιουργία νέας κατηγορίας και επιστροφή στην καταχώρηση">
+                <AppIcon Name="plus" />
+                <span>Δεν βρίσκετε την κατηγορία; Δημιουργήστε νέα</span>
+            </button>
+        </div>
+    }
+
     @* Χρησιμοποιείται μόνο αφού αρχικοποιηθεί το JavaScript combobox. *@
     <input type="hidden" data-picker-value disabled name="@FieldName" value="@SelectedId" />
 
