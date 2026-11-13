@@ -153,7 +153,7 @@ public static class PriceListManagementEndpoints
 
     private static async Task<IResult> SavePricesAsync(HttpContext context,
         IAntiforgery csrf, PriceListManagementService service,
-        TenantAuthorizationService authorization)
+        TenantAuthorizationService authorization, ILoggerFactory loggerFactory)
     {
         if (!await VerifyRequestAsync(context, csrf) ||
             !TryIdentity(context, out Guid userId))
