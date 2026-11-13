@@ -10,4 +10,12 @@
     } catch {
         // Η προτίμηση του λειτουργικού συστήματος συνεχίζει να λειτουργεί χωρίς localStorage.
     }
+
+    // Η συμπτυγμένη διάταξη εφαρμόζεται πριν από το CSS για αποφυγή αναπήδησης.
+    try {
+        document.documentElement.dataset.sidebar =
+            window.localStorage.getItem("aenaon-sidebar") === "collapsed" ? "collapsed" : "expanded";
+    } catch {
+        document.documentElement.dataset.sidebar = "expanded";
+    }
 })();
