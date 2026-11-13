@@ -170,9 +170,9 @@
                             <form method="post" action="/ui/price-lists/save">
                                 <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
                                 <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
-                                @if (_workspace.Store is { } currentStore)
+                                @if (_workspace.Store is { } stateScopeStore)
                                 {
-                                    <input type="hidden" name="storeId" value="@currentStore.StoreId" />
+                                    <input type="hidden" name="storeId" value="@stateScopeStore.StoreId" />
                                 }
                                 <input type="hidden" name="id" value="@current.Id" />
                                 <input type="hidden" name="action" value="@(current.IsActive ? "deactivate" : "activate")" />
@@ -194,9 +194,9 @@
                         <form method="get" action="/price-lists/manage" class="catalog-filters" role="search" aria-label="Αναζήτηση ειδών για τιμολόγηση">
                             <input type="hidden" name="id" value="@selected.Id" />
                             <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
-                            @if (_workspace.Store is { } currentStore)
+                            @if (_workspace.Store is { } filterScopeStore)
                             {
-                                <input type="hidden" name="storeId" value="@currentStore.StoreId" />
+                                <input type="hidden" name="storeId" value="@filterScopeStore.StoreId" />
                             }
                             <div class="catalog-search">
                                 <label for="price-item-search">Κωδικός ή περιγραφή είδους</label>
@@ -218,9 +218,9 @@
                             <form method="post" action="/ui/price-lists/prices">
                                 <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
                                 <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
-                                @if (_workspace.Store is { } currentStore)
+                                @if (_workspace.Store is { } priceFormScopeStore)
                                 {
-                                    <input type="hidden" name="storeId" value="@currentStore.StoreId" />
+                                    <input type="hidden" name="storeId" value="@priceFormScopeStore.StoreId" />
                                 }
                                 <input type="hidden" name="id" value="@selected.Id" />
                                 <input type="hidden" name="search" value="@Search" />
