@@ -133,7 +133,8 @@ public sealed class SqlCatalogWriteStore(AenaonDbContext context) : ICatalogWrit
                 record = await context.CatalogItems.AsNoTracking()
                     .Where(x => x.TenantId == tenantId && x.Id == id.Value && x.Kind == kind)
                     .Select(x => new CatalogManageRecord(x.Id, x.Code, x.Name, x.IsActive,
-                        x.CategoryId, x.Kind, x.TracksStock))
+                        x.CategoryId, x.Kind, x.TracksStock, null,
+                        x.UnitOfMeasure, x.AccountingType))
                     .SingleOrDefaultAsync(cancellationToken);
             }
         }
@@ -344,7 +345,8 @@ public sealed class SqlCatalogWriteStore(AenaonDbContext context) : ICatalogWrit
             }
 
             item = CatalogItem.Create(tenantId, command.CategoryId!.Value,
-                command.Code, command.Name, kind, command.TracksStock);
+                command.Code, command.Name, kind, command.TracksStock,
+                command.UnitOfMeasure, command.AccountingType);
             context.CatalogItems.Add(item);
         }
         else
@@ -367,7 +369,7 @@ public sealed class SqlCatalogWriteStore(AenaonDbContext context) : ICatalogWrit
                 }
 
                 item.Update(command.CategoryId ?? Guid.Empty, command.Code, command.Name,
-                    command.TracksStock);
+                    command.TracksStock, command.UnitOfMeasure, command.AccountingType);
             }
             else
             {
