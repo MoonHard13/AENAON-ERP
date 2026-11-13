@@ -22,6 +22,9 @@ public static class PriceListManagementEndpoints
         endpoints.MapPost("/ui/price-lists/prices", SavePricesAsync)
             .WithMetadata(new RequestSizeLimitAttribute(16384))
             .RequireAuthorization();
+        endpoints.MapPost("/ui/price-lists/remove-price", RemovePriceAsync)
+            .WithMetadata(new RequestSizeLimitAttribute(16384))
+            .RequireAuthorization();
         return endpoints;
     }
 
@@ -266,6 +269,63 @@ public static class PriceListManagementEndpoints
             "&saved=1" : result.Status == PriceListStatus.Conflict ?
                 "&error=conflict" : result.Error == "pricelist.inactive" ?
                     "&error=inactive" : "&error=invalid"));
+    }
+
+    /// <summary>Ρητή αφαίρεση μίας τιμής με Owner, CSRF και έλεγχο παρωχημένων δεδομένων.</summary>
+    private static async Task<IResult> RemovePriceAsync(HttpContext context,
+        IAntiforgery csrf, PriceListManagementService service,
+        TenantAuthorizationService authorization, ILoggerFactory loggerFactory)
+    {
+        if (!await VerifyRequestAsync(context, csrf) ||
+            !TryIdentity(context, out Guid userId))
+        {
+            return Results.BadRequest();
+        }
+
+        IFormCollection form = await context.Request.ReadFormAsync(context.RequestAborted);
+        if (!TryGuid(form, "tenantId", required: true, out Guid? tenant) ||
+            !TryGuid(form, "storeId", required: false, out Guid? currentStore) ||
+            !TryGuid(form, "id", required: true, out Guid? id) ||
+            !TryGuid(form, "catalogItemId", required: true, out Guid? itemId) ||
+            !TrySingle(form, "expectedPrice", out string priceText) ||
+            !decimal.TryParse(priceText,
+                NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
+                CultureInfo.InvariantCulture, out decimal expectedPrice) ||
+            !TrySingle(form, "search", out string search) ||
+            search.Length > 80 || search.Any(char.IsControl) ||
+            !TrySingle(form, "page", out string pageText) ||
+            !int.TryParse(pageText, NumberStyles.None, CultureInfo.InvariantCulture, out int page) ||
+            page is < 1 or > 100_000 || tenant is null || id is null || itemId is null)
+        {
+            return Results.BadRequest();
+        }
+
+        TenantAccessResult permission = await authorization.CheckAsync(userId,
+            tenant.Value, currentStore, TenantPermission.Manage, context.RequestAborted);
+        if (permission.Status != TenantAccessStatus.Granted)
+        {
+            return Results.Forbid();
+        }
+
+        PriceListResult result = await service.RemovePriceAsync(userId, tenant.Value,
+            id.Value, itemId.Value, expectedPrice, context.RequestAborted);
+        loggerFactory.CreateLogger(nameof(PriceListManagementEndpoints)).LogInformation(
+            "Price list price removal {Status} by {UserId} tenant {TenantId} list {PriceListId} item {CatalogItemId}",
+            result.Status, userId, tenant.Value, id.Value, itemId.Value);
+        if (result.Status == PriceListStatus.Denied)
+        {
+            return Results.Forbid();
+        }
+
+        string destination = EditorUrl(tenant.Value, currentStore, id) +
+            $"&page={page}" + (search.Length > 0 ? "&search=" + Uri.EscapeDataString(search) : "");
+        context.Response.Headers.CacheControl = "no-store";
+        return Results.Redirect(destination + (result.Status switch
+        {
+            PriceListStatus.Saved => "&removed=1",
+            PriceListStatus.Conflict or PriceListStatus.Missing => "&error=conflict",
+            _ => "&error=invalid"
+        }));
     }
 
     private static async Task<bool> VerifyRequestAsync(HttpContext context,
