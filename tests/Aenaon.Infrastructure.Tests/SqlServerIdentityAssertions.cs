@@ -1,5 +1,6 @@
 using System.Data;
 using System.Security.Claims;
+using Aenaon.Domain.Catalog;
 using Aenaon.Domain.Tenancy;
 using Aenaon.Infrastructure.Database;
 using Aenaon.Infrastructure.Identity;
@@ -40,6 +41,39 @@ internal static class SqlServerIdentityAssertions
         Assert.AreEqual(DatabaseSchemaStatus.Ready, preview.Status);
         Assert.HasCount(1, preview.AppliedMigrations!);
         Assert.HasCount(6, preview.PendingMigrations!);
+
+        // Παλαιότερα δεδομένα προετοιμάζονται στο schema της 6ης migration:
+        // ο έλεγχος διασφαλίζει ότι η 7η δεν τα διαγράφει ή αλλάζει κωδικούς.
+        Guid oldCategory = Guid.NewGuid();
+        Guid oldProduct = Guid.NewGuid();
+        Guid oldService = Guid.NewGuid();
+        await using (var sixth = new AenaonDbContext(options))
+        {
+            await sixth.GetService<IMigrator>().MigrateAsync(
+                "20261112130000_CatalogHierarchyAndNumbering", cancellationToken);
+        }
+
+        await using (var seededConnection = new SqlConnection(connectionString))
+        {
+            await seededConnection.OpenAsync(cancellationToken);
+            await using var command = seededConnection.CreateCommand();
+            command.CommandText = """
+                INSERT INTO dbo.CatalogCategories (Id, TenantId, Code, Name, IsActive)
+                VALUES (@category, @tenant, N'MIG-TEST', N'Κατηγορία πριν την αναβάθμιση', 1);
+
+                INSERT INTO dbo.CatalogItems
+                    (Id, TenantId, CategoryId, Code, Name, Kind, TracksStock, IsActive)
+                VALUES
+                    (@product, @tenant, @category, N'MIG-P', N'Παλαιό προϊόν', 1, 1, 1),
+                    (@service, @tenant, @category, N'MIG-S', N'Παλαιά υπηρεσία', 2, 0, 1);
+                """;
+            command.Parameters.Add("@category", SqlDbType.UniqueIdentifier).Value = oldCategory;
+            command.Parameters.Add("@product", SqlDbType.UniqueIdentifier).Value = oldProduct;
+            command.Parameters.Add("@service", SqlDbType.UniqueIdentifier).Value = oldService;
+            command.Parameters.Add("@tenant", SqlDbType.UniqueIdentifier).Value = original.Id;
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
         Assert.AreEqual(DatabaseSchemaStatus.Updated,
             (await schema.ExecuteAsync(true, "AenaonERP_Identity_CI", cancellationToken)).Status);
 
@@ -51,6 +85,26 @@ internal static class SqlServerIdentityAssertions
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<AenaonDbContext>();
+
+        // Η πραγματική αναβάθμιση διατηρεί είδη και αποδίδει ασφαλή αρχικά προφίλ.
+        CatalogItem migratedProduct = await context.CatalogItems
+            .SingleAsync(x => x.Id == oldProduct, cancellationToken);
+        CatalogItem migratedService = await context.CatalogItems
+            .SingleAsync(x => x.Id == oldService, cancellationToken);
+        Assert.AreEqual("MIG-P", migratedProduct.Code);
+        Assert.AreEqual("MIG-S", migratedService.Code);
+        Assert.AreEqual(CatalogUnitOfMeasure.Piece, migratedProduct.UnitOfMeasure);
+        Assert.AreEqual(CatalogAccountingType.Merchandise, migratedProduct.AccountingType);
+        Assert.AreEqual(CatalogUnitOfMeasure.Service, migratedService.UnitOfMeasure);
+        Assert.AreEqual(CatalogAccountingType.Service, migratedService.AccountingType);
+
+        // Καθαρίζουμε αποκλειστικά το απομονωμένο fixture, όχι επιχειρησιακά δεδομένα.
+        context.CatalogItems.RemoveRange(migratedProduct, migratedService);
+        CatalogCategory seededCategory = await context.CatalogCategories
+            .SingleAsync(x => x.Id == oldCategory, cancellationToken);
+        context.CatalogCategories.Remove(seededCategory);
+        await context.SaveChangesAsync(cancellationToken);
+
         var manager = scope.ServiceProvider.GetRequiredService<UserManager<AenaonUser>>();
         var preserved = await context.Tenants.Include(tenant => tenant.Stores).SingleAsync(cancellationToken);
         Assert.AreEqual(original.Id, preserved.Id);
