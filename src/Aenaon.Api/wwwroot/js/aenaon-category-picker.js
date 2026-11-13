@@ -450,18 +450,23 @@
             const availableAbove = Math.max(0, rect.top - top - POPUP_GAP -
                 VIEWPORT_MARGIN);
             const openAbove = availableBelow < 270 && availableAbove > availableBelow;
-
-            // Περιορίζουμε πραγματικά το popup στο ορατό viewport, ακόμη και με zoom.
             const available = openAbove ? availableAbove : availableBelow;
-            const panelHeight = Math.max(65,
-                Math.min(370, available, Math.max(65, height - VIEWPORT_MARGIN * 2)));
+            // Αν δεν χωράει ούτε πάνω ούτε κάτω, χρησιμοποιούμε συμπαγές
+            // viewport panel ώστε το κουμπί δημιουργίας να μην αποκοπεί.
+            const useViewportPanel = available < 175;
+            const fullHeight = Math.max(0, height - VIEWPORT_MARGIN * 2);
+            const panelHeight = Math.min(370,
+                useViewportPanel ? fullHeight : Math.min(available, fullHeight));
+            this.popup.classList.toggle("catalog-category-picker__popup--compact",
+                panelHeight < 160);
             const safeWidth = Math.max(0, width - VIEWPORT_MARGIN * 2);
             const panelWidth = Math.min(620, rect.width, safeWidth);
             const panelLeft = Math.max(left + VIEWPORT_MARGIN,
                 Math.min(rect.left, right - VIEWPORT_MARGIN - panelWidth));
             const footerHeight = this.createPopup?.offsetHeight || 0;
             const statusHeight = Math.max(this.status.offsetHeight, 36);
-            const listHeight = Math.max(46, panelHeight - footerHeight - statusHeight - 23);
+            const reservedHeight = footerHeight + (panelHeight < 160 ? 0 : statusHeight) + 23;
+            const listHeight = Math.max(0, panelHeight - reservedHeight);
 
             this.list.style.maxHeight = Math.min(300, listHeight) + "px";
             this.popup.style.width = panelWidth + "px";
@@ -469,14 +474,17 @@
             this.popup.style.maxHeight = panelHeight + "px";
 
             const actualHeight = Math.min(this.popup.offsetHeight, panelHeight);
-            const idealTop = openAbove
-                ? rect.top - POPUP_GAP - actualHeight
-                : rect.bottom + POPUP_GAP;
+            const idealTop = useViewportPanel
+                ? top + VIEWPORT_MARGIN
+                : openAbove
+                    ? rect.top - POPUP_GAP - actualHeight
+                    : rect.bottom + POPUP_GAP;
             const panelTop = Math.max(top + VIEWPORT_MARGIN,
                 Math.min(idealTop, bottom - VIEWPORT_MARGIN - actualHeight));
 
             this.popup.style.top = panelTop + "px";
-            this.popup.dataset.placement = openAbove ? "top" : "bottom";
+            this.popup.dataset.placement = useViewportPanel
+                ? "viewport" : openAbove ? "top" : "bottom";
         }
 
         showError() {
