@@ -229,7 +229,8 @@
         }
 
         open(search = true) {
-            if (!this.isOpen) {
+            const wasOpen = this.isOpen;
+            if (!wasOpen) {
                 this.popup.hidden = false;
                 this.input.setAttribute("aria-expanded", "true");
                 this.isOpen = true;
@@ -237,7 +238,7 @@
             }
 
             this.positionPopup();
-            if (search && !this.request && this.searchDelay === null) {
+            if (search && !wasOpen) {
                 const isCommitted = this.input.value === this.selectedLabel;
                 this.scheduleSearch(isCommitted ? "" : this.input.value.trim());
             }
@@ -452,7 +453,8 @@
 
             // Περιορίζουμε πραγματικά το popup στο ορατό viewport, ακόμη και με zoom.
             const available = openAbove ? availableAbove : availableBelow;
-            const panelHeight = Math.max(105, Math.min(370, available || height - 24));
+            const panelHeight = Math.max(65,
+                Math.min(370, available, Math.max(65, height - VIEWPORT_MARGIN * 2)));
             const safeWidth = Math.max(0, width - VIEWPORT_MARGIN * 2);
             const panelWidth = Math.min(620, rect.width, safeWidth);
             const panelLeft = Math.max(left + VIEWPORT_MARGIN,
