@@ -2,10 +2,10 @@ using Aenaon.Domain.Catalog;
 
 namespace Aenaon.Api.Ui;
 
-/// <summary>Σταθερές ελληνικές ονομασίες εμπορικών πεδίων για τις φόρμες του καταλόγου.</summary>
 /// <summary>Σταθερή αριθμητική τιμή και ονομασία για τον ενιαίο επιλογέα.</summary>
 public sealed record CatalogSelectOption(int Value, string Label);
 
+/// <summary>Σταθερές ελληνικές ονομασίες εμπορικών πεδίων για τις φόρμες του καταλόγου.</summary>
 public static class CatalogCommercialOptions
 {
     public static IReadOnlyList<CatalogUnitOfMeasure> ProductUnits { get; } =
