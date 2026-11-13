@@ -23,7 +23,7 @@ public sealed class PriceListUiTests
         Assert.Contains("RETAIL", page);
         Assert.Contains("/price-lists/manage", page);
 
-        string create = await client.GetStringAsync("/price-lists/manage");
+        string create = WebUtility.HtmlDecode(await client.GetStringAsync("/price-lists/manage"));
         Assert.Contains("action=\"/ui/price-lists/save\"", create);
         Assert.Contains("name=\"scopeStoreId\"", create);
         Assert.Contains("name=\"__RequestVerificationToken\"", create);
