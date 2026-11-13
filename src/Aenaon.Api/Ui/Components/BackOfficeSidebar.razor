@@ -19,6 +19,10 @@
            aria-current="@(ActivePage == "catalog" ? "page" : null)">
             <AppIcon Name="catalog" /> Κατάλογος
         </a>
+        <a class="@LinkClass("price-lists")" href="@PriceListsHref"
+           aria-current="@(ActivePage == "price-lists" ? "page" : null)">
+            <AppIcon Name="sales" /> Τιμοκατάλογοι
+        </a>
         <details class="sidebar__upcoming">
             <summary><AppIcon Name="settings" /> Επόμενες λειτουργίες <AppIcon Name="chevron" /></summary>
             <div class="sidebar__upcoming-list" aria-label="Λειτουργίες υπό ανάπτυξη">
