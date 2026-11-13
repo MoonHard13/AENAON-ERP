@@ -24,24 +24,6 @@
                           CsrfToken="@_csrfToken" TenantId="@TenantId" StoreId="@StoreId" />
 
         <div class="dashboard__body catalog-page">
-            <div class="dashboard__heading">
-                <div>
-                    <p class="eyebrow eyebrow--green">ΚΑΤΑΛΟΓΟΣ / ΔΙΑΧΕΙΡΙΣΗ</p>
-                    <h1>Κατάλογος</h1>
-                    <p>Προϊόντα, υπηρεσίες και κατηγορίες της επιχείρησής σας.</p>
-                </div>
-                @if (CanManage)
-                {
-                    <a class="button button--primary catalog-create" href="@BuildManageUrl(SelectedView)">
-                        <AppIcon Name="plus" /> @NewButtonText
-                    </a>
-                }
-                else
-                {
-                    <span class="catalog-readonly"><AppIcon Name="shield" /> Μόνο ανάγνωση</span>
-                }
-            </div>
-
             @if (_loading)
             {
                 <section class="surface-card catalog-loading" aria-busy="true" role="status">
@@ -112,13 +94,25 @@
 
                 <section class="surface-card catalog-surface" aria-labelledby="catalog-list-title">
                     <div class="catalog-surface__header">
-                        <div>
-                            <h2 id="catalog-list-title">@SelectedTitle</h2>
+                        <div class="catalog-surface__identity">
+                            <h1 id="catalog-list-title">@SelectedTitle</h1>
+                            @if (_errorCode is null && CurrentRows > 0)
+                            {
+                                <span class="count-pill">@CurrentRows εγγραφές στη σελίδα</span>
+                            }
                         </div>
-                        @if (_errorCode is null && CurrentRows > 0)
-                        {
-                            <span class="count-pill">@CurrentRows εγγραφές στη σελίδα</span>
-                        }
+                        <div class="catalog-surface__actions">
+                            @if (CanManage)
+                            {
+                                <a class="button button--primary catalog-create" href="@BuildManageUrl(SelectedView)">
+                                    <AppIcon Name="plus" /> @NewButtonText
+                                </a>
+                            }
+                            else
+                            {
+                                <span class="catalog-readonly"><AppIcon Name="shield" /> Μόνο ανάγνωση</span>
+                            }
+                        </div>
                     </div>
 
                     <form class="catalog-filters" method="get" action="/catalog" role="search"
