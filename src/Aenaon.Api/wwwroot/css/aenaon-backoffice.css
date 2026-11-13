@@ -807,3 +807,9 @@ html {
         font-size: 13px;
     }
 }
+
+/* Όταν το mobile visual viewport είναι εξαιρετικά χαμηλό (π.χ. πληκτρολόγιο),
+   προστατεύουμε το footer από περικοπή αφαιρώντας μόνο το δευτερεύον status. */
+.catalog-category-picker__popup--compact .catalog-category-picker__status {
+    display: none;
+}
