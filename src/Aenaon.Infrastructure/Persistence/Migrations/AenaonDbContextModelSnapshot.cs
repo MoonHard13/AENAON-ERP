@@ -75,6 +75,9 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                 b.Property<Guid>("Id")
                     .HasColumnType("uniqueidentifier");
 
+                b.Property<int>("AccountingType")
+                    .HasColumnType("int");
+
                 b.Property<Guid>("CategoryId")
                     .HasColumnType("uniqueidentifier");
 
@@ -98,6 +101,9 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                 b.Property<Guid>("TenantId")
                     .HasColumnType("uniqueidentifier");
 
+                b.Property<int>("UnitOfMeasure")
+                    .HasColumnType("int");
+
                 b.Property<bool>("TracksStock")
                     .HasColumnType("bit");
 
@@ -112,7 +118,11 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
 
                 b.ToTable("CatalogItems", "dbo", t =>
                     {
+                        t.HasCheckConstraint("CK_CatalogItems_AccountingType", "[AccountingType] BETWEEN 1 AND 6");
+
                         t.HasCheckConstraint("CK_CatalogItems_CategoryId", "[CategoryId] <> '00000000-0000-0000-0000-000000000000'");
+
+                        t.HasCheckConstraint("CK_CatalogItems_CommercialProfile", "([Kind] = 2 AND [AccountingType] = 5 AND [UnitOfMeasure] IN (7, 8)) OR ([Kind] = 1 AND [AccountingType] <> 5 AND [UnitOfMeasure] <> 8)");
 
                         t.HasCheckConstraint("CK_CatalogItems_Code", "LEN(LTRIM(RTRIM([Code]))) > 0");
 
@@ -125,6 +135,8 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                         t.HasCheckConstraint("CK_CatalogItems_ServiceStock", "[Kind] <> 2 OR [TracksStock] = 0");
 
                         t.HasCheckConstraint("CK_CatalogItems_TenantId", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
+
+                        t.HasCheckConstraint("CK_CatalogItems_UnitOfMeasure", "[UnitOfMeasure] BETWEEN 1 AND 8");
                     });
             });
 
