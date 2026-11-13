@@ -17,8 +17,8 @@
 ```powershell
 cd "$env:USERPROFILE\Desktop\AENAON-ERP"
 git fetch origin
-git switch main
-git pull --ff-only origin main
+git switch fix/9-5b-2-price-list-review
+git pull --ff-only origin fix/9-5b-2-price-list-review
 dotnet restore AenaonERP.slnx --locked-mode
 dotnet test AenaonERP.slnx --configuration Release --filter "TestCategory!=SqlServer"
 dotnet run --project src/Aenaon.Api --launch-profile https
