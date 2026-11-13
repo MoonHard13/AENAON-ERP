@@ -182,6 +182,10 @@ h1[tabindex="-1"]:focus-visible {
 .breadcrumb { font-size: 13px; color: var(--muted); }
 .breadcrumb span { padding: 0 10px; color: #a4aaa7; }
 .breadcrumb strong { color: var(--text); font-weight: 600; }
+.breadcrumb a { color: var(--muted-strong); transition: color .15s ease; }
+.breadcrumb a:hover { color: var(--positive); text-decoration: underline; }
+.breadcrumb a:focus-visible { outline: 2px solid var(--positive); outline-offset: 3px; border-radius: 3px; }
+
 .topbar__actions { display: flex; align-items: center; gap: 14px; }
 .topbar__avatar { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; color: #ecfff5; background: #155a44; border-radius: 10px; font-weight: 800; }
 .topbar__username { font-weight: 750; font-size: 12px; }
