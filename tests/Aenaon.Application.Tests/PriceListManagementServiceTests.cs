@@ -78,6 +78,8 @@ public sealed class PriceListManagementServiceTests
         [
             [new(item, -1m)],
             [new(item, 1.12345m)],
+            [new(item, 2m, -1m, CheckExpected: true)],
+            [new(item, 2m, 1.12345m, CheckExpected: true)],
             [new(item, 1m), new(item, 2m)],
             []
         ];
