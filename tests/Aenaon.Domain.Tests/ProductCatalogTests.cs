@@ -143,6 +143,78 @@ public sealed class ProductCatalogTests
     }
 
     [TestMethod]
+    public void CatalogCommercialProfile_DefaultsAreSafeForProductsAndServices()
+    {
+        Guid tenant = Guid.NewGuid();
+        Guid category = Guid.NewGuid();
+        var product = CatalogItem.Create(tenant, category, "P1", "Προϊόν",
+            CatalogItemKind.Product, false);
+        var service = CatalogItem.Create(tenant, category, "S1", "Υπηρεσία",
+            CatalogItemKind.Service, false);
+
+        Assert.AreEqual(CatalogUnitOfMeasure.Piece, product.UnitOfMeasure);
+        Assert.AreEqual(CatalogAccountingType.Merchandise, product.AccountingType);
+        Assert.AreEqual(CatalogUnitOfMeasure.Service, service.UnitOfMeasure);
+        Assert.AreEqual(CatalogAccountingType.Service, service.AccountingType);
+    }
+
+    [TestMethod]
+    public void CatalogCommercialProfile_AcceptsProductUnitsAndAccountingTypes()
+    {
+        Guid tenant = Guid.NewGuid();
+        Guid category = Guid.NewGuid();
+        var product = CatalogItem.Create(tenant, category, "P1", "Αλεύρι",
+            CatalogItemKind.Product, true, CatalogUnitOfMeasure.Kilogram,
+            CatalogAccountingType.RawMaterial);
+
+        Assert.AreEqual(CatalogUnitOfMeasure.Kilogram, product.UnitOfMeasure);
+        Assert.AreEqual(CatalogAccountingType.RawMaterial, product.AccountingType);
+
+        product.Update(category, "P1", "Αλεύρι", true,
+            CatalogUnitOfMeasure.Gram, CatalogAccountingType.Consumable);
+        Assert.AreEqual(CatalogUnitOfMeasure.Gram, product.UnitOfMeasure);
+        Assert.AreEqual(CatalogAccountingType.Consumable, product.AccountingType);
+
+        // Η παλαιότερη κλήση ενημέρωσης δεν πρέπει να μηδενίζει τα νέα πεδία.
+        product.Update(category, "P1", "Άλευρα", true);
+        Assert.AreEqual(CatalogUnitOfMeasure.Gram, product.UnitOfMeasure);
+        Assert.AreEqual(CatalogAccountingType.Consumable, product.AccountingType);
+    }
+
+    [TestMethod]
+    public void CatalogCommercialProfile_RejectsInvalidOrCrossKindCombinationsWithoutMutation()
+    {
+        Guid tenant = Guid.NewGuid();
+        Guid category = Guid.NewGuid();
+        var item = CatalogItem.Create(tenant, category, "P1", "Καφές",
+            CatalogItemKind.Product, false);
+        Assert.AreEqual("catalog.item.unit.invalid",
+            Assert.ThrowsExactly<DomainRuleException>(() =>
+                item.Update(category, "P2", "Άλλο", false,
+                    (CatalogUnitOfMeasure)99)).Code);
+        Assert.AreEqual("catalog.item.accounting.invalid",
+            Assert.ThrowsExactly<DomainRuleException>(() =>
+                item.Update(category, "P2", "Άλλο", false,
+                    null, (CatalogAccountingType)99)).Code);
+        Assert.AreEqual("catalog.item.product.profile.invalid",
+            Assert.ThrowsExactly<DomainRuleException>(() =>
+                item.Update(category, "P2", "Άλλο", false,
+                    CatalogUnitOfMeasure.Service)).Code);
+        Assert.AreEqual("P1", item.Code);
+        Assert.AreEqual(CatalogUnitOfMeasure.Piece, item.UnitOfMeasure);
+
+        Assert.AreEqual("catalog.item.service.profile.invalid",
+            Assert.ThrowsExactly<DomainRuleException>(() =>
+                CatalogItem.Create(tenant, category, "S1", "Υπηρεσία",
+                    CatalogItemKind.Service, false, CatalogUnitOfMeasure.Kilogram,
+                    CatalogAccountingType.Service)).Code);
+        var byHour = CatalogItem.Create(tenant, category, "S2", "Υπηρεσία",
+            CatalogItemKind.Service, false, CatalogUnitOfMeasure.Hour,
+            CatalogAccountingType.Service);
+        Assert.AreEqual(CatalogUnitOfMeasure.Hour, byHour.UnitOfMeasure);
+    }
+
+    [TestMethod]
     public void AddService_RejectsStockTrackingWithoutMutation()
     {
         var catalog = ProductCatalog.Create(Guid.NewGuid());

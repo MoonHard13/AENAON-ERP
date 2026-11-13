@@ -40,8 +40,12 @@ internal static class SqlServerCatalogAssertions
         Assert.AreEqual(firstCategory.Id, firstProducts[0].CategoryId);
         Assert.AreEqual(CatalogItemKind.Service, firstProducts[0].Kind);
         Assert.IsFalse(firstProducts[0].TracksStock);
+        Assert.AreEqual(CatalogUnitOfMeasure.Service, firstProducts[0].UnitOfMeasure);
+        Assert.AreEqual(CatalogAccountingType.Service, firstProducts[0].AccountingType);
         Assert.AreEqual(CatalogItemKind.Product, firstProducts[1].Kind);
         Assert.IsTrue(firstProducts[1].TracksStock);
+        Assert.AreEqual(CatalogUnitOfMeasure.Piece, firstProducts[1].UnitOfMeasure);
+        Assert.AreEqual(CatalogAccountingType.Merchandise, firstProducts[1].AccountingType);
         Assert.AreEqual(1, await context.CatalogItems.CountAsync(
             item => item.TenantId == secondTenantId, cancellationToken));
         Assert.AreEqual(2, await context.CatalogCategories.CountAsync(cancellationToken));
@@ -148,19 +152,53 @@ internal static class SqlServerCatalogAssertions
         CatalogChangeResult item = await writer.ApplyAsync(tenantId,
             new(CatalogManagedEntity.Product, CatalogChangeAction.Create,
                 Code: "COLA001", Name: "Αναψυκτικό", CategoryId: category.Id,
-                TracksStock: true), token);
+                TracksStock: true, UnitOfMeasure: CatalogUnitOfMeasure.Liter,
+                AccountingType: CatalogAccountingType.Merchandise), token);
         Assert.AreEqual(CatalogChangeStatus.Saved, item.Status);
         Assert.IsNotNull(item.Id);
 
         CatalogManageDetails details = await writer.GetDetailsAsync(
             tenantId, CatalogManagedEntity.Product, item.Id, token);
         Assert.AreEqual("COLA001", details.Record?.Code);
+        Assert.AreEqual(CatalogUnitOfMeasure.Liter, details.Record?.UnitOfMeasure);
+        Assert.AreEqual(CatalogAccountingType.Merchandise, details.Record?.AccountingType);
         Assert.IsTrue(details.Categories.Any(x => x.Id == category.Id));
 
         CatalogChangeResult edited = await writer.ApplyAsync(tenantId,
             new(CatalogManagedEntity.Product, CatalogChangeAction.Update,
-                item.Id, "COLA002", "Αναψυκτικό 330ml", categoryId, false), token);
+                item.Id, "COLA002", "Αναψυκτικό 330ml", categoryId, false,
+                UnitOfMeasure: CatalogUnitOfMeasure.Milliliter,
+                AccountingType: CatalogAccountingType.FinishedProduct), token);
         Assert.AreEqual(CatalogChangeStatus.Saved, edited.Status);
+        CatalogItem updatedCommercial = await context.CatalogItems.AsNoTracking()
+            .SingleAsync(x => x.TenantId == tenantId && x.Id == item.Id, token);
+        Assert.AreEqual(CatalogUnitOfMeasure.Milliliter, updatedCommercial.UnitOfMeasure);
+        Assert.AreEqual(CatalogAccountingType.FinishedProduct, updatedCommercial.AccountingType);
+
+        // Η SQL πρέπει να απαγορεύει ασύμβατο προϊόν/υπηρεσία ακόμη και έξω από την εφαρμογή.
+        await using (var checkConnection = new SqlConnection(context.Database.GetConnectionString()))
+        {
+            await checkConnection.OpenAsync(token);
+            await using var invalidSql = checkConnection.CreateCommand();
+            invalidSql.CommandText = """
+                UPDATE dbo.CatalogItems SET AccountingType = 5
+                WHERE TenantId = @tenant AND Id = @id;
+                """;
+            invalidSql.Parameters.Add("@tenant", SqlDbType.UniqueIdentifier).Value = tenantId;
+            invalidSql.Parameters.Add("@id", SqlDbType.UniqueIdentifier).Value = item.Id.Value;
+            SqlException rejected = await Assert.ThrowsExactlyAsync<SqlException>(
+                async () => await invalidSql.ExecuteNonQueryAsync(token));
+            Assert.AreEqual(547, rejected.Number);
+        }
+
+        CatalogReadPage<CatalogItemSummary> commercialRead =
+            await new SqlCatalogReadStore(context).ReadItemsAsync(tenantId,
+                new CatalogReadQuery(1, 25, Kind: CatalogItemKind.Product,
+                    Search: "COLA002", SortBy: "unit"), token);
+        CatalogItemSummary loadedCommercial = Assert.ContainsSingle(commercialRead.Rows);
+        Assert.AreEqual(CatalogUnitOfMeasure.Milliliter, loadedCommercial.UnitOfMeasure);
+        Assert.AreEqual(CatalogAccountingType.FinishedProduct, loadedCommercial.AccountingType);
+
 
         CatalogChangeResult disabled = await writer.ApplyAsync(tenantId,
             new(CatalogManagedEntity.Product, CatalogChangeAction.Deactivate, item.Id), token);

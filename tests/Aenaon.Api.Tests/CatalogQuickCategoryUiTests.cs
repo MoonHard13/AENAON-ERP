@@ -35,7 +35,9 @@ public sealed class CatalogQuickCategoryUiTests
                 ["codeMode"] = "manual",
                 ["code"] = "SKU-900",
                 ["name"] = "Αποθηκευμένα στοιχεία προϊόντος",
-                ["tracksStock"] = "true"
+                ["tracksStock"] = "true",
+                ["unitOfMeasure"] = "2",
+                ["accountingType"] = "3"
             }));
         Assert.AreEqual(HttpStatusCode.Redirect, start.StatusCode);
         Assert.AreEqual(0, factory.CatalogWriter.ApplyCalls);
@@ -76,6 +78,13 @@ public sealed class CatalogQuickCategoryUiTests
         Assert.IsNotNull(factory.CatalogWriter.CreatedCategoryId);
         Assert.Contains(factory.CatalogWriter.CreatedCategoryId.Value.ToString("D"), restored);
         Assert.Contains("ΝΕΑ ΚΑΤΗΓΟΡΙΑ", restored);
+        // Οι επιλογές kg/Πρώτη ύλη επιβιώνουν από την ενδιάμεση δημιουργία.
+        Assert.IsTrue(Regex.IsMatch(restored,
+            "value=\\\"2\\\"[^>]*selected", RegexOptions.CultureInvariant,
+            TimeSpan.FromSeconds(1)));
+        Assert.IsTrue(Regex.IsMatch(restored,
+            "value=\\\"3\\\"[^>]*selected", RegexOptions.CultureInvariant,
+            TimeSpan.FromSeconds(1)));
     }
 
     [TestMethod]

@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @layout MainLayout
 @using Aenaon.Application.Catalog
+@using Aenaon.Domain.Catalog
 @using Aenaon.Application.Tenancy
 @inject IHttpContextAccessor HttpContextAccessor
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
@@ -177,6 +178,57 @@
                                 }
                             </div>
 
+                            @if (View is "products" or "services")
+                            {
+                                <div class="catalog-editor__section-title catalog-editor__field--wide">
+                                    <h3>Εμπορικά και λογιστικά στοιχεία</h3>
+                                    <p>Η μονάδα και ο λογιστικός τύπος δεν ορίζουν αυτόματα ΦΠΑ ή myDATA.</p>
+                                </div>
+                                <div class="catalog-editor__field">
+                                    <label for="edit-unit">Μονάδα μέτρησης *</label>
+                                    <select id="edit-unit" name="unitOfMeasure" required>
+                                        @foreach (CatalogUnitOfMeasure unit in View == "services"
+                                            ? CatalogCommercialOptions.ServiceUnits
+                                            : CatalogCommercialOptions.ProductUnits)
+                                        {
+                                            <option value="@((int)unit)" selected="@(unit == CurrentUnit)">
+                                                @CatalogCommercialOptions.UnitName(unit)
+                                            </option>
+                                        }
+                                    </select>
+                                    <small>Η μονάδα χρησιμοποιείται στην εμπορική καρτέλα και σε μελλοντικούς τιμοκαταλόγους.</small>
+                                </div>
+                                <div class="catalog-editor__field">
+                                    <label for="edit-accounting">Λογιστικός τύπος *</label>
+                                    @if (View == "services")
+                                    {
+                                        <select id="edit-accounting" name="accountingType" required>
+                                            <option value="@((int)CatalogAccountingType.Service)">Υπηρεσία</option>
+                                        </select>
+                                        <small>Οι υπηρεσίες έχουν λογιστικό τύπο «Υπηρεσία».</small>
+                                    }
+                                    else
+                                    {
+                                        <select id="edit-accounting" name="accountingType" required>
+                                            @foreach (CatalogAccountingType accounting in CatalogCommercialOptions.ProductAccountingTypes)
+                                            {
+                                                <option value="@((int)accounting)"
+                                                        selected="@(accounting == CurrentAccounting)">
+                                                    @CatalogCommercialOptions.AccountingName(accounting)
+                                                </option>
+                                            }
+                                        </select>
+                                        <small>Εμπόρευμα, προϊόν παραγωγής, πρώτη ύλη, αναλώσιμο ή πάγιο.</small>
+                                    }
+                                </div>
+                                @if (CurrentError is "unit" or "accounting")
+                                {
+                                    <div class="catalog-editor__error catalog-editor__field--wide" role="alert">
+                                        @ErrorMessage
+                                    </div>
+                                }
+                            }
+
                             @if (View == "products")
                             {
                                 <label class="catalog-editor__checkbox catalog-editor__field--wide">
@@ -308,6 +360,13 @@
         : (_draft is not null ? _draft.CategoryId : _details?.Record?.CategoryId);
     private bool CurrentTracksStock =>
         _draft?.TracksStock ?? _details?.Record?.TracksStock ?? false;
+    private CatalogUnitOfMeasure CurrentUnit =>
+        _draft?.UnitOfMeasure ?? _details?.Record?.UnitOfMeasure ??
+        (View == "services" ? CatalogUnitOfMeasure.Service : CatalogUnitOfMeasure.Piece);
+
+    private CatalogAccountingType CurrentAccounting =>
+        _draft?.AccountingType ?? _details?.Record?.AccountingType ??
+        (View == "services" ? CatalogAccountingType.Service : CatalogAccountingType.Merchandise);
 
     private string? CurrentError => _draft?.ErrorCode ?? Error;
     private string ErrorMessage => CurrentError switch
@@ -315,6 +374,8 @@
         "duplicate" => "Ο κωδικός χρησιμοποιείται ήδη στην επιχείρηση.",
         "code" => "Δεν υπάρχουν διαθέσιμοι αριθμητικοί κωδικοί.",
         "category" => "Επιλέξτε έγκυρη και ενεργή κατηγορία.",
+        "unit" => "Επιλέξτε έγκυρη μονάδα μέτρησης για το είδος.",
+        "accounting" => "Επιλέξτε συμβατό λογιστικό τύπο για το είδος.",
         "parent" => "Μη έγκυρη γονική κατηγορία ή δημιουργία κύκλου.",
         "inuse" => "Η κατηγορία έχει ενεργά είδη ή ενεργές υποκατηγορίες.",
         _ => "Τα στοιχεία δεν είναι έγκυρα. Ελέγξτε τα απαιτούμενα πεδία."

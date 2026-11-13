@@ -151,6 +151,14 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
                 .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
             ("kind", true) => joined.OrderByDescending(x => x.Item.Kind)
                 .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            ("unit", false) => joined.OrderBy(x => x.Item.UnitOfMeasure)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            ("unit", true) => joined.OrderByDescending(x => x.Item.UnitOfMeasure)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            ("accounting", false) => joined.OrderBy(x => x.Item.AccountingType)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            ("accounting", true) => joined.OrderByDescending(x => x.Item.AccountingType)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
             ("stock", false) => joined.OrderBy(x => x.Item.TracksStock)
                 .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
             ("stock", true) => joined.OrderByDescending(x => x.Item.TracksStock)
@@ -177,7 +185,8 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
         var rows = await ordered.Skip(offset).Take(validated.PageSize + 1)
             .Select(x => new CatalogItemSummary(
                 x.Item.Id, x.Item.CategoryId, x.Item.Code, x.Item.Name,
-                x.Item.Kind, x.Item.TracksStock, x.Item.IsActive, x.Category.Name))
+                x.Item.Kind, x.Item.TracksStock, x.Item.IsActive, x.Category.Name,
+                null, x.Item.UnitOfMeasure, x.Item.AccountingType))
             .ToListAsync(cancellationToken);
         bool hasMore = rows.Count > validated.PageSize;
         if (hasMore)

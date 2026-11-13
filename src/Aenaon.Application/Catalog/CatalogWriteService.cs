@@ -32,7 +32,9 @@ public sealed record CatalogChangeCommand(
     bool TracksStock = false,
     Guid? ParentCategoryId = null,
     bool AutoCode = false,
-    Guid? RequestId = null);
+    Guid? RequestId = null,
+    CatalogUnitOfMeasure? UnitOfMeasure = null,
+    CatalogAccountingType? AccountingType = null);
 
 public enum CatalogChangeStatus
 {
@@ -50,7 +52,9 @@ public sealed record CatalogChangeResult(CatalogChangeStatus Status, Guid? Id = 
 public sealed record CatalogManageRecord(
     Guid Id, string Code, string Name, bool IsActive,
     Guid? CategoryId = null, CatalogItemKind? Kind = null, bool TracksStock = false,
-    Guid? ParentCategoryId = null);
+    Guid? ParentCategoryId = null,
+    CatalogUnitOfMeasure? UnitOfMeasure = null,
+    CatalogAccountingType? AccountingType = null);
 
 public sealed record CatalogCategoryOption(Guid Id, string Code, string Name,
     string? Path = null, Guid? ParentId = null);
@@ -105,8 +109,19 @@ public sealed class CatalogWriteService(
             command.RequestId == Guid.Empty ||
             (command.Action != CatalogChangeAction.Create && command.AutoCode) ||
             (command.Entity == CatalogManagedEntity.Category &&
-             (command.CategoryId.HasValue || command.TracksStock)) ||
-            (command.Entity == CatalogManagedEntity.Service && command.TracksStock))
+             (command.CategoryId.HasValue || command.TracksStock ||
+              command.UnitOfMeasure.HasValue || command.AccountingType.HasValue)) ||
+            (command.Entity == CatalogManagedEntity.Service && command.TracksStock) ||
+            (command.UnitOfMeasure is { } unit && !Enum.IsDefined(unit)) ||
+            (command.AccountingType is { } accounting && !Enum.IsDefined(accounting)) ||
+            (command.Entity == CatalogManagedEntity.Service &&
+             (command.UnitOfMeasure is { } serviceUnit &&
+              serviceUnit is not (CatalogUnitOfMeasure.Service or CatalogUnitOfMeasure.Hour) ||
+              command.AccountingType is { } serviceAccounting &&
+              serviceAccounting != CatalogAccountingType.Service)) ||
+            (command.Entity == CatalogManagedEntity.Product &&
+             (command.UnitOfMeasure == CatalogUnitOfMeasure.Service ||
+              command.AccountingType == CatalogAccountingType.Service)))
         {
             return new(CatalogChangeStatus.Invalid);
         }

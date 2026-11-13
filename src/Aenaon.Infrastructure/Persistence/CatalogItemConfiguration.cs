@@ -25,6 +25,13 @@ internal sealed class CatalogItemConfiguration : IEntityTypeConfiguration<Catalo
             table.HasCheckConstraint("CK_CatalogItems_Kind", "[Kind] IN (1, 2)");
             table.HasCheckConstraint("CK_CatalogItems_ServiceStock",
                 "[Kind] <> 2 OR [TracksStock] = 0");
+            table.HasCheckConstraint("CK_CatalogItems_UnitOfMeasure",
+                "[UnitOfMeasure] BETWEEN 1 AND 8");
+            table.HasCheckConstraint("CK_CatalogItems_AccountingType",
+                "[AccountingType] BETWEEN 1 AND 6");
+            table.HasCheckConstraint("CK_CatalogItems_CommercialProfile",
+                "([Kind] = 2 AND [AccountingType] = 5 AND [UnitOfMeasure] IN (7, 8)) " +
+                "OR ([Kind] = 1 AND [AccountingType] <> 5 AND [UnitOfMeasure] <> 8)");
         });
 
         builder.HasKey(item => item.Id);
@@ -38,6 +45,8 @@ internal sealed class CatalogItemConfiguration : IEntityTypeConfiguration<Catalo
         builder.Property(item => item.Kind).HasConversion<int>().IsRequired();
         builder.Property(item => item.IsActive).IsRequired();
         builder.Property(item => item.TracksStock).IsRequired();
+        builder.Property(item => item.UnitOfMeasure).HasConversion<int>().IsRequired();
+        builder.Property(item => item.AccountingType).HasConversion<int>().IsRequired();
 
         builder.HasIndex(item => new { item.TenantId, item.Code }).IsUnique();
         builder.HasIndex(item => new { item.TenantId, item.CategoryId });

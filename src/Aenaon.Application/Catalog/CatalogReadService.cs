@@ -21,8 +21,8 @@ public sealed record CatalogReadQuery(int Page = 1, int PageSize = 25,
             term?.Any(char.IsControl) == true ||
             (Kind.HasValue && !Enum.IsDefined(Kind.Value)) ||
             ParentCategoryId == Guid.Empty ||
-            SortBy is not ("code" or "name" or "category" or "kind" or "stock" or "status") ||
-            (Kind is null && SortBy is "category" or "kind" or "stock"))
+            SortBy is not ("code" or "name" or "category" or "kind" or "stock" or "status" or "unit" or "accounting") ||
+            (Kind is null && SortBy is "category" or "kind" or "stock" or "unit" or "accounting"))
         {
             throw new DomainRuleException("catalog.read.query.invalid",
                 "Μη έγκυρη σελίδα, μέγεθος ή αναζήτηση καταλόγου.");
@@ -40,7 +40,9 @@ public sealed record CatalogCategorySummary(Guid Id, string Code, string Name, b
 public sealed record CatalogItemSummary(
     Guid Id, Guid CategoryId, string Code, string Name,
     CatalogItemKind Kind, bool TracksStock, bool IsActive,
-    string? CategoryName = null, string? CategoryPath = null);
+    string? CategoryName = null, string? CategoryPath = null,
+    CatalogUnitOfMeasure? UnitOfMeasure = null,
+    CatalogAccountingType? AccountingType = null);
 
 /// <summary>Σελιδοποιημένη λίστα με περιορισμένο αριθμό αναγνώσεων.</summary>
 public sealed record CatalogReadPage<T>(

@@ -48,12 +48,15 @@ public sealed class ProductCatalog
 
     /// <summary>Προσθέτει είδος ή υπηρεσία μόνο σε ενεργή κατηγορία της ίδιας επιχείρησης.</summary>
     public CatalogItem AddItem(Guid categoryId, string? code, string? name,
-        CatalogItemKind kind, bool tracksStock = false)
+        CatalogItemKind kind, bool tracksStock = false,
+        CatalogUnitOfMeasure? unitOfMeasure = null,
+        CatalogAccountingType? accountingType = null)
     {
         CatalogCategory category = RequireCategory(categoryId);
         EnsureActive(category);
 
-        var item = new CatalogItem(TenantId, category.Id, code, name, kind, tracksStock);
+        var item = new CatalogItem(TenantId, category.Id, code, name, kind,
+            tracksStock, unitOfMeasure, accountingType);
 
         if (_items.Any(existing =>
             StringComparer.OrdinalIgnoreCase.Equals(existing.Code, item.Code)))

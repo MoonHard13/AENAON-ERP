@@ -1,3 +1,4 @@
+using Aenaon.Domain.Catalog;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Aenaon.Api.Ui;
@@ -6,7 +7,9 @@ namespace Aenaon.Api.Ui;
 public sealed record CatalogEditorDraft(
     Guid UserId, Guid TenantId, Guid? Id, string View,
     string Code, string Name, Guid? CategoryId, Guid? ParentCategoryId,
-    bool TracksStock, bool AutoCode, string ErrorCode, Guid? StoreId = null);
+    bool TracksStock, bool AutoCode, string ErrorCode, Guid? StoreId = null,
+    CatalogUnitOfMeasure? UnitOfMeasure = null,
+    CatalogAccountingType? AccountingType = null);
 
 public sealed class CatalogEditorDraftStore : IDisposable
 {
