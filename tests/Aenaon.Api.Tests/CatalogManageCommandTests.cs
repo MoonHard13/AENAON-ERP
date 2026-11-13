@@ -1,6 +1,7 @@
 using Aenaon.Api.Commands;
 using Aenaon.Application.Catalog;
 using Aenaon.Application.Tenancy;
+using Aenaon.Domain.Catalog;
 using Aenaon.Domain.Tenancy;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -93,6 +94,59 @@ public sealed class CatalogManageCommandTests
         Assert.AreEqual(0, code, error.ToString());
         Assert.IsTrue(store.LastCommand?.AutoCode == true);
         Assert.IsNull(store.LastCommand?.Code);
+    }
+
+    [TestMethod]
+    public async Task Apply_CommercialProfile_UsesSameTenantProtectedWriteService()
+    {
+        string[] args =
+        [
+            "--username", "admin", "--tenant-id", Tenant.ToString("D"),
+            "--confirm-database", "AenaonERP_Unit",
+            "--view", "products", "--action", "create",
+            "--code", "FLOUR-001", "--name", "Αλεύρι",
+            "--category-id", Guid.NewGuid().ToString("D"),
+            "--unit", "Kilogram", "--accounting-type", "RawMaterial",
+            "--apply"
+        ];
+        var store = new FakeWriter();
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        int exitCode = await CatalogManageCommand.ExecuteAsync(
+            args, new TenantCredentialFixture(true),
+            CreateService(store, TenantMembershipRole.Owner),
+            new TenantAccessSchemaFixture(), NullLogger.Instance,
+            output, error, () => "SampleSecret!91", true);
+
+        Assert.AreEqual(0, exitCode, error.ToString());
+        Assert.AreEqual(CatalogUnitOfMeasure.Kilogram, store.LastCommand?.UnitOfMeasure);
+        Assert.AreEqual(CatalogAccountingType.RawMaterial, store.LastCommand?.AccountingType);
+    }
+
+    [TestMethod]
+    public async Task InvalidCommercialType_IsRejectedBeforeDatabaseOrCredentials()
+    {
+        string[] args =
+        [
+            "--username", "admin", "--tenant-id", Tenant.ToString("D"),
+            "--confirm-database", "AenaonERP_Unit",
+            "--view", "products", "--action", "create",
+            "--code", "FLOUR-001", "--name", "Αλεύρι",
+            "--category-id", Guid.NewGuid().ToString("D"),
+            "--unit", "InvalidUnit", "--apply"
+        ];
+        var credentials = new TenantCredentialFixture(true);
+        var store = new FakeWriter();
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        int exitCode = await CatalogManageCommand.ExecuteAsync(
+            args, credentials, CreateService(store, TenantMembershipRole.Owner),
+            new TenantAccessSchemaFixture(), NullLogger.Instance,
+            output, error, () => "SampleSecret!91", true);
+
+        Assert.AreEqual(2, exitCode);
+        Assert.AreEqual(0, credentials.Calls);
+        Assert.AreEqual(0, store.ApplyCalls);
     }
 
     [TestMethod]
