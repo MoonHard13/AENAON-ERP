@@ -141,6 +141,54 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
             });
 
 
+        modelBuilder.Entity("Aenaon.Domain.Catalog.PriceList", b =>
+            {
+                b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
+                b.Property<int>("Channel").HasColumnType("int");
+                b.Property<string>("Code").IsRequired().HasMaxLength(30).HasColumnType("nvarchar(30)").UseCollation("Greek_CI_AS");
+                b.Property<string>("Currency").IsRequired().HasMaxLength(3).HasColumnType("nvarchar(3)");
+                b.Property<bool>("IsActive").HasColumnType("bit");
+                b.Property<string>("Name").IsRequired().HasMaxLength(160).HasColumnType("nvarchar(160)");
+                b.Property<bool>("PricesIncludeVat").HasColumnType("bit");
+                b.Property<Guid?>("StoreId").HasColumnType("uniqueidentifier");
+                b.Property<Guid>("TenantId").HasColumnType("uniqueidentifier");
+                b.Property<DateOnly>("ValidFrom").HasColumnType("date");
+                b.Property<DateOnly?>("ValidUntil").HasColumnType("date");
+                b.HasKey("Id");
+                b.HasAlternateKey("TenantId", "Id");
+                b.HasIndex("TenantId", "Code").IsUnique();
+                b.HasIndex("TenantId", "StoreId", "Channel", "IsActive");
+                b.ToTable("PriceLists", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_PriceLists_Channel", "[Channel] BETWEEN 0 AND 5");
+                        t.HasCheckConstraint("CK_PriceLists_Code", "LEN(LTRIM(RTRIM([Code]))) > 0");
+                        t.HasCheckConstraint("CK_PriceLists_Currency", "[Currency] = 'EUR'");
+                        t.HasCheckConstraint("CK_PriceLists_Id", "[Id] <> '00000000-0000-0000-0000-000000000000'");
+                        t.HasCheckConstraint("CK_PriceLists_Name", "LEN(LTRIM(RTRIM([Name]))) > 0");
+                        t.HasCheckConstraint("CK_PriceLists_Period", "[ValidUntil] IS NULL OR [ValidUntil] >= [ValidFrom]");
+                        t.HasCheckConstraint("CK_PriceLists_StoreId", "[StoreId] IS NULL OR [StoreId] <> '00000000-0000-0000-0000-000000000000'");
+                        t.HasCheckConstraint("CK_PriceLists_TenantId", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
+                    });
+            });
+
+        modelBuilder.Entity("Aenaon.Domain.Catalog.PriceListItem", b =>
+            {
+                b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
+                b.Property<Guid>("CatalogItemId").HasColumnType("uniqueidentifier");
+                b.Property<Guid>("PriceListId").HasColumnType("uniqueidentifier");
+                b.Property<Guid>("TenantId").HasColumnType("uniqueidentifier");
+                b.Property<decimal>("UnitPrice").HasPrecision(18, 4).HasColumnType("decimal(18,4)");
+                b.HasKey("Id");
+                b.HasIndex("TenantId", "CatalogItemId");
+                b.HasIndex("TenantId", "PriceListId", "CatalogItemId").IsUnique();
+                b.ToTable("PriceListItems", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_PriceListItems_Id", "[Id] <> '00000000-0000-0000-0000-000000000000'");
+                        t.HasCheckConstraint("CK_PriceListItems_TenantId", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
+                        t.HasCheckConstraint("CK_PriceListItems_UnitPrice", "[UnitPrice] >= 0 AND [UnitPrice] <= 999999999999.9999");
+                    });
+            });
+
         modelBuilder.Entity("Aenaon.Infrastructure.Persistence.FiscalReferenceRecord", b =>
             {
                 b.Property<Guid>("Id")
@@ -290,6 +338,8 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("uniqueidentifier");
 
                 b.HasKey("Id");
+
+                b.HasAlternateKey("TenantId", "Id");
 
                 b.HasIndex("TenantId", "Code")
                     .IsUnique();
@@ -694,6 +744,36 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     .IsRequired();
             });
 
+
+        modelBuilder.Entity("Aenaon.Domain.Catalog.PriceList", b =>
+            {
+                b.HasOne("Aenaon.Domain.Tenancy.Tenant", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+                b.HasOne("Aenaon.Domain.Tenancy.Store", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "StoreId")
+                    .HasPrincipalKey("TenantId", "Id")
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+        modelBuilder.Entity("Aenaon.Domain.Catalog.PriceListItem", b =>
+            {
+                b.HasOne("Aenaon.Domain.Catalog.CatalogItem", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "CatalogItemId")
+                    .HasPrincipalKey("TenantId", "Id")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+                b.HasOne("Aenaon.Domain.Catalog.PriceList", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "PriceListId")
+                    .HasPrincipalKey("TenantId", "Id")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
 
         modelBuilder.Entity("Aenaon.Infrastructure.Persistence.FiscalTaxMappingRecord", b =>
             {
