@@ -84,7 +84,7 @@ public static class PriceListManagementEndpoints
         {
             if (!TrySingle(form, "name", out string nameValue) ||
                 !TrySingle(form, "validFrom", out string fromValue) ||
-                !DateOnly.TryParseExact(fromValue, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                !DateOnly.TryParseExact(fromValue, "dd/MM/yyyy", CultureInfo.InvariantCulture,
                     DateTimeStyles.None, out from) ||
                 nameValue.Length > PriceList.MaxNameLength + 8 ||
                 !TrySingle(form, "validUntil", out string untilText))
@@ -95,7 +95,7 @@ public static class PriceListManagementEndpoints
             name = nameValue;
             if (untilText.Length > 0)
             {
-                if (!DateOnly.TryParseExact(untilText, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                if (!DateOnly.TryParseExact(untilText, "dd/MM/yyyy", CultureInfo.InvariantCulture,
                     DateTimeStyles.None, out DateOnly end))
                 {
                     return Results.BadRequest();
