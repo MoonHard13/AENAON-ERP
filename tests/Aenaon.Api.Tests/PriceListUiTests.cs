@@ -48,7 +48,9 @@ public sealed class PriceListUiTests
         Assert.DoesNotContain("Νέος τιμοκατάλογος", page);
         string details = await client.GetStringAsync(
             $"/price-lists/manage?id={SessionPriceListFixture.ListId:D}");
-        Assert.DoesNotContain("action=\"/ui/price-lists/prices\"", details);
+        // Το read-only rendering δεν προσφέρει πεδία τιμών ούτε κουμπί αποθήκευσης.
+        Assert.DoesNotContain($"name=\"price_{SessionPriceListFixture.ItemId:D}\"", details);
+        Assert.DoesNotContain("Αποθήκευση τιμών σελίδας", details);
 
         using var post = await client.PostAsync("/ui/price-lists/save",
             new FormUrlEncodedContent(new Dictionary<string, string>
