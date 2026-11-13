@@ -15,6 +15,7 @@ internal sealed class StoreConfiguration : IEntityTypeConfiguration<Store>
             table.HasCheckConstraint("CK_Stores_Code", "LEN(LTRIM(RTRIM([Code]))) > 0");
         });
         builder.HasKey(store => store.Id);
+        builder.HasAlternateKey(store => new { store.TenantId, store.Id });
         builder.Property(store => store.Id).ValueGeneratedNever();
         builder.Property(store => store.TenantId).IsRequired();
         builder.Property(store => store.Name).HasMaxLength(Store.MaxNameLength).IsRequired();
