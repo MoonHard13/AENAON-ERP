@@ -54,7 +54,7 @@ public static class PriceListManageCommand
             action is "list" or "items" or "create" or "update" or "activate" or "deactivate" or "prices" &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--username")) &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--confirm-database")) &&
-            Guid.TryParse(values.GetValueOrDefault("--tenant-id"), out Guid tenantId) &&
+            Guid.TryParse(values.GetValueOrDefault("--tenant-id"), out tenantId) &&
             tenantId != Guid.Empty;
 
         // Οι αναφορές δεν αποκαλύπτουν δεδομένα άλλου Tenant μέσω CLI.
