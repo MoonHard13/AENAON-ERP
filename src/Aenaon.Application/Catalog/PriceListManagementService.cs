@@ -44,6 +44,8 @@ public interface IPriceListManagementStore
     Task<PriceListResult> ApplyAsync(Guid tenantId, PriceListChange change, CancellationToken token);
     Task<PriceListResult> SetPricesAsync(Guid tenantId, Guid priceListId,
         IReadOnlyList<PriceListPriceChange> changes, CancellationToken token);
+    Task<PriceListResult> RemovePriceAsync(Guid tenantId, Guid priceListId,
+        Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token);
 }
 
 /// <summary>Ενιαίο application service για Blazor και CLI, με fail-closed δικαιώματα.</summary>
@@ -164,6 +166,27 @@ public sealed class PriceListManagementService(
 
         PriceListResult result = await store.SetPricesAsync(tenantId, listId, changes, token);
         return result;
+    }
+
+    /// <summary>Αφαιρεί μόνο την τιμή ενός είδους από τον συγκεκριμένο τιμοκατάλογο.</summary>
+    public async Task<PriceListResult> RemovePriceAsync(Guid userId, Guid tenantId,
+        Guid priceListId, Guid catalogItemId, decimal expectedUnitPrice,
+        CancellationToken token = default)
+    {
+        if (!await AllowedAsync(userId, tenantId, TenantPermission.Manage, token))
+        {
+            return new(PriceListStatus.Denied);
+        }
+
+        if (priceListId == Guid.Empty || catalogItemId == Guid.Empty ||
+            expectedUnitPrice < 0 || expectedUnitPrice > PriceListItem.MaxUnitPrice ||
+            decimal.Round(expectedUnitPrice, 4) != expectedUnitPrice)
+        {
+            return new(PriceListStatus.Invalid);
+        }
+
+        return await store.RemovePriceAsync(tenantId, priceListId,
+            catalogItemId, expectedUnitPrice, token);
     }
 
     public async Task<bool> CanManageAsync(Guid userId, Guid tenantId,
