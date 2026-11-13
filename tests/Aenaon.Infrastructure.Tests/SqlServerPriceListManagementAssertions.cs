@@ -82,5 +82,34 @@ internal static class SqlServerPriceListManagementAssertions
         Assert.AreEqual(12.5000m, await context.PriceListItems.AsNoTracking()
             .Where(x => x.TenantId == tenant && x.PriceListId == created.Id.Value)
             .Select(x => x.UnitPrice).SingleAsync(token));
+
+        // Ανενεργός τιμοκατάλογος δεν επιτρέπει αφαίρεση τιμών.
+        PriceListResult deniedRemoval = await store.RemovePriceAsync(
+            tenant, created.Id.Value, itemId, 12.5000m, token);
+        Assert.AreEqual(PriceListStatus.Invalid, deniedRemoval.Status);
+
+        PriceListResult activated = await store.ApplyAsync(tenant,
+            new PriceListChange(PriceListAction.Activate, created.Id), token);
+        Assert.AreEqual(PriceListStatus.Saved, activated.Status);
+
+        // Απαγορεύεται η διαγραφή νεότερης τιμής από παλιότερη φόρμα.
+        PriceListResult staleRemoval = await store.RemovePriceAsync(
+            tenant, created.Id.Value, itemId, 9.8765m, token);
+        Assert.AreEqual(PriceListStatus.Conflict, staleRemoval.Status);
+
+        PriceListResult foreignRemoval = await store.RemovePriceAsync(
+            foreignTenant, created.Id.Value, itemId, 12.5000m, token);
+        Assert.AreEqual(PriceListStatus.Missing, foreignRemoval.Status);
+
+        PriceListResult removed = await store.RemovePriceAsync(
+            tenant, created.Id.Value, itemId, 12.5000m, token);
+        Assert.AreEqual(PriceListStatus.Saved, removed.Status);
+        Assert.AreEqual(0, await context.PriceListItems.AsNoTracking()
+            .CountAsync(x => x.TenantId == tenant && x.PriceListId == created.Id.Value &&
+                x.CatalogItemId == itemId, token));
+
+        // Το είδος παραμένει στον Κατάλογο και δεν διαγράφεται από άλλη επιχειρησιακή ενότητα.
+        Assert.IsTrue(await context.CatalogItems.AsNoTracking()
+            .AnyAsync(x => x.TenantId == tenant && x.Id == itemId, token));
     }
 }
