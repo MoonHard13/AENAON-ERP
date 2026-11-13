@@ -49,6 +49,7 @@ public static class PriceListManageCommand
         bool readOnly = action is "list" or "items";
         bool apply = flags.Contains("--apply");
         bool dryRun = flags.Contains("--dry-run");
+        Guid tenantId = Guid.Empty;
         bool valid = !invalid && interactive && dryRun != apply && (readOnly ? dryRun : true) &&
             action is "list" or "items" or "create" or "update" or "activate" or "deactivate" or "prices" &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--username")) &&
