@@ -122,6 +122,7 @@ public sealed class PriceListUiTests
             ["id"] = SessionPriceListFixture.ListId.ToString("D"),
             ["page"] = "1",
             ["search"] = "",
+            [$"expected_{SessionPriceListFixture.ItemId:D}"] = "10.0000",
             [$"price_{SessionPriceListFixture.ItemId:D}"] = "-1.0000"
         };
         using var invalid = await client.PostAsync("/ui/price-lists/prices",
@@ -134,6 +135,16 @@ public sealed class PriceListUiTests
         using var saved = await client.PostAsync("/ui/price-lists/prices",
             new FormUrlEncodedContent(fields));
         Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
+        Assert.AreEqual(1, factory.PriceLists.PriceCalls);
+        Assert.IsNotNull(factory.PriceLists.LastPriceChanges);
+        Assert.AreEqual(10m, factory.PriceLists.LastPriceChanges[0].ExpectedUnitPrice);
+        Assert.IsTrue(factory.PriceLists.LastPriceChanges[0].CheckExpected);
+
+        fields[$"price_{SessionPriceListFixture.ItemId:D}"] = "10.0000";
+        using var unchanged = await client.PostAsync("/ui/price-lists/prices",
+            new FormUrlEncodedContent(fields));
+        Assert.AreEqual(HttpStatusCode.Redirect, unchanged.StatusCode);
+        Assert.Contains("&unchanged=1", unchanged.Headers.Location?.OriginalString ?? "");
         Assert.AreEqual(1, factory.PriceLists.PriceCalls);
     }
 
