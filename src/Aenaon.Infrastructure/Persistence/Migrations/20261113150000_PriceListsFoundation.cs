@@ -1,4 +1,6 @@
 using System;
+using Aenaon.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,6 +8,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Aenaon.Infrastructure.Persistence.Migrations;
 
 /// <summary>Όγδοη migration: ανεξάρτητοι τιμοκατάλογοι και tenant-scoped εμπορικές τιμές.</summary>
+[DbContext(typeof(AenaonDbContext))]
+[Migration("20261113150000_PriceListsFoundation")]
 public partial class PriceListsFoundation : Migration
 {
     /// <inheritdoc />
