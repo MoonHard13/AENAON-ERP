@@ -31,6 +31,8 @@ public sealed class AenaonDbContext(DbContextOptions<AenaonDbContext> options) :
         modelBuilder.ApplyConfiguration(new TenantMembershipConfiguration());
         modelBuilder.ApplyConfiguration(new CatalogCategoryConfiguration());
         modelBuilder.ApplyConfiguration(new CatalogItemConfiguration());
+        modelBuilder.ApplyConfiguration(new PriceListConfiguration());
+        modelBuilder.ApplyConfiguration(new PriceListItemConfiguration());
         modelBuilder.ApplyConfiguration(new FiscalReferenceConfiguration());
         modelBuilder.ApplyConfiguration(new FiscalTaxMappingConfiguration());
         modelBuilder.ApplyConfiguration(new FiscalImportBatchConfiguration());
