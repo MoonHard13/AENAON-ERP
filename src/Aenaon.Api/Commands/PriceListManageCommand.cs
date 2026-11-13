@@ -143,8 +143,8 @@ public static class PriceListManageCommand
             if (values.TryGetValue("--valid-until", out string? endText))
             {
                 if (DateOnly.TryParseExact(endText, "yyyy-MM-dd",
-                {
                     CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly end))
+                {
                     until = end;
                 }
                 else
