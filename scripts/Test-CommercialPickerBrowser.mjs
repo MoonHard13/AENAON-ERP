@@ -241,7 +241,7 @@ try {
     const location=await cdp.evaluate(`(() => {
         const input=document.querySelector("#edit-accounting");
         input.focus();
-        const option=document.querySelector('[data-commercial-options] [data-commercial-index="2"]');
+        const option=input.closest("[data-commercial-picker]").querySelector('[data-commercial-index="2"]');
         const rect=option.getBoundingClientRect();
         return {x:rect.left+rect.width/2,y:rect.top+rect.height/2,
             visible:rect.height>0,placement:option.closest("[data-commercial-popup]").dataset.placement};
