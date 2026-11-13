@@ -83,6 +83,23 @@ public partial class Program
             Console.CancelKeyPress += handler;
             try
             {
+                if (managePriceLists)
+                {
+                    if (!app.Environment.IsDevelopment())
+                    {
+                        Console.Error.WriteLine("Η διαχείριση τιμοκαταλόγων επιτρέπεται μόνο στο Development.");
+                        return 2;
+                    }
+
+                    await using var priceScope = app.Services.CreateAsyncScope();
+                    return await PriceListManageCommand.ExecuteAsync(args[1..],
+                        priceScope.ServiceProvider.GetRequiredService<ICredentialVerifier>(),
+                        priceScope.ServiceProvider.GetRequiredService<PriceListManagementService>(),
+                        app.Services.GetRequiredService<IDatabaseSchemaManager>(),
+                        app.Logger, Console.Out, Console.Error, ConsolePasswordReader.Read,
+                        !Console.IsInputRedirected, cancellation.Token);
+                }
+
                 if (manageCatalog)
                 {
                     if (!app.Environment.IsDevelopment())
