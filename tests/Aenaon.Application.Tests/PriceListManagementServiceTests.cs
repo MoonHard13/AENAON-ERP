@@ -2,7 +2,6 @@ using Aenaon.Application.Catalog;
 using Aenaon.Application.Tenancy;
 using Aenaon.Domain.Catalog;
 using Aenaon.Domain.Tenancy;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Aenaon.Application.Tests;
@@ -109,8 +108,7 @@ public sealed class PriceListManagementServiceTests
     }
 
     private static PriceListManagementService Create(TenantMembershipRole role, FakeStore store) =>
-        new(new TenantAuthorizationService(new FakeAccess(role)), store,
-            NullLogger<PriceListManagementService>.Instance);
+        new(new TenantAuthorizationService(new FakeAccess(role)), store);
 
     private sealed class FakeStore : IPriceListManagementStore
     {
