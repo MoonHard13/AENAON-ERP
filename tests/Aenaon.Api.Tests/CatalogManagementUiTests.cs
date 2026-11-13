@@ -169,6 +169,66 @@ public sealed class CatalogManagementUiTests
     }
 
     [TestMethod]
+    public async Task ItemCommercialFields_TravelThroughRealHttpsFormAndSharedWriteService()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string form = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/catalog/manage?view=products&tenantId={Tenant:D}"));
+        Assert.Contains("name=\"unitOfMeasure\"", form);
+        Assert.Contains("name=\"accountingType\"", form);
+        Assert.Contains("Λογιστικός τύπος", form);
+        Assert.Contains("Μονάδα μέτρησης", form);
+
+        using var saved = await PostAsync(client, ExtractToken(form), new()
+        {
+            ["tenantId"] = Tenant.ToString("D"),
+            ["view"] = "products",
+            ["action"] = "create",
+            ["code"] = "FLOUR-001",
+            ["name"] = "Αλεύρι",
+            ["categoryId"] = SessionCatalogWriteFixture.CategoryId.ToString("D"),
+            ["unitOfMeasure"] = ((int)CatalogUnitOfMeasure.Kilogram).ToString(),
+            ["accountingType"] = ((int)CatalogAccountingType.RawMaterial).ToString()
+        });
+
+        Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
+        Assert.AreEqual(CatalogUnitOfMeasure.Kilogram,
+            factory.CatalogWriter.LastCommand?.UnitOfMeasure);
+        Assert.AreEqual(CatalogAccountingType.RawMaterial,
+            factory.CatalogWriter.LastCommand?.AccountingType);
+    }
+
+    [TestMethod]
+    public async Task ItemCommercialFields_RejectInvalidNumericEnumsBeforeWrite()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+        string form = await client.GetStringAsync("/catalog/manage?view=products");
+
+        using var denied = await PostAsync(client, ExtractToken(form), new()
+        {
+            ["tenantId"] = Tenant.ToString("D"),
+            ["view"] = "products",
+            ["action"] = "create",
+            ["code"] = "NEW-001",
+            ["name"] = "Δοκιμή",
+            ["categoryId"] = SessionCatalogWriteFixture.CategoryId.ToString("D"),
+            ["unitOfMeasure"] = "999",
+            ["accountingType"] = "1"
+        });
+
+        Assert.AreEqual(HttpStatusCode.Redirect, denied.StatusCode);
+        Assert.AreEqual(0, factory.CatalogWriter.ApplyCalls);
+        string returned = WebUtility.HtmlDecode(await client.GetStringAsync(
+            denied.Headers.Location?.OriginalString));
+        Assert.Contains("Επιλέξτε συμβατό λογιστικό τύπο", returned);
+    }
+
+    [TestMethod]
     public async Task ItemEdit_PreservesKindAndUsesServerAuthorizedRecord()
     {
         await using var factory = new SessionApiFactory();
