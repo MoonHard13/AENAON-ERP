@@ -174,6 +174,17 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
                 .Where(x => x.TenantId == tenantId && x.PriceListId == priceListId &&
                     itemIds.Contains(x.CatalogItemId))
                 .ToDictionaryAsync(x => x.CatalogItemId, token);
+            // Η σύγκριση γίνεται στο ίδιο σειριοποιημένο transaction πριν από οποιαδήποτε αλλαγή.
+            foreach (PriceListPriceChange change in changes)
+            {
+                decimal? current = existing.TryGetValue(change.CatalogItemId, out PriceListItem? row)
+                    ? row.UnitPrice : null;
+                if (change.CheckExpected && current != change.ExpectedUnitPrice)
+                {
+                    return new(PriceListStatus.Conflict, Error: "pricelist.price.conflict");
+                }
+            }
+
             foreach (PriceListPriceChange change in changes)
             {
                 if (existing.TryGetValue(change.CatalogItemId, out PriceListItem? stored))
