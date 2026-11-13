@@ -33,7 +33,7 @@ public static class PriceListManageCommand
             if (key is not ("--username" or "--tenant-id" or "--confirm-database" or
                 "--action" or "--id" or "--code" or "--name" or "--scope-store-id" or
                 "--channel" or "--include-vat" or "--valid-from" or "--valid-until" or
-                "--search" or "--page" or "--price") || i == args.Length ||
+                "--search" or "--page" or "--price" or "--item-id" or "--expected-price") || i == args.Length ||
                 args[i].StartsWith("--", StringComparison.Ordinal))
             {
                 invalid = true;
@@ -57,7 +57,7 @@ public static class PriceListManageCommand
         bool dryRun = flags.Contains("--dry-run");
         Guid tenantId = Guid.Empty;
         bool valid = !invalid && interactive && dryRun != apply && (readOnly ? dryRun : true) &&
-            action is "list" or "items" or "create" or "update" or "activate" or "deactivate" or "prices" &&
+            action is "list" or "items" or "create" or "update" or "activate" or "deactivate" or "prices" or "remove-price" &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--username")) &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--confirm-database")) &&
             Guid.TryParse(values.GetValueOrDefault("--tenant-id"), out tenantId) &&
@@ -97,6 +97,31 @@ public static class PriceListManageCommand
             valid = false;
         }
 
+        Guid? removeItemId = null;
+        decimal? removeExpectedPrice = null;
+        if (action == "remove-price")
+        {
+            if (!Guid.TryParse(values.GetValueOrDefault("--item-id"), out Guid parsedItem) ||
+                parsedItem == Guid.Empty ||
+                !decimal.TryParse(values.GetValueOrDefault("--expected-price"),
+                    NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
+                    CultureInfo.InvariantCulture, out decimal parsedPrice) ||
+                parsedPrice < 0 || parsedPrice > PriceListItem.MaxUnitPrice ||
+                decimal.Round(parsedPrice, 4) != parsedPrice)
+            {
+                valid = false;
+            }
+            else
+            {
+                removeItemId = parsedItem;
+                removeExpectedPrice = parsedPrice;
+            }
+        }
+        else if (values.ContainsKey("--item-id") || values.ContainsKey("--expected-price"))
+        {
+            valid = false;
+        }
+
         var changes = new List<PriceListPriceChange>();
         foreach (string field in priceArgs)
         {
@@ -115,7 +140,7 @@ public static class PriceListManageCommand
             changes.Add(new(itemId, price));
         }
 
-        if ((action is "items" or "update" or "activate" or "deactivate" or "prices" && !id.HasValue) ||
+        if ((action is "items" or "update" or "activate" or "deactivate" or "prices" or "remove-price" && !id.HasValue) ||
             (action == "create" && id.HasValue) ||
             (action == "prices" && (changes.Count == 0 || changes.Count > 50 ||
                 changes.Select(x => x.CatalogItemId).Distinct().Count() != changes.Count)) ||
@@ -182,11 +207,12 @@ public static class PriceListManageCommand
         {
             await error.WriteLineAsync(
                 "Χρήση: --manage-price-lists --username NAME --tenant-id GUID --confirm-database NAME " +
-                "--action list|items|create|update|activate|deactivate|prices " +
+                "--action list|items|create|update|activate|deactivate|prices|remove-price " +
                 "[--id GUID] [--code CODE] [--name NAME] [--scope-store-id GUID] " +
                 "[--channel All|DineIn|Takeaway|Delivery|Retail|Online] [--include-vat true|false] " +
                 "[--valid-from yyyy-MM-dd] [--valid-until yyyy-MM-dd] " +
-                "[--price ITEM_GUID=AMOUNT]... [--search PREFIX] [--page N] [--inactive] " +
+                "[--price ITEM_GUID=AMOUNT]... [--item-id GUID] [--expected-price AMOUNT] " +
+                "[--search PREFIX] [--page N] [--inactive] " +
                 "(--dry-run | --apply). Απαιτείται διαδραστικό τερματικό.");
             return 2;
         }
@@ -286,7 +312,10 @@ public static class PriceListManageCommand
 
             PriceListResult result = action == "prices"
                 ? await service.SetPricesAsync(userId, tenant, id!.Value, changes, token)
-                : await service.ApplyAsync(userId, tenant,
+                : action == "remove-price"
+                    ? await service.RemovePriceAsync(userId, tenant, id!.Value,
+                        removeItemId!.Value, removeExpectedPrice!.Value, token)
+                    : await service.ApplyAsync(userId, tenant,
                     new PriceListChange(action switch
                     {
                         "create" => PriceListAction.Create,
