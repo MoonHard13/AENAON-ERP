@@ -72,7 +72,7 @@ public partial class Program
             return await ConfigureDatabaseCommand.ExecuteAsync(args[1..], secretsId, new DotnetUserSecretsWriter(),
                 Console.In, Console.Out, Console.Error, ConsolePasswordReader.Read);
         }
-        if (manageCatalog || previewCatalog || inspectImpactPayload || inspectImpactContract || triageFiscalSemantics || verifyFiscalXlsxExport || inspectFiscalXlsx || inspectFiscalMatrix || inspectFiscalImport || checkDatabase || migrateDatabase || initializeBusiness || initializeAdmin || fixAdminEmail || verifyCredentials || checkTenantAccess)
+        if (managePriceLists || manageCatalog || previewCatalog || inspectImpactPayload || inspectImpactContract || triageFiscalSemantics || verifyFiscalXlsxExport || inspectFiscalXlsx || inspectFiscalMatrix || inspectFiscalImport || checkDatabase || migrateDatabase || initializeBusiness || initializeAdmin || fixAdminEmail || verifyCredentials || checkTenantAccess)
         {
             using var cancellation = new CancellationTokenSource();
             ConsoleCancelEventHandler handler = (_, eventArgs) =>
