@@ -54,6 +54,10 @@
                 {
                     <div class="catalog-success" role="status">Δεν βρέθηκαν αλλαγές στις τιμές. Καμία εγγραφή δεν τροποποιήθηκε.</div>
                 }
+                else if (Removed == 1)
+                {
+                    <div class="catalog-success" role="status"><AppIcon Name="check" /> Η τιμή αφαιρέθηκε μόνο από αυτόν τον τιμοκατάλογο.</div>
+                }
                 else if (!string.IsNullOrWhiteSpace(Error))
                 {
                     <div class="form-alert" role="alert">@ErrorMessage</div>
@@ -240,6 +244,10 @@
                                                 <th scope="col">Περιγραφή</th>
                                                 <th scope="col">Είδος</th>
                                                 <th scope="col">Τιμή μονάδας (€)</th>
+                                            @if (CanManage && selected.IsActive)
+                                            {
+                                                <th scope="col">Αφαίρεση</th>
+                                            }
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -267,6 +275,26 @@
                                                             <span>@(row.UnitPrice?.ToString("0.0000", CultureInfo.InvariantCulture) ?? "Δεν έχει οριστεί")</span>
                                                         }
                                                     </td>
+                                                    @if (CanManage && selected.IsActive)
+                                                    {
+                                                        <td>
+                                                            @if (row.UnitPrice.HasValue)
+                                                            {
+                                                                <details class="price-list-remove-confirm">
+                                                                    <summary>Αφαίρεση τιμής</summary>
+                                                                    <p>Θα αφαιρεθεί μόνο η τιμή από τον τρέχοντα τιμοκατάλογο, όχι το είδος.</p>
+                                                                    <button type="submit" class="price-list-remove-submit"
+                                                                            form="@($"price-remove-{row.Id:D}")">
+                                                                        <AppIcon Name="trash" /> Επιβεβαίωση αφαίρεσης
+                                                                    </button>
+                                                                </details>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="price-list-hint">—</span>
+                                                            }
+                                                        </td>
+                                                    }
                                                 </tr>
                                             }
                                         </tbody>
@@ -280,6 +308,28 @@
                                     </div>
                                 }
                             </form>
+                            @* Οι ανεξάρτητες φόρμες συνδέονται στα κουμπιά με HTML form=id και δεν εμφωλεύονται. *@
+                            @if (CanManage && selected.IsActive)
+                            {
+                                @foreach (PriceListItemRow row in _items.Rows.Where(item => item.UnitPrice.HasValue))
+                                {
+                                    <form id="@($"price-remove-{row.Id:D}")" method="post"
+                                          action="/ui/price-lists/remove-price" class="price-list-remove-form">
+                                        <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
+                                        <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
+                                        @if (_workspace.Store is { } removeScopeStore)
+                                        {
+                                            <input type="hidden" name="storeId" value="@removeScopeStore.StoreId" />
+                                        }
+                                        <input type="hidden" name="id" value="@selected.Id" />
+                                        <input type="hidden" name="catalogItemId" value="@row.Id" />
+                                        <input type="hidden" name="expectedPrice"
+                                               value="@row.UnitPrice!.Value.ToString("0.0000", CultureInfo.InvariantCulture)" />
+                                        <input type="hidden" name="search" value="@Search" />
+                                        <input type="hidden" name="page" value="@_items.Page" />
+                                    </form>
+                                }
+                            }
                             @if (_items.Page > 1 || _items.HasMore)
                             {
                                 <nav class="catalog-pagination" aria-label="Σελιδοποίηση ειδών">
@@ -314,6 +364,7 @@
     [SupplyParameterFromQuery(Name = "page")] public int? Page { get; set; }
     [SupplyParameterFromQuery(Name = "saved")] public int? Saved { get; set; }
     [SupplyParameterFromQuery(Name = "unchanged")] public int? Unchanged { get; set; }
+    [SupplyParameterFromQuery(Name = "removed")] public int? Removed { get; set; }
     [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
 
     private TenantWorkspaceSnapshot? _workspace;
