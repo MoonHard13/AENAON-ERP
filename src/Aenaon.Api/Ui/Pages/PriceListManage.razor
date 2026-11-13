@@ -298,7 +298,7 @@
                                                             {
                                                                 <details class="price-list-remove-confirm">
                                                                     <summary>Αφαίρεση τιμής</summary>
-                                                                    <p>Θα αφαιρεθεί μόνο η τιμή από τον τρέχοντα τιμοκατάλογο, όχι το είδος.</p>
+                                                                    <p>Αφαιρείται μόνο η τιμή αυτού του τιμοκαταλόγου. Τυχόν άλλες μη αποθηκευμένες αλλαγές της σελίδας δεν θα διατηρηθούν.</p>
                                                                     <button type="submit" class="price-list-remove-submit"
                                                                             form="@($"price-remove-{row.Id:D}")">
                                                                         <AppIcon Name="trash" /> Επιβεβαίωση αφαίρεσης
@@ -340,7 +340,7 @@
                                         <input type="hidden" name="id" value="@selected.Id" />
                                         <input type="hidden" name="catalogItemId" value="@row.Id" />
                                         <input type="hidden" name="expectedPrice"
-                                               value="@row.UnitPrice!.Value.ToString("0.0000", CultureInfo.InvariantCulture)" />
+                                               value="@(row.UnitPrice!.Value.ToString("0.0000", CultureInfo.InvariantCulture))" />
                                         <input type="hidden" name="search" value="@Search" />
                                         <input type="hidden" name="page" value="@_items.Page" />
                                     </form>
