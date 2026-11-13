@@ -896,3 +896,51 @@ html {
     outline: 3px solid var(--positive);
     outline-offset: 2px;
 }
+
+/* 9.5A.1 — Ίδια σχεδιαστική γλώσσα, μέγεθος, βέλος και popup με τον επιλογέα κατηγορίας. */
+.catalog-commercial-picker .catalog-category-picker__control input[data-commercial-search] {
+    flex: 1 1 0;
+    min-width: 0;
+    width: 100%;
+    min-height: 47px;
+    margin: 0;
+    padding: 8px 0;
+    border: 0;
+    border-radius: 0;
+    outline: none;
+    box-shadow: none;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+}
+.catalog-commercial-picker .catalog-category-picker__control input[data-commercial-search]:focus,
+.catalog-commercial-picker .catalog-category-picker__control input[data-commercial-search]:focus-visible {
+    outline: none;
+    box-shadow: none;
+    background: transparent;
+}
+.catalog-commercial-picker .catalog-category-picker__control:has(input:focus-visible) {
+    outline: 3px solid var(--positive);
+    outline-offset: 2px;
+}
+.catalog-commercial-picker .catalog-category-picker__control:has(input[aria-invalid="true"]) {
+    border-color: var(--danger, #be5448);
+}
+.catalog-commercial-picker .catalog-category-picker__control input[data-commercial-search]::placeholder {
+    color: var(--muted);
+}
+.catalog-commercial-picker .catalog-category-picker__option-text strong {
+    font-size: 13px;
+    font-weight: 750;
+}
+.catalog-commercial-picker .catalog-category-picker__status {
+    flex: 0 0 auto;
+}
+.catalog-commercial-picker .catalog-category-picker__popup[hidden],
+.catalog-commercial-picker .catalog-category-picker__error[hidden] {
+    display: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+    .catalog-commercial-picker .catalog-category-picker__control { transition: none; }
+}

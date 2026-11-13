@@ -46,7 +46,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in src/Aenaon.Api/wwwroot/js/aenaon.js src/Aenaon.Api/wwwroot/js/aenaon-category-picker.js src/Aenaon.Api/wwwroot/js/aenaon-theme-init.js; do
+          for file in src/Aenaon.Api/wwwroot/js/aenaon.js src/Aenaon.Api/wwwroot/js/aenaon-category-picker.js src/Aenaon.Api/wwwroot/js/aenaon-commercial-picker.js src/Aenaon.Api/wwwroot/js/aenaon-theme-init.js; do
             node --check "$file"
           done
       - name: Browser viewport and quick-create smoke
@@ -56,6 +56,7 @@ jobs:
           set -euo pipefail
           command -v google-chrome || command -v chromium
           node scripts/Test-CategoryPickerBrowser.mjs
+          node scripts/Test-CommercialPickerBrowser.mjs
       - name: Verify formatting
         run: dotnet format AenaonERP.slnx --verify-no-changes --no-restore
       - name: Build Release

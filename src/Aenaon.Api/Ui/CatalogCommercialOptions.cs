@@ -2,6 +2,9 @@ using Aenaon.Domain.Catalog;
 
 namespace Aenaon.Api.Ui;
 
+/// <summary>Σταθερή αριθμητική τιμή και ονομασία για τον ενιαίο επιλογέα.</summary>
+public sealed record CatalogSelectOption(int Value, string Label);
+
 /// <summary>Σταθερές ελληνικές ονομασίες εμπορικών πεδίων για τις φόρμες του καταλόγου.</summary>
 public static class CatalogCommercialOptions
 {
@@ -24,6 +27,19 @@ public static class CatalogCommercialOptions
         CatalogAccountingType.Consumable,
         CatalogAccountingType.FixedAsset
     ];
+
+    public static IReadOnlyList<CatalogSelectOption> ProductUnitOptions { get; } =
+        ProductUnits.Select(unit => new CatalogSelectOption((int)unit, UnitName(unit))).ToArray();
+
+    public static IReadOnlyList<CatalogSelectOption> ServiceUnitOptions { get; } =
+        ServiceUnits.Select(unit => new CatalogSelectOption((int)unit, UnitName(unit))).ToArray();
+
+    public static IReadOnlyList<CatalogSelectOption> ProductAccountingOptions { get; } =
+        ProductAccountingTypes.Select(accounting =>
+            new CatalogSelectOption((int)accounting, AccountingName(accounting))).ToArray();
+
+    public static IReadOnlyList<CatalogSelectOption> ServiceAccountingOptions { get; } =
+        [new((int)CatalogAccountingType.Service, AccountingName(CatalogAccountingType.Service))];
 
     public static string UnitName(CatalogUnitOfMeasure value) => value switch
     {
