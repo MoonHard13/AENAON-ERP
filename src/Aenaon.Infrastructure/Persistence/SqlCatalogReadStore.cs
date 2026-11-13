@@ -38,16 +38,50 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
             categories = categories.Where(category => category.ParentCategoryId == parentId);
         }
 
+        // Η ταξινόμηση εκτελείται στη SQL, πριν από το Skip/Take.
+        // Οι καθαρά αριθμητικοί κωδικοί ταξινομούνται ως 1, 2, 10·
+        // οι μη αριθμητικοί ακολουθούν αλφαβητικά, με σταθερό Id tie-breaker.
+        // Το Convert.ToInt64 εφαρμόζεται μόνο για καθαρά ψηφία έως 18 χαρακτήρες,
+        // ώστε οι παλιοί κωδικοί 001/002 να συγκρίνονται αριθμητικά χωρίς overflow.
+        var numericCategories = categories.Select(category => new
+        {
+            Category = category,
+            IsTextCode = category.Code == "" ||
+                EF.Functions.Like(category.Code, "%[^0-9]%")
+        });
+        var ordered = (validated.SortBy, validated.Descending) switch
+        {
+            ("name", false) => numericCategories.OrderBy(x => x.Category.Name)
+                .ThenBy(x => x.Category.Id),
+            ("name", true) => numericCategories.OrderByDescending(x => x.Category.Name)
+                .ThenBy(x => x.Category.Id),
+            ("status", false) => numericCategories.OrderBy(x => x.Category.IsActive)
+                .ThenBy(x => x.Category.Id),
+            ("status", true) => numericCategories.OrderByDescending(x => x.Category.IsActive)
+                .ThenBy(x => x.Category.Id),
+            (_, false) => numericCategories.OrderBy(x => x.IsTextCode)
+                .ThenBy(x => x.IsTextCode ? 0L : x.Category.Code.Length > 18
+                    ? long.MaxValue : Convert.ToInt64(x.Category.Code))
+                .ThenBy(x => x.IsTextCode ? 0 : x.Category.Code.Length > 18
+                    ? x.Category.Code.Length : 0)
+                .ThenBy(x => x.Category.Code).ThenBy(x => x.Category.Id),
+            _ => numericCategories.OrderBy(x => x.IsTextCode)
+                .ThenByDescending(x => x.IsTextCode ? 0L : x.Category.Code.Length > 18
+                    ? long.MaxValue : Convert.ToInt64(x.Category.Code))
+                .ThenByDescending(x => x.IsTextCode ? 0 : x.Category.Code.Length > 18
+                    ? x.Category.Code.Length : 0)
+                .ThenByDescending(x => x.Category.Code).ThenBy(x => x.Category.Id)
+        };
+
         // Το επιπλέον record επιτρέπει HasMore χωρίς ανεξάρτητο COUNT query.
         int offset = (validated.Page - 1) * validated.PageSize;
-        var rows = await categories.OrderBy(category => category.Code)
-            .ThenBy(category => category.Id)
-            .Skip(offset).Take(validated.PageSize + 1)
-            .Select(category => new CatalogCategorySummary(
-                category.Id, category.Code, category.Name, category.IsActive,
-                category.ParentCategoryId, null,
-                context.CatalogCategories.Any(child => child.TenantId == category.TenantId &&
-                    child.ParentCategoryId == category.Id && child.IsActive)))
+        var rows = await ordered.Skip(offset).Take(validated.PageSize + 1)
+            .Select(x => new CatalogCategorySummary(
+                x.Category.Id, x.Category.Code, x.Category.Name, x.Category.IsActive,
+                x.Category.ParentCategoryId, null,
+                context.CatalogCategories.Any(child =>
+                    child.TenantId == x.Category.TenantId &&
+                    child.ParentCategoryId == x.Category.Id && child.IsActive)))
             .ToListAsync(cancellationToken);
         bool hasMore = rows.Count > validated.PageSize;
         if (hasMore)
@@ -90,18 +124,60 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
             items = items.Where(item => item.Kind == kind);
         }
 
-        // Το σύνθετο join δεν επιτρέπει την ανάκτηση ονόματος κατηγορίας από άλλο Tenant.
+        // Το σύνθετο join δεν επιτρέπει ανάκτηση κατηγορίας από άλλο Tenant.
+        // Πρώτα ταξινομούμε όλο το tenant-scoped σύνολο και μετά κάνουμε σελιδοποίηση.
+        var joined = from item in items
+                     join category in context.CatalogCategories.AsNoTracking()
+                         on new { item.TenantId, Id = item.CategoryId }
+                         equals new { category.TenantId, category.Id }
+                     select new
+                     {
+                         Item = item,
+                         Category = category,
+                         IsTextCode = item.Code == "" || EF.Functions.Like(item.Code, "%[^0-9]%")
+                     };
+
+        var ordered = (validated.SortBy, validated.Descending) switch
+        {
+            ("name", false) => joined.OrderBy(x => x.Item.Name)
+                .ThenBy(x => x.Item.Id),
+            ("name", true) => joined.OrderByDescending(x => x.Item.Name)
+                .ThenBy(x => x.Item.Id),
+            ("category", false) => joined.OrderBy(x => x.Category.Name)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            ("category", true) => joined.OrderByDescending(x => x.Category.Name)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            ("kind", false) => joined.OrderBy(x => x.Item.Kind)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            ("kind", true) => joined.OrderByDescending(x => x.Item.Kind)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            ("stock", false) => joined.OrderBy(x => x.Item.TracksStock)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            ("stock", true) => joined.OrderByDescending(x => x.Item.TracksStock)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            ("status", false) => joined.OrderBy(x => x.Item.IsActive)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            ("status", true) => joined.OrderByDescending(x => x.Item.IsActive)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            (_, false) => joined.OrderBy(x => x.IsTextCode)
+                .ThenBy(x => x.IsTextCode ? 0L : x.Item.Code.Length > 18
+                    ? long.MaxValue : Convert.ToInt64(x.Item.Code))
+                .ThenBy(x => x.IsTextCode ? 0 : x.Item.Code.Length > 18
+                    ? x.Item.Code.Length : 0)
+                .ThenBy(x => x.Item.Code).ThenBy(x => x.Item.Id),
+            _ => joined.OrderBy(x => x.IsTextCode)
+                .ThenByDescending(x => x.IsTextCode ? 0L : x.Item.Code.Length > 18
+                    ? long.MaxValue : Convert.ToInt64(x.Item.Code))
+                .ThenByDescending(x => x.IsTextCode ? 0 : x.Item.Code.Length > 18
+                    ? x.Item.Code.Length : 0)
+                .ThenByDescending(x => x.Item.Code).ThenBy(x => x.Item.Id)
+        };
+
         int offset = (validated.Page - 1) * validated.PageSize;
-        var rows = await (
-            from item in items
-            join category in context.CatalogCategories.AsNoTracking()
-                on new { item.TenantId, Id = item.CategoryId }
-                equals new { category.TenantId, category.Id }
-            orderby item.Code, item.Id
-            select new CatalogItemSummary(
-                item.Id, item.CategoryId, item.Code, item.Name,
-                item.Kind, item.TracksStock, item.IsActive, category.Name))
-            .Skip(offset).Take(validated.PageSize + 1)
+        var rows = await ordered.Skip(offset).Take(validated.PageSize + 1)
+            .Select(x => new CatalogItemSummary(
+                x.Item.Id, x.Item.CategoryId, x.Item.Code, x.Item.Name,
+                x.Item.Kind, x.Item.TracksStock, x.Item.IsActive, x.Category.Name))
             .ToListAsync(cancellationToken);
         bool hasMore = rows.Count > validated.PageSize;
         if (hasMore)

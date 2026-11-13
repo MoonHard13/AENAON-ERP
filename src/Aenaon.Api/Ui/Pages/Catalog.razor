@@ -124,6 +124,11 @@
                     <form class="catalog-filters" method="get" action="/catalog" role="search"
                           aria-label="Αναζήτηση και φίλτρα καταλόγου">
                         <input type="hidden" name="view" value="@SelectedView" />
+                        <input type="hidden" name="sort" value="@CurrentSort" />
+                        @if (CurrentDescending)
+                        {
+                            <input type="hidden" name="desc" value="true" />
+                        }
                         @if (TenantId.HasValue)
                         {
                             <input type="hidden" name="tenantId" value="@TenantId.Value" />
@@ -181,8 +186,15 @@
                              aria-label="Πίνακας κατηγοριών με οριζόντια κύλιση">
                             <table class="catalog-table">
                                 <thead>
-                                    <tr><th scope="col">Κωδικός</th><th scope="col">Κατηγορία</th><th scope="col">Κατάσταση</th>
-                                        <th scope="col">Ενέργειες</th></tr>
+                                    <tr>
+                                        <CatalogSortHeader Label="Κωδικός" Href="@SortHref("code")"
+                                                           Active="@(CurrentSort == "code")" Descending="@CurrentDescending" />
+                                        <CatalogSortHeader Label="Κατηγορία" Href="@SortHref("name")"
+                                                           Active="@(CurrentSort == "name")" Descending="@CurrentDescending" />
+                                        <CatalogSortHeader Label="Κατάσταση" Href="@SortHref("status")"
+                                                           Active="@(CurrentSort == "status")" Descending="@CurrentDescending" />
+                                        <th scope="col">Ενέργειες</th>
+                                    </tr>
                                 </thead>
                                 <tbody>
                                     @foreach (CatalogCategorySummary row in _categories.Rows)
@@ -252,12 +264,18 @@
                             <table class="catalog-table">
                                 <thead>
                                     <tr>
-                                        <th scope="col">Κωδικός</th>
-                                        <th scope="col">Περιγραφή</th>
-                                        <th scope="col">Κατηγορία</th>
-                                        <th scope="col">Τύπος</th>
-                                        <th scope="col">Απόθεμα</th>
-                                        <th scope="col">Κατάσταση</th>
+                                        <CatalogSortHeader Label="Κωδικός" Href="@SortHref("code")"
+                                                           Active="@(CurrentSort == "code")" Descending="@CurrentDescending" />
+                                        <CatalogSortHeader Label="Περιγραφή" Href="@SortHref("name")"
+                                                           Active="@(CurrentSort == "name")" Descending="@CurrentDescending" />
+                                        <CatalogSortHeader Label="Κατηγορία" Href="@SortHref("category")"
+                                                           Active="@(CurrentSort == "category")" Descending="@CurrentDescending" />
+                                        <CatalogSortHeader Label="Τύπος" Href="@SortHref("kind")"
+                                                           Active="@(CurrentSort == "kind")" Descending="@CurrentDescending" />
+                                        <CatalogSortHeader Label="Απόθεμα" Href="@SortHref("stock")"
+                                                           Active="@(CurrentSort == "stock")" Descending="@CurrentDescending" />
+                                        <CatalogSortHeader Label="Κατάσταση" Href="@SortHref("status")"
+                                                           Active="@(CurrentSort == "status")" Descending="@CurrentDescending" />
                                         @if (CanManage) { <th scope="col">Ενέργειες</th> }
                                     </tr>
                                 </thead>
@@ -370,6 +388,12 @@
     [SupplyParameterFromQuery(Name = "parentId")]
     public Guid? ParentId { get; set; }
 
+    [SupplyParameterFromQuery(Name = "sort")]
+    public string? SortBy { get; set; }
+
+    [SupplyParameterFromQuery(Name = "desc")]
+    public bool? Descending { get; set; }
+
     private TenantWorkspaceSnapshot? _workspace;
     private CatalogReadPage<CatalogCategorySummary>? _categories;
     private CatalogReadPage<CatalogItemSummary>? _items;
@@ -379,6 +403,14 @@
     private bool _loading = true;
 
     private string SelectedView => string.IsNullOrEmpty(View) ? "products" : View;
+    private string CurrentSort => string.IsNullOrEmpty(SortBy) ? "code" : SortBy;
+    private bool CurrentDescending => Descending == true;
+    private bool SortIsValidForView(string view, string key) =>
+        key is "code" or "name" or "status" ||
+        (view != "categories" && key is "category" or "kind" or "stock");
+    private string SortHref(string key) =>
+        BuildUrl(SelectedView, 1, sort: key,
+            descending: CurrentSort == key && !CurrentDescending);
     private bool CanManage => _workspace?.Tenant?.Role == TenantMembershipRole.Owner &&
         _workspace.Status is (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores);
     private string NewButtonText => SelectedView switch
@@ -474,7 +506,8 @@
             };
             CatalogReadQuery query = new(
                 PageNumber ?? 1, PageSize ?? 25, Search, IncludeInactive == true, kind,
-                SelectedView == "categories" ? ParentId : null);
+                SelectedView == "categories" ? ParentId : null,
+                CurrentSort, CurrentDescending);
             query = query.Validated();
 
             if (SelectedView == "categories")
@@ -497,8 +530,9 @@
             if (_errorCode is null)
             {
                 Logger.LogInformation(
-                    "Catalog UI read for {UserId} {TenantId} {View} page {Page} size {PageSize}",
-                    userId, _workspace.Tenant!.TenantId, SelectedView, query.Page, query.PageSize);
+                    "Catalog UI read for {UserId} {TenantId} {View} page {Page} size {PageSize} sort {SortBy} descending {Descending}",
+                    userId, _workspace.Tenant!.TenantId, SelectedView, query.Page,
+                    query.PageSize, query.SortBy, query.Descending);
             }
             else
             {
@@ -552,7 +586,8 @@
     private string BuildResetUrl() => BuildUrl(SelectedView, 1, reset: true);
 
     private string BuildUrl(string view, int page, bool reset = false,
-        Guid? parent = null, bool clearParent = false)
+        Guid? parent = null, bool clearParent = false,
+        string? sort = null, bool? descending = null)
     {
         var parameters = new List<string>
         {
@@ -584,6 +619,20 @@
             if (PageSize is 50 or 100)
             {
                 parameters.Add($"pageSize={PageSize.Value}");
+            }
+
+            string selectedSort = sort ?? CurrentSort;
+            if (SortIsValidForView(view, selectedSort))
+            {
+                if (selectedSort != "code")
+                {
+                    parameters.Add($"sort={Uri.EscapeDataString(selectedSort)}");
+                }
+
+                if (descending ?? (sort is null && CurrentDescending))
+                {
+                    parameters.Add("desc=true");
+                }
             }
         }
 

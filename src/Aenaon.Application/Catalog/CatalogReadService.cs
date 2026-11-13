@@ -7,7 +7,7 @@ namespace Aenaon.Application.Catalog;
 /// <summary>Ασφαλές όριο σελίδας για προβολή καταλόγου, χωρίς δικαίωμα μεταβολής.</summary>
 public sealed record CatalogReadQuery(int Page = 1, int PageSize = 25,
     string? Search = null, bool IncludeInactive = false, CatalogItemKind? Kind = null,
-    Guid? ParentCategoryId = null)
+    Guid? ParentCategoryId = null, string SortBy = "code", bool Descending = false)
 {
     public const int MaxPage = 1000;
     public const int MaxPageSize = 100;
@@ -20,7 +20,9 @@ public sealed record CatalogReadQuery(int Page = 1, int PageSize = 25,
             term is { Length: > MaxSearchLength } ||
             term?.Any(char.IsControl) == true ||
             (Kind.HasValue && !Enum.IsDefined(Kind.Value)) ||
-            ParentCategoryId == Guid.Empty)
+            ParentCategoryId == Guid.Empty ||
+            SortBy is not ("code" or "name" or "category" or "kind" or "stock" or "status") ||
+            (Kind is null && SortBy is "category" or "kind" or "stock"))
         {
             throw new DomainRuleException("catalog.read.query.invalid",
                 "Μη έγκυρη σελίδα, μέγεθος ή αναζήτηση καταλόγου.");

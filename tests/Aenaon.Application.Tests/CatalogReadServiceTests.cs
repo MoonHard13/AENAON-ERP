@@ -94,6 +94,29 @@ public sealed class CatalogReadServiceTests
     }
 
     [TestMethod]
+    public async Task SortByAndDirection_ArePassedToTenantScopedReadStore()
+    {
+        var store = new FakeCatalogStore();
+        var service = new CatalogReadService(
+            new TenantAuthorizationService(new FakeTenantAccessStore()), store);
+
+        CatalogReadResult<CatalogItemSummary> items = await service.ReadItemsAsync(
+            MemberUser, Tenant, new CatalogReadQuery(
+                Page: 2, PageSize: 10, Kind: CatalogItemKind.Product,
+                SortBy: "name", Descending: true));
+        Assert.IsTrue(items.IsAuthorized);
+        Assert.AreEqual("name", store.LastQuery?.SortBy);
+        Assert.IsTrue(store.LastQuery?.Descending == true);
+        Assert.AreEqual(2, store.LastQuery?.Page);
+
+        CatalogReadResult<CatalogCategorySummary> categories = await service.ReadCategoriesAsync(
+            MemberUser, Tenant, new CatalogReadQuery(SortBy: "status"));
+        Assert.IsTrue(categories.IsAuthorized);
+        Assert.AreEqual("status", store.LastQuery?.SortBy);
+        Assert.IsTrue(store.LastQuery?.Descending == false);
+    }
+
+    [TestMethod]
     public async Task InvalidQueries_FailBeforeAuthorizationOrSql()
     {
         var store = new FakeCatalogStore();
@@ -108,7 +131,11 @@ public sealed class CatalogReadServiceTests
             new(1, 101),
             new(1, 25, new string('x', 81)),
             new(1, 25, "bad\nline"),
-            new(1, 25, Kind: (CatalogItemKind)999)
+            new(1, 25, Kind: (CatalogItemKind)999),
+            new(1, 25, SortBy: "name;DROP TABLE CatalogItems"),
+            new(1, 25, SortBy: "unknown"),
+            new(1, 25, SortBy: "category"),
+            new(1, 25, SortBy: "stock")
         ];
 
         foreach (CatalogReadQuery query in invalid)
