@@ -208,6 +208,7 @@ try {
     const cdp = new Cdp(websocket);
     await cdp.command("Page.enable");
     await cdp.command("Runtime.enable");
+    await cdp.command("Page.bringToFront");
     await cdp.command("Page.navigate", {
         url: "http://127.0.0.1:" + httpPort + "/"
     });
@@ -227,13 +228,18 @@ try {
         await cdp.command("Emulation.setDeviceMetricsOverride", {
             width, height, deviceScaleFactor: 1, mobile: width < 600
         });
-        await cdp.evaluate(`(() => {
+        const focusState = await cdp.evaluate(`(() => {
             const demo = document.querySelector(".demo");
             demo.style.top = "${anchorTop}px";
             const input = document.querySelector("[data-picker-search]");
             input.focus();
-            return true;
+            return { focused:document.activeElement===input,
+                hasFocus:document.hasFocus(),
+                hidden:document.querySelector("[data-picker-popup]").hidden,
+                ready:document.querySelector("[data-catalog-picker]").classList.contains("catalog-category-picker--ready") };
         })()`);
+        process.stdout.write("Picker viewport " + width + "×" + height +
+            ", top=" + anchorTop + ", focus=" + JSON.stringify(focusState) + "\\n");
         await waitFor(() => cdp.evaluate(
             '!document.querySelector("[data-picker-popup]").hidden'),
             "Δεν άνοιξε το picker.");
