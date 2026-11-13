@@ -1,0 +1,446 @@
+@page "/price-lists/manage"
+@attribute [Authorize]
+@attribute [StreamRendering]
+@layout MainLayout
+@using System.Globalization
+@using Aenaon.Application.Catalog
+@using Aenaon.Domain.Catalog
+@using Aenaon.Domain.Tenancy
+@using Aenaon.Domain.Exceptions
+@inject IHttpContextAccessor HttpContextAccessor
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject TenantWorkspaceResolver WorkspaceResolver
+@inject WorkspacePreferenceService Preference
+@inject PriceListManagementService Manager
+@inject ILogger<PriceListManage> Logger
+
+<PageTitle>@Heading | Aenaon ERP</PageTitle>
+<main class="dashboard">
+    <BackOfficeSidebar ActivePage="price-lists" TenantId="@TenantId" StoreId="@StoreId" />
+    <div class="dashboard__content">
+        <BackOfficeTopbar ActivePage="price-lists" PageTitle="@Heading"
+                          UserName="@_userName" Workspace="@_workspace"
+                          CsrfToken="@_csrfToken" TenantId="@TenantId" StoreId="@StoreId" />
+        <div class="dashboard__body catalog-page catalog-manage-page price-list-manage">
+            @if (_loading)
+            {
+                <section class="surface-card catalog-loading" aria-busy="true" role="status">Φόρτωση τιμοκαταλόγου…</section>
+            }
+            else if (_error == "database")
+            {
+                <div class="form-alert" role="alert">Σφάλμα φόρτωσης τιμοκαταλόγου. Ελέγξτε τη σύνδεση.</div>
+            }
+            else if (_workspace is null ||
+                     _workspace.Status is not (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores) ||
+                     _error == "access")
+            {
+                <div class="workspace-alert" role="alert">Δεν έχετε πρόσβαση στην επιλεγμένη επιχείρηση ή στο κατάστημα.</div>
+            }
+            else if (_error == "missing" || (Id.HasValue && _list is null))
+            {
+                <div class="workspace-alert" role="alert">Ο τιμοκατάλογος δεν βρέθηκε σε αυτήν την επιχείρηση.</div>
+            }
+            else
+            {
+                <div class="price-list-toolbar">
+                    <a class="button button--outline" href="@BackUrl"><AppIcon Name="chevron" /> Επιστροφή στους τιμοκαταλόγους</a>
+                    @if (!CanManage) { <span class="catalog-readonly">Μόνο ανάγνωση</span> }
+                </div>
+                @if (Saved == 1)
+                {
+                    <div class="catalog-success" role="status"><AppIcon Name="check" /> Οι αλλαγές αποθηκεύτηκαν επιτυχώς.</div>
+                }
+                else if (!string.IsNullOrWhiteSpace(Error))
+                {
+                    <div class="form-alert" role="alert">@ErrorMessage</div>
+                }
+                <section class="surface-card catalog-editor" aria-labelledby="price-editor-title">
+                    <div class="catalog-editor__header">
+                        <div>
+                            <h1 id="price-editor-title">@Heading</h1>
+                            <p>Κωδικός, κατάστημα, κανάλι και καθεστώς ΦΠΑ δεν μεταβάλλονται μετά τη δημιουργία.</p>
+                        </div>
+                        @if (_list is { } existing)
+                        {
+                            <span class="@(existing.IsActive ? "catalog-status catalog-status--active" : "catalog-status catalog-status--inactive")">
+                                @(existing.IsActive ? "Ενεργός" : "Ανενεργός")
+                            </span>
+                        }
+                    </div>
+                    @if (CanManage)
+                    {
+                        <form class="catalog-editor__form" method="post" action="/ui/price-lists/save">
+                            <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
+                            <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
+                            @if (_workspace.Store is { } workspaceStore)
+                            {
+                                <input type="hidden" name="storeId" value="@workspaceStore.StoreId" />
+                            }
+                            <input type="hidden" name="action" value="@(_list is null ? "create" : "update")" />
+                            @if (Id.HasValue)
+                            {
+                                <input type="hidden" name="id" value="@Id.Value" />
+                            }
+                            <div class="catalog-editor__grid">
+                                <div class="catalog-editor__field">
+                                    <label for="price-code">Κωδικός *</label>
+                                    <input id="price-code" name="code" maxlength="30" required="@(_list is null)"
+                                           disabled="@(_list is not null)" autocomplete="off"
+                                           value="@_list?.Code" placeholder="π.χ. RETAIL, DELIVERY" />
+                                </div>
+                                <div class="catalog-editor__field">
+                                    <label for="price-name">Περιγραφή *</label>
+                                    <input id="price-name" name="name" maxlength="160" required
+                                           autocomplete="off" value="@_list?.Name" placeholder="Τίτλος τιμοκαταλόγου" />
+                                </div>
+                                @if (_list is null)
+                                {
+                                    <div class="catalog-editor__field">
+                                        <label for="price-store">Κατάστημα</label>
+                                        <select id="price-store" name="scopeStoreId">
+                                            <option value="">Όλα τα καταστήματα της επιχείρησης</option>
+                                            @foreach (TenantStoreSummary store in _workspace.Stores)
+                                            {
+                                                <option value="@store.StoreId">@store.Code — @store.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="catalog-editor__field">
+                                        <label for="price-channel">Κανάλι πώλησης</label>
+                                        <select id="price-channel" name="channel" required>
+                                            <option value="All">Όλα τα κανάλια</option>
+                                            <option value="DineIn">Σάλα</option>
+                                            <option value="Takeaway">Takeaway</option>
+                                            <option value="Delivery">Delivery</option>
+                                            <option value="Retail">Λιανική</option>
+                                            <option value="Online">Online</option>
+                                        </select>
+                                    </div>
+                                    <div class="catalog-editor__field">
+                                        <label for="price-vat">Ερμηνεία τιμής</label>
+                                        <select id="price-vat" name="includeVat">
+                                            <option value="true">Τιμή με ΦΠΑ</option>
+                                            <option value="false">Τιμή χωρίς ΦΠΑ</option>
+                                        </select>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="catalog-editor__field">
+                                        <label>Κατάστημα</label>
+                                        <p class="price-list-readonly-value">@StoreLabel(_list.StoreId)</p>
+                                    </div>
+                                    <div class="catalog-editor__field">
+                                        <label>Κανάλι πώλησης</label>
+                                        <p class="price-list-readonly-value">@ChannelLabel(_list.Channel)</p>
+                                    </div>
+                                    <div class="catalog-editor__field">
+                                        <label>Ερμηνεία τιμής</label>
+                                        <p class="price-list-readonly-value">@(_list.PricesIncludeVat ? "Τιμή με ΦΠΑ" : "Τιμή χωρίς ΦΠΑ")</p>
+                                    </div>
+                                }
+                                <div class="catalog-editor__field">
+                                    <label for="price-from">Έναρξη ισχύος *</label>
+                                    <input id="price-from" type="date" name="validFrom" required
+                                           value="@(_list?.ValidFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))" />
+                                </div>
+                                <div class="catalog-editor__field">
+                                    <label for="price-until">Λήξη ισχύος (προαιρετική)</label>
+                                    <input id="price-until" type="date" name="validUntil"
+                                           value="@_list?.ValidUntil?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" />
+                                </div>
+                            </div>
+                            <div class="catalog-editor__footer">
+                                <button type="submit" class="button button--primary"><AppIcon Name="check" /> @(_list is null ? "Δημιουργία τιμοκαταλόγου" : "Αποθήκευση αλλαγών")</button>
+                                <a class="button button--outline" href="@BackUrl">Ακύρωση</a>
+                            </div>
+                        </form>
+                    }
+                    else if (_list is { } readOnly)
+                    {
+                        <p><strong>Κωδικός:</strong> @readOnly.Code — @readOnly.Name</p>
+                        <p><strong>Κανάλι:</strong> @ChannelLabel(readOnly.Channel) · <strong>Κατάστημα:</strong> @StoreLabel(readOnly.StoreId)</p>
+                        <p><strong>Ισχύς:</strong> @readOnly.ValidFrom.ToString("dd/MM/yyyy") έως @(readOnly.ValidUntil?.ToString("dd/MM/yyyy") ?? "χωρίς λήξη")</p>
+                    }
+                    @if (CanManage && _list is { } current)
+                    {
+                        <details class="price-list-state-confirm">
+                            <summary>@(current.IsActive ? "Απενεργοποίηση" : "Ενεργοποίηση") τιμοκαταλόγου</summary>
+                            <p>Επιβεβαιώστε την αλλαγή κατάστασης. Δεν διαγράφονται αποθηκευμένες τιμές.</p>
+                            <form method="post" action="/ui/price-lists/save">
+                                <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
+                                <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
+                                @if (_workspace.Store is { } currentStore)
+                                {
+                                    <input type="hidden" name="storeId" value="@currentStore.StoreId" />
+                                }
+                                <input type="hidden" name="id" value="@current.Id" />
+                                <input type="hidden" name="action" value="@(current.IsActive ? "deactivate" : "activate")" />
+                                <button class="button button--outline" type="submit">Επιβεβαίωση</button>
+                            </form>
+                        </details>
+                    }
+                </section>
+
+                @if (_list is { } selected)
+                {
+                    <section class="surface-card catalog-surface price-list-items" aria-labelledby="price-items-title">
+                        <div class="catalog-surface__header">
+                            <div class="catalog-surface__identity">
+                                <h2 id="price-items-title">Τιμές προϊόντων και υπηρεσιών</h2>
+                                <span class="count-pill">@selected.ItemCount τιμολογημένα είδη</span>
+                            </div>
+                        </div>
+                        <form method="get" action="/price-lists/manage" class="catalog-filters" role="search" aria-label="Αναζήτηση ειδών για τιμολόγηση">
+                            <input type="hidden" name="id" value="@selected.Id" />
+                            <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
+                            @if (_workspace.Store is { } currentStore)
+                            {
+                                <input type="hidden" name="storeId" value="@currentStore.StoreId" />
+                            }
+                            <div class="catalog-search">
+                                <label for="price-item-search">Κωδικός ή περιγραφή είδους</label>
+                                <input id="price-item-search" type="search" name="search" maxlength="80"
+                                       value="@Search" placeholder="Αναζήτηση προϊόντος / υπηρεσίας" />
+                            </div>
+                            <button class="button button--primary" type="submit">Αναζήτηση</button>
+                            <a class="button button--outline" href="@ManageUrl(selected.Id)">Καθαρισμός</a>
+                        </form>
+                        @if (_items is null || _items.Rows.Count == 0)
+                        {
+                            <div class="price-list-empty">
+                                <strong>Δεν βρέθηκαν ενεργά προϊόντα ή υπηρεσίες.</strong>
+                                <p>Δημιουργήστε πρώτα είδη στον Κατάλογο ή αλλάξτε τα φίλτρα.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <form method="post" action="/ui/price-lists/prices">
+                                <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
+                                <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
+                                @if (_workspace.Store is { } currentStore)
+                                {
+                                    <input type="hidden" name="storeId" value="@currentStore.StoreId" />
+                                }
+                                <input type="hidden" name="id" value="@selected.Id" />
+                                <input type="hidden" name="search" value="@Search" />
+                                <input type="hidden" name="page" value="@(_items.Page)" />
+                                <div class="catalog-table-wrap">
+                                    <table class="catalog-table">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Κωδικός</th>
+                                                <th scope="col">Περιγραφή</th>
+                                                <th scope="col">Είδος</th>
+                                                <th scope="col">Τιμή μονάδας (€)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (PriceListItemRow row in _items.Rows)
+                                            {
+                                                <tr>
+                                                    <td><strong>@row.Code</strong></td>
+                                                    <td>@row.Name</td>
+                                                    <td>@(row.Kind == CatalogItemKind.Service ? "Υπηρεσία" : "Προϊόν")</td>
+                                                    <td>
+                                                        @if (CanManage && selected.IsActive)
+                                                        {
+                                                            <label class="price-list-sr" for="@($"price-{row.Id:D}")">Τιμή @row.Name</label>
+                                                            <input id="@($"price-{row.Id:D}")" name="@($"price_{row.Id:D}")"
+                                                                   type="number" min="0" max="999999999999.9999"
+                                                                   step="0.0001" inputmode="decimal"
+                                                                   class="price-list-amount"
+                                                                   value="@(row.UnitPrice?.ToString("0.0000", CultureInfo.InvariantCulture))"
+                                                                   placeholder="—" />
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>@(row.UnitPrice?.ToString("0.0000", CultureInfo.InvariantCulture) ?? "Δεν έχει οριστεί")</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                @if (CanManage && selected.IsActive)
+                                {
+                                    <div class="price-list-batch-footer">
+                                        <span>Κενό πεδίο = χωρίς αλλαγή. Επιτρέπονται έως 4 δεκαδικά.</span>
+                                        <button type="submit" class="button button--primary"><AppIcon Name="check" /> Αποθήκευση τιμών σελίδας</button>
+                                    </div>
+                                }
+                            </form>
+                            <nav class="catalog-pagination" aria-label="Σελιδοποίηση ειδών">
+                                @if (_items.Page > 1)
+                                {
+                                    <a rel="prev" href="@ItemsUrl(selected.Id, _items.Page - 1)">Προηγούμενη</a>
+                                }
+                                <span>Σελίδα @_items.Page</span>
+                                @if (_items.HasMore)
+                                {
+                                    <a rel="next" href="@ItemsUrl(selected.Id, _items.Page + 1)">Επόμενη</a>
+                                }
+                            </nav>
+                        }
+                    </section>
+                }
+                <p class="catalog-disclaimer">
+                    Οι τιμές είναι εμπορικά δεδομένα. Οι μονάδες μέτρησης, ο ΦΠΑ και οι λογιστικοί τύποι δεν αντιστοιχίζονται αυτόματα σε myDATA ή IMPACT.
+                </p>
+            }
+        </div>
+        <footer class="dashboard__footer">© @DateTime.UtcNow.Year Aenaon ERP · by MoonHard <span>Built with .NET &amp; Blazor</span></footer>
+    </div>
+</main>
+
+@code {
+    [SupplyParameterFromQuery(Name = "tenantId")] public Guid? TenantId { get; set; }
+    [SupplyParameterFromQuery(Name = "storeId")] public Guid? StoreId { get; set; }
+    [SupplyParameterFromQuery(Name = "id")] public Guid? Id { get; set; }
+    [SupplyParameterFromQuery(Name = "search")] public string? Search { get; set; }
+    [SupplyParameterFromQuery(Name = "page")] public int? Page { get; set; }
+    [SupplyParameterFromQuery(Name = "saved")] public int? Saved { get; set; }
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+
+    private TenantWorkspaceSnapshot? _workspace;
+    private PriceListSummary? _list;
+    private PriceListItemsPage? _items;
+    private string _userName = "Χρήστης";
+    private string? _csrfToken;
+    private bool _loading = true;
+    private string? _error;
+
+    private string Heading => _list?.Name ?? (Id.HasValue ? "Τιμοκατάλογος" : "Νέος τιμοκατάλογος");
+    private bool CanManage => _workspace?.Tenant?.Role == TenantMembershipRole.Owner &&
+        _workspace.Status is (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores);
+
+    private string ErrorMessage => Error switch
+    {
+        "duplicate" => "Υπάρχει ήδη τιμοκατάλογος με αυτόν τον κωδικό.",
+        "missing" => "Η καταχώρηση δεν υπάρχει σε αυτήν την επιχείρηση.",
+        "inactive" => "Ο ανενεργός τιμοκατάλογος δεν επιτρέπει αλλαγές τιμών.",
+        "invalid" => "Ελέγξτε τα πεδία, τις ημερομηνίες, τους κωδικούς και τις τιμές.",
+        "conflict" => "Η αποθήκευση συγκρούστηκε με υπάρχοντα δεδομένα. Επαναφορτώστε τη σελίδα.",
+        _ => "Η αλλαγή δεν ολοκληρώθηκε. Δοκιμάστε ξανά."
+    };
+
+    private string StoreLabel(Guid? id) => id is null ? "Όλα τα καταστήματα" :
+        _workspace?.Stores.FirstOrDefault(x => x.StoreId == id.Value)?.Name ?? "Μη διαθέσιμο";
+
+    private static string ChannelLabel(PriceListChannel channel) => channel switch
+    {
+        PriceListChannel.DineIn => "Σάλα",
+        PriceListChannel.Takeaway => "Takeaway",
+        PriceListChannel.Delivery => "Delivery",
+        PriceListChannel.Retail => "Λιανική",
+        PriceListChannel.Online => "Online",
+        _ => "Όλα"
+    };
+
+    private string BackUrl
+    {
+        get
+        {
+            string result = "/price-lists";
+            if (_workspace?.Tenant is { } tenant)
+            {
+                result += $"?tenantId={tenant.TenantId:D}";
+                if (_workspace.Store is { } store) result += $"&storeId={store.StoreId:D}";
+            }
+            return result;
+        }
+    }
+
+    private string ManageUrl(Guid id)
+    {
+        string result = BackUrl.Replace("/price-lists", "/price-lists/manage");
+        return result + (result.Contains('?') ? "&" : "?") + $"id={id:D}";
+    }
+
+    private string ItemsUrl(Guid id, int page)
+    {
+        string result = ManageUrl(id) + $"&page={page}";
+        if (!string.IsNullOrWhiteSpace(Search)) result += $"&search={Uri.EscapeDataString(Search.Trim())}";
+        return result;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _workspace = null;
+        _list = null;
+        _items = null;
+        _error = null;
+        _loading = true;
+        HttpContext? context = HttpContextAccessor.HttpContext;
+        if (context?.Request.IsHttps != true ||
+            context.User.Identity?.IsAuthenticated != true ||
+            !Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid userId) ||
+            userId == Guid.Empty)
+        {
+            _error = "access";
+            _loading = false;
+            return;
+        }
+
+        _userName = context.User.Identity.Name ?? "Χρήστης";
+        _csrfToken = Antiforgery.GetAndStoreTokens(context).RequestToken;
+        context.Response.Headers.CacheControl = "no-store";
+        try
+        {
+            if (Id == Guid.Empty)
+            {
+                _error = "missing";
+                return;
+            }
+            Guid? tenant = TenantId;
+            Guid? store = StoreId;
+            if (!tenant.HasValue && !store.HasValue &&
+                Preference.TryRead(context, userId, out Guid preferredTenant, out Guid? preferredStore))
+            {
+                tenant = preferredTenant;
+                store = preferredStore;
+            }
+            _workspace = await WorkspaceResolver.ResolveAsync(userId, tenant, store, context.RequestAborted);
+            if (_workspace.Status is not (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores))
+            {
+                _error = "access";
+                return;
+            }
+
+            if (Id.HasValue)
+            {
+                _list = await Manager.GetAsync(userId, _workspace.Tenant!.TenantId,
+                    Id.Value, context.RequestAborted);
+                if (_list is null)
+                {
+                    _error = "missing";
+                    return;
+                }
+                _items = await Manager.ReadItemsAsync(userId, _workspace.Tenant!.TenantId,
+                    Id.Value, Search, Page ?? 1, 25, context.RequestAborted);
+            }
+            else if (!await Manager.CanManageAsync(userId, _workspace.Tenant!.TenantId, context.RequestAborted))
+            {
+                _error = "access";
+            }
+        }
+        catch (DomainRuleException)
+        {
+            _error = "missing";
+        }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Price list editor load failed");
+            _error = "database";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}
