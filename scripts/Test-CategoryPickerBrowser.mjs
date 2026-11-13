@@ -295,7 +295,7 @@ try {
     // Το click στο footer ελέγχεται ως πραγματική κίνηση ποντικιού μέσω Chrome CDP.
     const button = await cdp.evaluate(`(() => {
         const input = document.querySelector("[data-picker-search]");
-        input.focus();
+        input.click();
         const element = document.querySelector("[data-picker-popup] [data-picker-create]");
         const rect = element.getBoundingClientRect();
         return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2,
