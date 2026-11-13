@@ -70,7 +70,7 @@ public sealed class CatalogPickerStabilityTests
         Assert.Contains("form.requestSubmit(submit)", js);
         Assert.Contains("createButtons", js);
         Assert.Contains("addEventListener(\"mousedown\"", js);
-        Assert.Contains("role=\"option\"", js);
+        Assert.Contains("option.setAttribute(\"role\", \"option\")", js);
         Assert.Contains("catalog-category-picker__option--active", js);
         Assert.Contains("this.scheduleSearch(this.input.value.trim())", js);
         Assert.DoesNotContain("this.open();\n                this.scheduleSearch(search);", js);
