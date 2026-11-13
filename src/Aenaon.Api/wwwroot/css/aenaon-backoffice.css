@@ -41,7 +41,7 @@
     padding: 24px 27px 20px; border-bottom: 1px solid var(--border);
 }
 .catalog-surface__header .eyebrow { margin: 0 0 5px; }
-.catalog-surface__header h2 {
+.catalog-surface__header h1 {
     margin: 0; font-size: 21px; line-height: 1.3; letter-spacing: -.02em;
 }
 .catalog-surface__header .count-pill { white-space: nowrap; }
@@ -254,7 +254,7 @@ html {
     gap: 18px; flex-wrap: wrap; margin-bottom: 16px;
 }
 .workspace-selection__header .eyebrow { margin: 0 0 4px; }
-.workspace-selection__header h2 { font-size: 19px; letter-spacing: -.02em; margin: 0 0 3px; }
+.workspace-selection__header h1 { font-size: 19px; letter-spacing: -.02em; margin: 0 0 3px; }
 .workspace-selection__header p { font-size: 13px; color: var(--muted); margin: 0; }
 .workspace-selection__counts {
     font-size: 12px; font-weight: 700; color: var(--muted-strong);
@@ -279,7 +279,7 @@ html {
 .catalog-tabs__link { min-height: 40px; padding: 7px 14px; }
 .catalog-surface { min-height: 0; }
 .catalog-surface__header { padding: 14px 20px; }
-.catalog-surface__header h2 { font-size: 18px; }
+.catalog-surface__header h1 { font-size: 18px; }
 .catalog-filters { padding: 13px 20px; gap: 11px; }
 .catalog-field label { font-size: 12px; }
 .catalog-field--search { max-width: 640px; }
@@ -943,4 +943,39 @@ html {
 }
 @media (prefers-reduced-motion: reduce) {
     .catalog-commercial-picker .catalog-category-picker__control { transition: none; }
+}
+
+
+/* Βήμα 9.5A.2 — Συμπαγής Επισκόπηση και ενέργειες δημιουργίας μέσα στον Κατάλογο. */
+.dashboard-overview.dashboard__body { padding-top: 20px; }
+.dashboard-overview .workspace-selection__header { align-items: center; margin-bottom: 14px; }
+.dashboard-overview .workspace-selection__header h1 {
+    font-size: clamp(20px, 2vw, 24px); line-height: 1.3; margin: 0;
+    color: var(--text); letter-spacing: -.02em;
+}
+.dashboard-overview .surface-card { padding: 18px 20px; }
+.dashboard-overview .surface-card__heading { padding-bottom: 11px; margin-bottom: 8px; }
+.dashboard-overview .surface-card__heading h2 { margin: 0; }
+.dashboard-overview .next-steps { margin-top: 14px; padding: 14px 18px; }
+.catalog-surface__identity {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 9px 14px; min-width: 0;
+}
+.catalog-surface__actions {
+    display: flex; align-items: center; flex: 0 0 auto;
+    gap: 10px; margin-left: auto;
+}
+.catalog-surface__actions .catalog-create,
+.catalog-surface__actions .catalog-readonly { margin-top: 0; }
+.catalog-surface__actions .catalog-create { min-height: 42px; justify-content: center; }
+.catalog-surface__actions .catalog-create:focus-visible {
+    outline: 3px solid var(--positive); outline-offset: 3px;
+}
+@media (max-width: 540px) {
+    .dashboard-overview.dashboard__body { padding-top: 16px; }
+    .dashboard-overview .surface-card { padding: 16px; }
+    .dashboard-overview .workspace-selection__header { gap: 10px; }
+    .catalog-surface__header { align-items: stretch; }
+    .catalog-surface__actions { width: 100%; margin-left: 0; }
+    .catalog-surface__actions .catalog-create { width: 100%; }
 }

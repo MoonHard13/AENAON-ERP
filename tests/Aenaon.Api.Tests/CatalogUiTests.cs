@@ -56,7 +56,7 @@ public sealed class CatalogUiTests
         string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
 
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Προϊόντα, υπηρεσίες", html);
+        Assert.Contains("<h1 id=\"catalog-list-title\">Προϊόντα</h1>", html);
         Assert.Contains("SKU001", html);
         Assert.Contains("Πίτσα", html);
         Assert.DoesNotContain("SERV001", html);
