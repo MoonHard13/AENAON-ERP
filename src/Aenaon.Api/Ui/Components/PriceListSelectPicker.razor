@@ -1,0 +1,59 @@
+@* Επαναχρησιμοποιούμε το ίδιο προσβάσιμο combobox του Καταλόγου, με native fallback. *@
+<div class="catalog-category-picker catalog-commercial-picker price-list-select-picker"
+     data-commercial-picker data-required="@(Required ? "true" : "false")">
+    <label class="catalog-category-picker__label" for="@Id">
+        @Label @if (Required) { <span aria-hidden="true">*</span> }
+    </label>
+    <div class="catalog-category-picker__control" data-commercial-control>
+        <AppIcon Name="search" />
+        <input id="@Id" type="search" data-commercial-search
+               role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
+               aria-expanded="false" aria-controls="@($"{Id}-options")"
+               aria-describedby="@($"{Id}-help {Id}-status {Id}-error")"
+               aria-required="@(Required ? "true" : "false")"
+               autocomplete="off" spellcheck="false"
+               placeholder="@($"Αναζήτηση: {Label.ToLowerInvariant()}…")"
+               value="@SelectedLabel" />
+        <button type="button" class="catalog-category-picker__toggle" data-commercial-toggle
+                tabindex="-1" aria-label="@($"Εμφάνιση επιλογών: {Label}")">
+            <AppIcon Name="chevron" />
+        </button>
+    </div>
+    <div class="catalog-category-picker__popup" data-commercial-popup hidden>
+        <div id="@($"{Id}-options")" class="catalog-category-picker__options"
+             role="listbox" aria-label="@Label" data-commercial-options></div>
+        <div id="@($"{Id}-status")" class="catalog-category-picker__status"
+             role="status" aria-live="polite" data-commercial-status>
+            Επιλέξτε μία από τις διαθέσιμες τιμές.
+        </div>
+    </div>
+    <input type="hidden" name="@FieldName" value="@SelectedValue"
+           data-commercial-value disabled />
+    <div class="catalog-category-picker__fallback" data-commercial-fallback>
+        <select id="@($"{Id}-fallback")" name="@FieldName" data-commercial-native
+                required="@Required" aria-label="@Label">
+            @foreach (PriceListSelectOption option in Options)
+            {
+                <option value="@option.Value" selected="@(option.Value == SelectedValue)">
+                    @option.Label
+                </option>
+            }
+        </select>
+    </div>
+    <p id="@($"{Id}-help")" class="catalog-category-picker__help">@HelpText</p>
+    <p id="@($"{Id}-error")" class="catalog-category-picker__error"
+       data-commercial-error role="alert" hidden>Επιλέξτε έγκυρη τιμή για το πεδίο «@Label».</p>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Id { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string FieldName { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string HelpText { get; set; } = string.Empty;
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public string SelectedValue { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<PriceListSelectOption> Options { get; set; } = [];
+
+    private string SelectedLabel =>
+        Options.FirstOrDefault(option => option.Value == SelectedValue)?.Label ?? string.Empty;
+}
