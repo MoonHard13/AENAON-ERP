@@ -2,7 +2,6 @@ using Aenaon.Application.Tenancy;
 using Aenaon.Domain.Catalog;
 using Aenaon.Domain.Exceptions;
 using Aenaon.Domain.Tenancy;
-using Microsoft.Extensions.Logging;
 
 namespace Aenaon.Application.Catalog;
 
@@ -48,8 +47,7 @@ public interface IPriceListManagementStore
 
 /// <summary>Ενιαίο application service για Blazor και CLI, με fail-closed δικαιώματα.</summary>
 public sealed class PriceListManagementService(
-    TenantAuthorizationService authorization, IPriceListManagementStore store,
-    ILogger<PriceListManagementService> logger)
+    TenantAuthorizationService authorization, IPriceListManagementStore store)
 {
     public async Task<PriceListPage?> ListAsync(Guid userId, Guid tenantId,
         string? search = null, bool includeInactive = false, int page = 1, int pageSize = 25,
@@ -134,8 +132,6 @@ public sealed class PriceListManagementService(
             }
 
             PriceListResult result = await store.ApplyAsync(tenantId, change, token);
-            logger.LogInformation("Price list action {Action} status {Status} by {UserId} in {TenantId}, list {Id}",
-                change.Action, result.Status, userId, tenantId, result.Id ?? change.Id);
             return result;
         }
         catch (DomainRuleException ex)
@@ -163,8 +159,6 @@ public sealed class PriceListManagementService(
         }
 
         PriceListResult result = await store.SetPricesAsync(tenantId, listId, changes, token);
-        logger.LogInformation("Price list prices update {Status} for {ListId} in {TenantId} by {UserId}, rows {Count}",
-            result.Status, listId, tenantId, userId, changes.Count);
         return result;
     }
 
