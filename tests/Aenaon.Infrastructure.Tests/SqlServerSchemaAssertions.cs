@@ -89,6 +89,7 @@ internal static class SqlServerSchemaAssertions
 
         await SqlServerCatalogAssertions.RunAsync(connection, context, first.Id, second.Id, cancellationToken);
         await SqlServerPriceListAssertions.RunAsync(context, first.Id, second.Id, cancellationToken);
+        await SqlServerPriceListManagementAssertions.RunAsync(context, first.Id, second.Id, cancellationToken);
         await SqlServerFiscalAssertions.RunAsync(connection, context, first.Id, second.Id, cancellationToken);
         await SqlServerFiscalStagingAssertions.RunAsync(connection, context, cancellationToken);
 

@@ -979,3 +979,56 @@ html {
     .catalog-surface__actions { width: 100%; margin-left: 0; }
     .catalog-surface__actions .catalog-create { width: 100%; }
 }
+
+
+/* 9.5B.2 — Τιμοκατάλογοι με ενιαίο Back Office design system. */
+.price-lists-page .catalog-surface__header,
+.price-list-items .catalog-surface__header { align-items: center; }
+.price-list-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.price-list-empty { padding: 30px 24px; color: var(--text); }
+.price-list-empty strong { font-size: 16px; }
+.price-list-empty p { margin-top: 8px; color: var(--muted-strong); }
+.price-list-hint { display: block; color: var(--muted-strong); font-size: 12px; padding-top: 4px; }
+.price-list-nowrap { white-space: nowrap; }
+.price-list-check { display: inline-flex; align-items: center; gap: 9px; color: var(--text); font-size: 13px; }
+.price-list-check input { accent-color: var(--positive); }
+.price-list-manage .catalog-editor__header h1 { font-size: clamp(21px, 2vw, 25px); margin: 0 0 7px; line-height: 1.3; }
+.price-list-readonly-value { padding: 12px 14px; background: var(--input-bg); color: var(--muted-strong); border: 1px solid var(--border); border-radius: 11px; margin: 0; }
+.price-list-manage select, .price-list-manage input[type="date"] {
+    min-height: 46px; width: 100%; border: 1px solid var(--border);
+    color: var(--text); background: var(--input-bg); border-radius: 11px;
+    padding: 9px 12px; font: inherit;
+}
+.price-list-state-confirm { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 18px; color: var(--text); }
+.price-list-state-confirm summary { cursor: pointer; font-weight: 700; }
+.price-list-state-confirm p { color: var(--muted-strong); font-size: 13px; }
+.price-list-items { margin-top: 18px; }
+.price-list-amount {
+    width: 155px; max-width: 100%; min-height: 41px;
+    border: 1px solid var(--border); border-radius: 9px;
+    padding: 8px 11px; font: inherit; font-variant-numeric: tabular-nums;
+    background: var(--input-bg); color: var(--text);
+}
+.price-list-batch-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; border-top: 1px solid var(--border);
+    padding: 16px 20px;
+}
+.price-list-batch-footer span { font-size: 12px; color: var(--muted-strong); }
+.price-list-sr {
+    position: absolute; height: 1px; width: 1px; padding: 0;
+    margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap;
+    border: 0;
+}
+.price-list-manage input:focus-visible,
+.price-list-manage select:focus-visible,
+.price-lists-page input:focus-visible,
+.price-lists-page a:focus-visible {
+    outline: 3px solid var(--positive); outline-offset: 2px;
+}
+@media (max-width: 640px) {
+    .price-list-manage .catalog-editor__grid { grid-template-columns: 1fr; }
+    .price-list-batch-footer .button { width: 100%; }
+    .price-list-amount { width: 125px; }
+    .price-list-toolbar .button { width: 100%; }
+}
