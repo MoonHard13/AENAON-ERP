@@ -12,7 +12,30 @@
             <span><AppIcon Name="settings" /> Περισσότερες λειτουργίες υπό ανάπτυξη</span>
         </nav>
     </details>
-    <div class="breadcrumb">Εφαρμογή <span>/</span> <strong>@PageTitle</strong></div>
+    <nav class="breadcrumb" aria-label="Διαδρομή πλοήγησης">
+        @if (ActivePage == "dashboard")
+        {
+            <strong aria-current="page">Επισκόπηση</strong>
+        }
+        else if (ActivePage == "catalog")
+        {
+            <a href="@CatalogHref">Κατάλογος</a>
+            @if (!string.IsNullOrWhiteSpace(BreadcrumbSection))
+            {
+                <span aria-hidden="true">/</span>
+                <a href="@(BreadcrumbSectionHref ?? CatalogHref)">@BreadcrumbSection</a>
+            }
+            @if (PageTitle != "Κατάλογος")
+            {
+                <span aria-hidden="true">/</span>
+                <strong aria-current="page">@PageTitle</strong>
+            }
+        }
+        else
+        {
+            <strong aria-current="page">@PageTitle</strong>
+        }
+    </nav>
     <div class="topbar__actions">
         @* Το πλαίσιο εργασίας προβάλλεται συμπαγές· η αλλαγή εξακολουθεί να γίνεται με ασφαλές POST στο Dashboard. *@
         <a class="workspace-indicator" href="@WorkspaceSelectionHref"
@@ -66,6 +89,8 @@
 
 @code {
     [Parameter, EditorRequired] public string PageTitle { get; set; } = string.Empty;
+    [Parameter] public string? BreadcrumbSection { get; set; }
+    [Parameter] public string? BreadcrumbSectionHref { get; set; }
     [Parameter] public string ActivePage { get; set; } = "dashboard";
     [Parameter] public string UserName { get; set; } = "Χρήστης";
     [Parameter] public TenantWorkspaceSnapshot? Workspace { get; set; }
