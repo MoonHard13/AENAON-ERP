@@ -188,7 +188,7 @@
             return;
         }
 
-        const match = /^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/.exec(displayed.value.trim());
+        const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(displayed.value.trim());
         if (match) {
             const iso = match[3] + "-" + match[2] + "-" + match[1];
             native.value = iso;
@@ -219,7 +219,7 @@
         const group = native.closest(".price-list-date-control");
         const displayed = group?.querySelector('input[type="text"][name]');
         if (displayed instanceof HTMLInputElement &&
-            /^\\d{4}-\\d{2}-\\d{2}$/.test(native.value)) {
+            /^\d{4}-\d{2}-\d{2}$/.test(native.value)) {
             const [year, month, day] = native.value.split("-");
             displayed.value = day + "/" + month + "/" + year;
             displayed.dispatchEvent(new Event("input", { bubbles: true }));
