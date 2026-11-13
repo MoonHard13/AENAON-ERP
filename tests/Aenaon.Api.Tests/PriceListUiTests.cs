@@ -31,7 +31,7 @@ public sealed class PriceListUiTests
         Assert.Contains("data-commercial-native", create);
         Assert.Contains("name=\"channel\"", create);
         Assert.Contains("name=\"includeVat\"", create);
-        Assert.Contains("13/11/2026", create);
+        Assert.Contains("placeholder=\"ηη/μμ/εεεε\"", create);
         Assert.Contains("pattern=\"[0-9]{2}/[0-9]{2}/[0-9]{4}\"", create);
 
         string edit = await client.GetStringAsync(
