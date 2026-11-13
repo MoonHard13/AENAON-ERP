@@ -40,7 +40,7 @@ internal static class SqlServerIdentityAssertions
         var preview = await schema.ExecuteAsync(false, null, cancellationToken);
         Assert.AreEqual(DatabaseSchemaStatus.Ready, preview.Status);
         Assert.HasCount(1, preview.AppliedMigrations!);
-        Assert.HasCount(6, preview.PendingMigrations!);
+        Assert.HasCount(7, preview.PendingMigrations!);
 
         // Παλαιότερα δεδομένα προετοιμάζονται στο schema της 6ης migration:
         // ο έλεγχος διασφαλίζει ότι η 7η δεν τα διαγράφει ή αλλάζει κωδικούς.
@@ -187,7 +187,7 @@ internal static class SqlServerIdentityAssertions
         Assert.AreEqual(1, await context.Stores.CountAsync(cancellationToken));
         var repeated = await schema.ExecuteAsync(true, "AenaonERP_Identity_CI", cancellationToken);
         Assert.AreEqual(DatabaseSchemaStatus.Ready, repeated.Status);
-        Assert.HasCount(7, repeated.AppliedMigrations!);
+        Assert.HasCount(8, repeated.AppliedMigrations!);
         Assert.HasCount(0, repeated.PendingMigrations!);
     }
 

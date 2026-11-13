@@ -14,6 +14,8 @@ public sealed class AenaonDbContext(DbContextOptions<AenaonDbContext> options) :
     public DbSet<TenantMembership> TenantMemberships => Set<TenantMembership>();
     public DbSet<CatalogCategory> CatalogCategories => Set<CatalogCategory>();
     public DbSet<CatalogItem> CatalogItems => Set<CatalogItem>();
+    public DbSet<PriceList> PriceLists => Set<PriceList>();
+    public DbSet<PriceListItem> PriceListItems => Set<PriceListItem>();
     public DbSet<FiscalReferenceRecord> FiscalReferenceCodes => Set<FiscalReferenceRecord>();
     public DbSet<FiscalTaxMappingRecord> FiscalTaxMappings => Set<FiscalTaxMappingRecord>();
     public DbSet<FiscalImportBatch> FiscalImportBatches => Set<FiscalImportBatch>();
@@ -29,6 +31,8 @@ public sealed class AenaonDbContext(DbContextOptions<AenaonDbContext> options) :
         modelBuilder.ApplyConfiguration(new TenantMembershipConfiguration());
         modelBuilder.ApplyConfiguration(new CatalogCategoryConfiguration());
         modelBuilder.ApplyConfiguration(new CatalogItemConfiguration());
+        modelBuilder.ApplyConfiguration(new PriceListConfiguration());
+        modelBuilder.ApplyConfiguration(new PriceListItemConfiguration());
         modelBuilder.ApplyConfiguration(new FiscalReferenceConfiguration());
         modelBuilder.ApplyConfiguration(new FiscalTaxMappingConfiguration());
         modelBuilder.ApplyConfiguration(new FiscalImportBatchConfiguration());
