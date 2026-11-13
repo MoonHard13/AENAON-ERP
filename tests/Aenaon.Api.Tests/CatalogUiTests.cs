@@ -164,14 +164,14 @@ public sealed class CatalogUiTests
         Assert.Contains("pageSize=50", products);
         Assert.Contains("inactive=true", products);
         Assert.AreEqual("name", factory.Catalog.LastQuery?.SortBy);
-        Assert.IsTrue(factory.Catalog.LastQuery?.Descending);
+        Assert.IsTrue(factory.Catalog.LastQuery?.Descending == true);
 
         string categories = WebUtility.HtmlDecode(await client.GetStringAsync(
             "/catalog?view=categories&sort=status&desc=true"));
         Assert.Contains("Κατηγορία", categories);
         Assert.Contains("aria-sort=\"descending\"", categories);
         Assert.AreEqual("status", factory.Catalog.LastQuery?.SortBy);
-        Assert.IsTrue(factory.Catalog.LastQuery?.Descending);
+        Assert.IsTrue(factory.Catalog.LastQuery?.Descending == true);
     }
 
     [TestMethod]
