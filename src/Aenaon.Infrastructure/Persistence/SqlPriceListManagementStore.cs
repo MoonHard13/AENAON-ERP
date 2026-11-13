@@ -34,7 +34,10 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
                     y.PriceListId == x.Id)))
             .ToListAsync(token);
         bool more = rows.Count > pageSize;
-        if (more) rows.RemoveAt(pageSize);
+        if (more)
+        {
+            rows.RemoveAt(pageSize);
+        }
         return new(rows, page, more);
     }
 
@@ -51,7 +54,10 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
     {
         bool exists = await context.PriceLists.AsNoTracking()
             .AnyAsync(x => x.TenantId == tenantId && x.Id == listId, token);
-        if (!exists) return null;
+        if (!exists)
+        {
+            return null;
+        }
 
         IQueryable<CatalogItem> query = context.CatalogItems.AsNoTracking()
             .Where(x => x.TenantId == tenantId && x.IsActive);
@@ -68,7 +74,10 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
                     .Select(y => (decimal?)y.UnitPrice).FirstOrDefault()))
             .ToListAsync(token);
         bool more = rows.Count > pageSize;
-        if (more) rows.RemoveAt(pageSize);
+        if (more)
+        {
+            rows.RemoveAt(pageSize);
+        }
         return new(rows, page, more);
     }
 
@@ -98,7 +107,10 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
             {
                 PriceList? existing = await context.PriceLists.SingleOrDefaultAsync(
                     x => x.TenantId == tenantId && x.Id == change.Id, token);
-                if (existing is null) return new(PriceListStatus.Missing);
+                if (existing is null)
+                {
+                    return new(PriceListStatus.Missing);
+                }
                 list = existing;
 
                 if (change.Action == PriceListAction.Update)
@@ -140,9 +152,14 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
             PriceList? list = await context.PriceLists.AsNoTracking()
                 .SingleOrDefaultAsync(x => x.TenantId == tenantId &&
                     x.Id == priceListId, token);
-            if (list is null) return new(PriceListStatus.Missing);
+            if (list is null)
+            {
+                return new(PriceListStatus.Missing);
+            }
             if (!list.IsActive)
+            {
                 return new(PriceListStatus.Invalid, Error: "pricelist.inactive");
+            }
 
             Guid[] itemIds = changes.Select(x => x.CatalogItemId).ToArray();
             int validItems = await context.CatalogItems.AsNoTracking()
