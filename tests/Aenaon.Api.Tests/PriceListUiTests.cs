@@ -27,12 +27,20 @@ public sealed class PriceListUiTests
         Assert.Contains("action=\"/ui/price-lists/save\"", create);
         Assert.Contains("name=\"scopeStoreId\"", create);
         Assert.Contains("name=\"__RequestVerificationToken\"", create);
+        Assert.Contains("data-commercial-picker", create);
+        Assert.Contains("data-commercial-native", create);
+        Assert.Contains("name=\"channel\"", create);
+        Assert.Contains("name=\"includeVat\"", create);
+        Assert.Contains("13/11/2026", create);
+        Assert.Contains("pattern=\"[0-9]{2}/[0-9]{2}/[0-9]{4}\"", create);
 
         string edit = await client.GetStringAsync(
             $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}");
         Assert.Contains("action=\"/ui/price-lists/prices\"", edit);
         Assert.Contains($"price_{SessionPriceListFixture.ItemId:D}", edit);
         Assert.Contains("0.0001", edit);
+        Assert.DoesNotContain("Σελίδα 1", edit);
+        Assert.Contains("Αφαίρεση τιμής", edit);
     }
 
     [TestMethod]
@@ -60,7 +68,7 @@ public sealed class PriceListUiTests
                 ["action"] = "create",
                 ["name"] = "Forbidden",
                 ["code"] = "FORBIDDEN",
-                ["validFrom"] = "2026-11-13",
+                ["validFrom"] = "13/11/2026",
                 ["validUntil"] = "",
                 ["channel"] = "Retail",
                 ["includeVat"] = "true"
@@ -82,7 +90,7 @@ public sealed class PriceListUiTests
             ["action"] = "create",
             ["name"] = "Δοκιμή",
             ["code"] = "RETAIL-NEW",
-            ["validFrom"] = "2026-11-13",
+            ["validFrom"] = "13/11/2026",
             ["validUntil"] = "",
             ["channel"] = "Retail",
             ["includeVat"] = "true"
@@ -146,6 +154,71 @@ public sealed class PriceListUiTests
         Assert.AreEqual(HttpStatusCode.Redirect, unchanged.StatusCode);
         Assert.Contains("&unchanged=1", unchanged.Headers.Location?.OriginalString ?? "");
         Assert.AreEqual(1, factory.PriceLists.PriceCalls);
+    }
+
+    [TestMethod]
+    public async Task RemovePrice_RequiresOwnerAntiforgeryAndOriginalPrice()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+        string page = await client.GetStringAsync(
+            $"/price-lists/manage?id={SessionPriceListFixture.ListId:D}");
+        string token = Token(page);
+
+        var fields = new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["tenantId"] = Tenant.ToString("D"),
+            ["id"] = SessionPriceListFixture.ListId.ToString("D"),
+            ["catalogItemId"] = SessionPriceListFixture.ItemId.ToString("D"),
+            ["expectedPrice"] = "10.0000",
+            ["search"] = "",
+            ["page"] = "1"
+        };
+
+        using var success = await client.PostAsync("/ui/price-lists/remove-price",
+            new FormUrlEncodedContent(fields));
+        Assert.AreEqual(HttpStatusCode.Redirect, success.StatusCode);
+        Assert.Contains("&removed=1", success.Headers.Location?.OriginalString ?? "");
+        Assert.AreEqual(1, factory.PriceLists.RemoveCalls);
+
+        fields["expectedPrice"] = "not a price";
+        using var invalid = await client.PostAsync("/ui/price-lists/remove-price",
+            new FormUrlEncodedContent(fields));
+        Assert.AreEqual(HttpStatusCode.BadRequest, invalid.StatusCode);
+        Assert.AreEqual(1, factory.PriceLists.RemoveCalls);
+
+        fields["expectedPrice"] = "10.0000";
+        fields["tenantId"] = Guid.NewGuid().ToString("D");
+        using var foreign = await client.PostAsync("/ui/price-lists/remove-price",
+            new FormUrlEncodedContent(fields));
+        Assert.AreEqual(HttpStatusCode.Forbidden, foreign.StatusCode);
+        Assert.AreEqual(1, factory.PriceLists.RemoveCalls);
+    }
+
+    [TestMethod]
+    public async Task PriceListCreation_RejectsNonGreekDate()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+        string page = await client.GetStringAsync("/price-lists/manage");
+        using var bad = await client.PostAsync("/ui/price-lists/save",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["__RequestVerificationToken"] = Token(page),
+                ["tenantId"] = Tenant.ToString("D"),
+                ["action"] = "create",
+                ["name"] = "Bad date",
+                ["code"] = "BAD-DATE",
+                ["validFrom"] = "11/13/2026",
+                ["validUntil"] = "",
+                ["channel"] = "Retail",
+                ["includeVat"] = "true"
+            }));
+        Assert.AreEqual(HttpStatusCode.BadRequest, bad.StatusCode);
+        Assert.AreEqual(0, factory.PriceLists.SaveCalls);
     }
 
     private static async Task LoginAsync(HttpClient client)
