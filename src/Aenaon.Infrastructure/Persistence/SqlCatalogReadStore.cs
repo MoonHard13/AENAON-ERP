@@ -119,15 +119,15 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
         // Το σύνθετο join δεν επιτρέπει ανάκτηση κατηγορίας από άλλο Tenant.
         // Πρώτα ταξινομούμε όλο το tenant-scoped σύνολο και μετά κάνουμε σελιδοποίηση.
         var joined = from item in items
-            join category in context.CatalogCategories.AsNoTracking()
-                on new { item.TenantId, Id = item.CategoryId }
-                equals new { category.TenantId, category.Id }
-            select new
-            {
-                Item = item,
-                Category = category,
-                IsTextCode = item.Code == "" || EF.Functions.Like(item.Code, "%[^0-9]%")
-            };
+                     join category in context.CatalogCategories.AsNoTracking()
+                         on new { item.TenantId, Id = item.CategoryId }
+                         equals new { category.TenantId, category.Id }
+                     select new
+                     {
+                         Item = item,
+                         Category = category,
+                         IsTextCode = item.Code == "" || EF.Functions.Like(item.Code, "%[^0-9]%")
+                     };
 
         var ordered = (validated.SortBy, validated.Descending) switch
         {
