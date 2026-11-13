@@ -136,17 +136,20 @@
                                 </tbody>
                             </table>
                         </div>
-                        <nav class="catalog-pagination" aria-label="Σελιδοποίηση τιμοκαταλόγων">
-                            @if (_page.Page > 1)
-                            {
-                                <a href="@ListUrl(_page.Page - 1)" rel="prev">Προηγούμενη</a>
-                            }
-                            <span>Σελίδα @_page.Page</span>
-                            @if (_page.HasMore)
-                            {
-                                <a href="@ListUrl(_page.Page + 1)" rel="next">Επόμενη</a>
-                            }
-                        </nav>
+                        @if (_page.Page > 1 || _page.HasMore)
+                        {
+                            <nav class="catalog-pagination" aria-label="Σελιδοποίηση τιμοκαταλόγων">
+                                @if (_page.Page > 1)
+                                {
+                                    <a href="@ListUrl(_page.Page - 1)" rel="prev">Προηγούμενη</a>
+                                }
+                                <span>Σελίδα @_page.Page</span>
+                                @if (_page.HasMore)
+                                {
+                                    <a href="@ListUrl(_page.Page + 1)" rel="next">Επόμενη</a>
+                                }
+                            </nav>
+                        }
                     }
                 </section>
                 <p class="catalog-disclaimer">Οι τιμές είναι εμπορικά δεδομένα. Δεν δημιουργούνται παραστατικά και δεν ορίζονται χαρακτηρισμοί myDATA ή IMPACT.</p>
