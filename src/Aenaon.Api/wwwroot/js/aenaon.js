@@ -168,6 +168,65 @@
         }
     });
 
+    // Η ορατή ημερομηνία παραμένει πάντοτε ηη/μμ/εεεε, ανεξάρτητα από το locale.
+    document.addEventListener("click", event => {
+        if (!(event.target instanceof Element)) {
+            return;
+        }
+
+        const button = event.target.closest("[data-date-calendar]");
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        const group = button.closest(".price-list-date-control");
+        const inputId = button.dataset.dateCalendar;
+        const displayed = inputId ? document.getElementById(inputId) : null;
+        const native = group?.querySelector("[data-date-native]");
+        if (!(displayed instanceof HTMLInputElement) ||
+            !(native instanceof HTMLInputElement)) {
+            return;
+        }
+
+        const match = /^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/.exec(displayed.value.trim());
+        if (match) {
+            const iso = match[3] + "-" + match[2] + "-" + match[1];
+            native.value = iso;
+        } else {
+            native.value = "";
+        }
+
+        try {
+            if (typeof native.showPicker === "function") {
+                native.showPicker();
+            } else {
+                native.focus({ preventScroll: true });
+                native.click();
+            }
+        } catch {
+            // Το πεδίο κειμένου συνεχίζει να λειτουργεί όταν ο browser δεν ανοίγει picker.
+            displayed.focus({ preventScroll: true });
+        }
+    });
+
+    document.addEventListener("change", event => {
+        const native = event.target;
+        if (!(native instanceof HTMLInputElement) ||
+            !native.matches("[data-date-native]") || !native.value) {
+            return;
+        }
+
+        const group = native.closest(".price-list-date-control");
+        const displayed = group?.querySelector('input[type="text"][name]');
+        if (displayed instanceof HTMLInputElement &&
+            /^\\d{4}-\\d{2}-\\d{2}$/.test(native.value)) {
+            const [year, month, day] = native.value.split("-");
+            displayed.value = day + "/" + month + "/" + year;
+            displayed.dispatchEvent(new Event("input", { bubbles: true }));
+            displayed.focus({ preventScroll: true });
+        }
+    });
+
     // Η επαναχρησιμοποιούμενη αναζήτηση κατηγοριών βρίσκεται στο aenaon-category-picker.js.
 
     // Διπλή υποβολή εμποδίζεται στη φόρμα· η πραγματική προστασία είναι το requestId της SQL.
