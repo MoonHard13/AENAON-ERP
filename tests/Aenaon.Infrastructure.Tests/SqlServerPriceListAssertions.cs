@@ -25,6 +25,9 @@ internal static class SqlServerPriceListAssertions
         Guid otherItemId = await context.CatalogItems.AsNoTracking()
             .Where(x => x.TenantId == otherTenantId)
             .Select(x => x.Id).FirstAsync(token);
+        Guid unpricedItemId = await context.CatalogItems.AsNoTracking()
+            .Where(x => x.TenantId == tenantId && x.Id != itemId)
+            .Select(x => x.Id).FirstAsync(token);
 
         var retail = PriceList.Create(tenantId, storeId, "RETAIL",
             "Βασική λιανική", PriceListChannel.Retail, true,
@@ -113,7 +116,7 @@ internal static class SqlServerPriceListAssertions
             negative.Parameters.Add("@id", SqlDbType.UniqueIdentifier).Value = Guid.NewGuid();
             negative.Parameters.Add("@tenant", SqlDbType.UniqueIdentifier).Value = tenantId;
             negative.Parameters.Add("@priceList", SqlDbType.UniqueIdentifier).Value = retail.Id;
-            negative.Parameters.Add("@item", SqlDbType.UniqueIdentifier).Value = itemId;
+            negative.Parameters.Add("@item", SqlDbType.UniqueIdentifier).Value = unpricedItemId;
             SqlException rejected = await Assert.ThrowsExactlyAsync<SqlException>(
                 async () => await negative.ExecuteNonQueryAsync(token));
             Assert.AreEqual(547, rejected.Number);
