@@ -75,17 +75,23 @@
                         {
                             <input type="hidden" name="storeId" value="@store.StoreId" />
                         }
-                        <div class="catalog-search">
-                            <label for="price-list-search">Κωδικός ή περιγραφή</label>
-                            <input id="price-list-search" name="search" type="search" accesskey="f"
-                                   maxlength="80" value="@Search" placeholder="Αναζήτηση…" />
+                        <div class="catalog-field catalog-field--search">
+                            <label for="price-list-search">Κωδικός ή περιγραφή (αρχίζει από)</label>
+                            <div class="catalog-search">
+                                <AppIcon Name="search" />
+                                <input id="price-list-search" name="search" type="search" accesskey="f"
+                                       maxlength="80" autocomplete="off" value="@Search"
+                                       placeholder="Αναζήτηση τιμοκαταλόγου…" />
+                            </div>
                         </div>
-                        <label class="price-list-check">
+                        <label class="catalog-checkbox">
                             <input type="checkbox" name="inactive" value="true" checked="@(Inactive == true)" />
                             Συμπερίληψη ανενεργών
                         </label>
-                        <button type="submit" class="button button--primary">Αναζήτηση</button>
-                        <a class="button button--outline" href="@IndexUrl()">Καθαρισμός</a>
+                        <button type="submit" class="button button--primary catalog-filter-button">
+                            <AppIcon Name="search" /> Αναζήτηση
+                        </button>
+                        <a class="catalog-reset" href="@IndexUrl()">Καθαρισμός</a>
                     </form>
                     @if (_page.Rows.Count == 0)
                     {
