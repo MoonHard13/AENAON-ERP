@@ -272,6 +272,10 @@
                                                            Active="@(CurrentSort == "category")" Descending="@CurrentDescending" />
                                         <CatalogSortHeader Label="Τύπος" Href="@SortHref("kind")"
                                                            Active="@(CurrentSort == "kind")" Descending="@CurrentDescending" />
+                                        <CatalogSortHeader Label="Μονάδα" Href="@SortHref("unit")"
+                                                           Active="@(CurrentSort == "unit")" Descending="@CurrentDescending" />
+                                        <CatalogSortHeader Label="Λογιστικός τύπος" Href="@SortHref("accounting")"
+                                                           Active="@(CurrentSort == "accounting")" Descending="@CurrentDescending" />
                                         <CatalogSortHeader Label="Απόθεμα" Href="@SortHref("stock")"
                                                            Active="@(CurrentSort == "stock")" Descending="@CurrentDescending" />
                                         <CatalogSortHeader Label="Κατάσταση" Href="@SortHref("status")"
@@ -287,6 +291,10 @@
                                             <td class="catalog-table__name">@row.Name</td>
                                             <td><span class="catalog-tree-path">@(row.CategoryPath ?? row.CategoryName ?? "—")</span></td>
                                             <td>@(row.Kind == CatalogItemKind.Service ? "Υπηρεσία" : "Προϊόν")</td>
+                                            <td>@(row.UnitOfMeasure is { } unit
+                                                ? CatalogCommercialOptions.UnitName(unit) : "—")</td>
+                                            <td>@(row.AccountingType is { } accounting
+                                                ? CatalogCommercialOptions.AccountingName(accounting) : "—")</td>
                                             <td>@(row.TracksStock ? "Ναι" : "Όχι")</td>
                                             <td><span class="@StatusClass(row.IsActive)">
                                                 @(row.IsActive ? "Ενεργό" : "Ανενεργό")
@@ -407,7 +415,7 @@
     private bool CurrentDescending => Descending == true;
     private bool SortIsValidForView(string view, string key) =>
         key is "code" or "name" or "status" ||
-        (view != "categories" && key is "category" or "kind" or "stock");
+        (view != "categories" && key is "category" or "kind" or "stock" or "unit" or "accounting");
     private string SortHref(string key) =>
         BuildUrl(SelectedView, 1, sort: key,
             descending: CurrentSort == key && !CurrentDescending);
