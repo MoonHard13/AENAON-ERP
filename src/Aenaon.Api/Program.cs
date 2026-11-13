@@ -43,6 +43,7 @@ public partial class Program
         bool checkTenantAccess = args.Length > 0 && args[0] == "--check-tenant-access";
         bool previewCatalog = args.Length > 0 && args[0] == "--preview-catalog";
         bool manageCatalog = args.Length > 0 && args[0] == "--manage-catalog";
+        bool managePriceLists = args.Length > 0 && args[0] == "--manage-price-lists";
         if (args.Contains("--check-database") && !checkDatabase)
         {
             Console.Error.WriteLine("Χρησιμοποίησε την επιλογή --check-database χωρίς επιπλέον ορίσματα εφαρμογής.");
