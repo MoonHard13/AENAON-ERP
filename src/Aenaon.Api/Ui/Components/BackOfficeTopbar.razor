@@ -34,6 +34,15 @@
                 <strong aria-current="page">@PageTitle</strong>
             }
         }
+        else if (ActivePage == "price-lists")
+        {
+            <a href="@PriceListsHref">Τιμοκατάλογοι</a>
+            @if (PageTitle != "Τιμοκατάλογοι")
+            {
+                <span aria-hidden="true">/</span>
+                <strong aria-current="page">@PageTitle</strong>
+            }
+        }
         else
         {
             <strong aria-current="page">@PageTitle</strong>
