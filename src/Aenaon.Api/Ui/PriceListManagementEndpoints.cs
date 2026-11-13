@@ -44,8 +44,14 @@ public static class PriceListManagementEndpoints
             return Results.BadRequest();
         }
 
-        if (tenant is null) return Results.BadRequest();
-        if (!TrySingle(form, "action", out string actionText)) return Results.BadRequest();
+        if (tenant is null)
+        {
+            return Results.BadRequest();
+        }
+        if (!TrySingle(form, "action", out string actionText))
+        {
+            return Results.BadRequest();
+        }
         PriceListAction action = actionText switch
         {
             "create" => PriceListAction.Create,
@@ -63,7 +69,10 @@ public static class PriceListManagementEndpoints
 
         TenantAccessResult permission = await authorization.CheckAsync(userId,
             tenant.Value, currentStore, TenantPermission.Manage, context.RequestAborted);
-        if (permission.Status != TenantAccessStatus.Granted) return Results.Forbid();
+        if (permission.Status != TenantAccessStatus.Granted)
+        {
+            return Results.Forbid();
+        }
 
         string? code = null;
         string? name = null;
@@ -120,8 +129,14 @@ public static class PriceListManagementEndpoints
                 action == PriceListAction.Create ? scopeStore : null,
                 channel, includeVat, from, until), context.RequestAborted);
 
-        if (result.Status == PriceListStatus.Denied) return Results.Forbid();
-        if (result.Status == PriceListStatus.Missing) return Results.NotFound();
+        if (result.Status == PriceListStatus.Denied)
+        {
+            return Results.Forbid();
+        }
+        if (result.Status == PriceListStatus.Missing)
+        {
+            return Results.NotFound();
+        }
         context.Response.Headers.CacheControl = "no-store";
         string url = EditorUrl(tenant.Value, currentStore, result.Id ?? id);
         if (result.Status == PriceListStatus.Saved)
@@ -158,7 +173,10 @@ public static class PriceListManagementEndpoints
 
         TenantAccessResult permission = await authorization.CheckAsync(userId,
             tenant.Value, currentStore, TenantPermission.Manage, context.RequestAborted);
-        if (permission.Status != TenantAccessStatus.Granted) return Results.Forbid();
+        if (permission.Status != TenantAccessStatus.Granted)
+        {
+            return Results.Forbid();
+        }
 
         var changes = new List<PriceListPriceChange>();
         foreach (KeyValuePair<string, StringValues> field in form)
@@ -176,7 +194,10 @@ public static class PriceListManagementEndpoints
             }
 
             string amountText = field.Value.ToString();
-            if (string.IsNullOrWhiteSpace(amountText)) continue;
+            if (string.IsNullOrWhiteSpace(amountText))
+            {
+                continue;
+            }
             if (!decimal.TryParse(amountText,
                 NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
                 CultureInfo.InvariantCulture, out decimal price))
@@ -190,12 +211,21 @@ public static class PriceListManagementEndpoints
 
         string destination = EditorUrl(tenant.Value, currentStore, id) +
             $"&page={page}" + (search.Length > 0 ? "&search=" + Uri.EscapeDataString(search) : "");
-        if (changes.Count == 0) return Results.Redirect(destination + "&error=invalid");
+        if (changes.Count == 0)
+        {
+            return Results.Redirect(destination + "&error=invalid");
+        }
 
         PriceListResult result = await service.SetPricesAsync(
             userId, tenant.Value, id.Value, changes, context.RequestAborted);
-        if (result.Status == PriceListStatus.Denied) return Results.Forbid();
-        if (result.Status == PriceListStatus.Missing) return Results.NotFound();
+        if (result.Status == PriceListStatus.Denied)
+        {
+            return Results.Forbid();
+        }
+        if (result.Status == PriceListStatus.Missing)
+        {
+            return Results.NotFound();
+        }
 
         context.Response.Headers.CacheControl = "no-store";
         return Results.Redirect(destination + (result.Status == PriceListStatus.Saved ?
@@ -219,9 +249,18 @@ public static class PriceListManagementEndpoints
     private static bool TryGuid(IFormCollection form, string key, bool required, out Guid? id)
     {
         id = null;
-        if (!TrySingle(form, key, out string value)) return false;
-        if (string.IsNullOrWhiteSpace(value)) return !required;
-        if (!Guid.TryParse(value, out Guid parsed) || parsed == Guid.Empty) return false;
+        if (!TrySingle(form, key, out string value))
+        {
+            return false;
+        }
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return !required;
+        }
+        if (!Guid.TryParse(value, out Guid parsed) || parsed == Guid.Empty)
+        {
+            return false;
+        }
         id = parsed;
         return true;
     }
@@ -233,8 +272,14 @@ public static class PriceListManagementEndpoints
     private static string EditorUrl(Guid tenant, Guid? store, Guid? id)
     {
         string url = $"/price-lists/manage?tenantId={tenant:D}";
-        if (store.HasValue) url += $"&storeId={store.Value:D}";
-        if (id.HasValue) url += $"&id={id.Value:D}";
+        if (store.HasValue)
+        {
+            url += $"&storeId={store.Value:D}";
+        }
+        if (id.HasValue)
+        {
+            url += $"&id={id.Value:D}";
+        }
         return url;
     }
 }
