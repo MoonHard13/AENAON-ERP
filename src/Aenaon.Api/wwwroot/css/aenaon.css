@@ -69,6 +69,12 @@ a { color: inherit; text-decoration: none; }
 button { cursor: pointer; }
 img { display: block; max-width: 100%; }
 :focus-visible { outline: 3px solid #38cda4; outline-offset: 4px; }
+/* Η εστίαση τίτλων από Blazor FocusOnNavigate παραμένει προσβάσιμη στους
+   αναγνώστες οθόνης χωρίς το παραπλανητικό περίγραμμα μεγάλου κειμένου.
+   Η κανονική εστίαση πληκτρολογίου στα controls δεν επηρεάζεται. */
+h1[tabindex="-1"]:focus-visible {
+    outline: none;
+}
 ::selection { color: #092f24; background: #a3efd0; }
 .app-shell { min-height: 100vh; }
 .eyebrow { font-size: 11px; font-weight: 750; letter-spacing: .17em; text-transform: uppercase; }
