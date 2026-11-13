@@ -18,15 +18,7 @@
                           Workspace="@_workspace"
                           CsrfToken="@_csrfToken" TenantId="@TenantId" StoreId="@StoreId" />
 
-        <div class="dashboard__body">
-            <div class="dashboard__heading">
-                <div>
-                    <p class="eyebrow eyebrow--green">ΚΕΝΤΡΙΚΗ ΕΠΙΣΚΟΠΗΣΗ</p>
-                    <h1>Καλώς ήρθατε, @_userName.</h1>
-                    <p>Επιλέξτε επιχείρηση και κατάστημα για να εργαστείτε.</p>
-                </div>
-
-            </div>
+        <div class="dashboard__body dashboard-overview">
 
             @if (_error)
             {
@@ -66,11 +58,7 @@
                 <section class="workspace-selection" id="workspace-selection"
                          aria-labelledby="workspace-selection-title">
                     <div class="workspace-selection__header">
-                        <div>
-                            <p class="eyebrow eyebrow--green">ΕΠΙΛΟΓΗ ΠΛΑΙΣΙΟΥ</p>
-                            <h2 id="workspace-selection-title">Επιχείρηση &amp; κατάστημα</h2>
-                            <p>Η επιλογή σας ισχύει για τις διαθέσιμες λειτουργίες του Back Office.</p>
-                        </div>
+                        <h1 id="workspace-selection-title">Επιχείρηση &amp; κατάστημα</h1>
                         <span class="workspace-selection__counts">
                             @_workspace.Tenants.Count επιχειρήσεις · @_workspace.Stores.Count καταστήματα
                         </span>
@@ -78,10 +66,7 @@
                 <div class="workspace-grid">
                     <section class="surface-card">
                         <div class="surface-card__heading">
-                            <div>
-                                <p class="eyebrow eyebrow--green">ΕΠΙΧΕΙΡΗΣΕΙΣ</p>
-                                <h2>Οι επιχειρήσεις μου</h2>
-                            </div>
+                            <h2>Οι επιχειρήσεις μου</h2>
                             <span class="count-pill">@_workspace.Tenants.Count</span>
                         </div>
                         @if (_workspace.Tenants.Count == 0)
@@ -115,10 +100,7 @@
 
                     <section class="surface-card">
                         <div class="surface-card__heading">
-                            <div>
-                                <p class="eyebrow eyebrow--green">ΚΑΤΑΣΤΗΜΑΤΑ</p>
-                                <h2>Τα καταστήματά μου</h2>
-                            </div>
+                            <h2>Τα καταστήματά μου</h2>
                             <span class="count-pill">@_workspace.Stores.Count</span>
                         </div>
                         @if (_workspace.Stores.Count == 0)
@@ -157,8 +139,8 @@
                 <section class="next-steps">
                     <span class="next-steps__symbol"><AppIcon Name="overview" /></span>
                     <div>
-                        <strong>Κατάλογος προϊόντων &amp; υπηρεσιών</strong>
-                        <p>Προβάλετε τις κατηγορίες, τα προϊόντα και τις υπηρεσίες της επιχείρησης.</p>
+                        <strong>Κατάλογος</strong>
+                        <p>Προϊόντα, υπηρεσίες και κατηγορίες</p>
                     </div>
                     <a class="button button--outline next-steps__link" href="/catalog">
                         Άνοιγμα καταλόγου <AppIcon Name="arrow" />
