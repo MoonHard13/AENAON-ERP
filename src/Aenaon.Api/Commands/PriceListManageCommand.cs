@@ -41,8 +41,14 @@ public static class PriceListManageCommand
             }
 
             string value = args[i++];
-            if (key == "--price") priceArgs.Add(value);
-            else invalid = !values.TryAdd(key, value);
+            if (key == "--price")
+            {
+                priceArgs.Add(value);
+            }
+            else
+            {
+                invalid = !values.TryAdd(key, value);
+            }
         }
 
         string action = values.GetValueOrDefault("--action") ?? "";
@@ -62,13 +68,25 @@ public static class PriceListManageCommand
         Guid? scopeStore = null;
         if (values.TryGetValue("--id", out string? idText))
         {
-            if (Guid.TryParse(idText, out Guid parsed) && parsed != Guid.Empty) id = parsed;
-            else valid = false;
+            if (Guid.TryParse(idText, out Guid parsed) && parsed != Guid.Empty)
+            {
+                id = parsed;
+            }
+            else
+            {
+                valid = false;
+            }
         }
         if (values.TryGetValue("--scope-store-id", out string? storeText))
         {
-            if (Guid.TryParse(storeText, out Guid parsed) && parsed != Guid.Empty) scopeStore = parsed;
-            else valid = false;
+            if (Guid.TryParse(storeText, out Guid parsed) && parsed != Guid.Empty)
+            {
+                scopeStore = parsed;
+            }
+            else
+            {
+                valid = false;
+            }
         }
 
         int page = 1;
@@ -125,9 +143,14 @@ public static class PriceListManageCommand
             if (values.TryGetValue("--valid-until", out string? endText))
             {
                 if (DateOnly.TryParseExact(endText, "yyyy-MM-dd",
-                        CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly end))
+                {
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly end))
                     until = end;
-                else valid = false;
+                }
+                else
+                {
+                    valid = false;
+                }
             }
 
             if (action == "create")
@@ -184,7 +207,10 @@ public static class PriceListManageCommand
             await output.WriteAsync("Κωδικός λογαριασμού: ");
             string? password = readPassword();
             await output.WriteLineAsync();
-            if (password is null) return 130;
+            if (password is null)
+            {
+                return 130;
+            }
 
             CredentialVerificationResult verified = await verifier.VerifyAsync(
                 values["--username"], password, token);
@@ -202,9 +228,14 @@ public static class PriceListManageCommand
                 PriceListPage? rows = await service.ListAsync(userId, tenant,
                     values.GetValueOrDefault("--search"), flags.Contains("--inactive"),
                     page, 25, token);
-                if (rows is null) return await DeniedAsync();
+                if (rows is null)
+                {
+                    return await DeniedAsync();
+                }
                 foreach (PriceListSummary row in rows.Rows)
+                {
                     await output.WriteLineAsync($"{row.Id:D} | {row.Code} | {row.Name} | {row.Channel} | {row.ItemCount} είδη");
+                }
                 await output.WriteLineAsync($"Σελίδα {rows.Page}, επόμενη: {rows.HasMore}. Χωρίς εγγραφές SQL.");
                 return 0;
             }
@@ -219,13 +250,17 @@ public static class PriceListManageCommand
                     return 4;
                 }
                 foreach (PriceListItemRow row in rows.Rows)
+                {
                     await output.WriteLineAsync($"{row.Id:D} | {row.Code} | {row.Name} | {row.UnitPrice?.ToString(CultureInfo.InvariantCulture) ?? "—"}");
+                }
                 await output.WriteLineAsync($"Σελίδα {rows.Page}, επόμενη: {rows.HasMore}. Χωρίς εγγραφές SQL.");
                 return 0;
             }
 
             if (!await service.CanManageAsync(userId, tenant, token))
+            {
                 return await DeniedAsync();
+            }
 
             if (id.HasValue && await service.GetAsync(userId, tenant, id.Value, token) is null)
             {
