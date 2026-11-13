@@ -150,6 +150,7 @@ try {
     const cdp = new Cdp(websocket);
     await cdp.command("Page.enable");
     await cdp.command("Runtime.enable");
+    await cdp.command("Page.bringToFront");
 
     // Πρώτα αποδεικνύεται η λειτουργία του native select χωρίς καθόλου JavaScript.
     await cdp.command("Emulation.setScriptExecutionDisabled", { value: true });
@@ -185,6 +186,7 @@ try {
             document.querySelector(".demo").style.top="${anchor}px";
             const input=document.querySelector("[data-commercial-search]");
             input.focus();
+            input.click();
             const popup=document.querySelector("[data-commercial-popup]");
             const rect=popup.getBoundingClientRect();
             const control=document.querySelector("[data-commercial-control]").getBoundingClientRect();
