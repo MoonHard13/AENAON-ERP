@@ -3,7 +3,33 @@
     "use strict";
 
     const storageKey = "aenaon-theme";
+    const sidebarStorageKey = "aenaon-sidebar";
     const root = document.documentElement;
+
+    function updateSidebarToggle() {
+        const collapsed = root.dataset.sidebar === "collapsed";
+        document.querySelectorAll("[data-sidebar-toggle]").forEach(button => {
+            const description = collapsed ? "Ανάπτυξη πλαϊνού μενού" : "Σύμπτυξη πλαϊνού μενού";
+            button.setAttribute("aria-pressed", String(collapsed));
+            button.setAttribute("aria-label", description);
+            button.title = description;
+            const label = button.querySelector(".sidebar__toggle-label");
+            if (label) {
+                label.textContent = description;
+            }
+        });
+    }
+
+    function toggleSidebar() {
+        const collapsed = root.dataset.sidebar === "collapsed";
+        root.dataset.sidebar = collapsed ? "expanded" : "collapsed";
+        try {
+            window.localStorage.setItem(sidebarStorageKey, root.dataset.sidebar);
+        } catch {
+            // Χωρίς τοπική αποθήκευση παραμένει ενεργή η σύμπτυξη στην τρέχουσα σελίδα.
+        }
+        updateSidebarToggle();
+    }
 
     function saveTheme(value) {
         try {
@@ -43,6 +69,11 @@
             return;
         }
 
+        if (event.target.closest("[data-sidebar-toggle]")) {
+            toggleSidebar();
+            return;
+        }
+
         const button = event.target.closest("[data-password-toggle]");
         if (!(button instanceof HTMLButtonElement)) {
             return;
@@ -63,11 +94,15 @@
 
     // Το Blazor ανανεώνει τους τίτλους/menus όταν το streaming αντικαθιστά HTML.
     if (window.Blazor && typeof window.Blazor.addEventListener === "function") {
-        window.Blazor.addEventListener("enhancedload", updateThemeLabels);
+        window.Blazor.addEventListener("enhancedload", () => {
+            updateThemeLabels();
+            updateSidebarToggle();
+        });
     }
 
     document.addEventListener("DOMContentLoaded", () => {
         updateThemeLabels();
+        updateSidebarToggle();
 
         // Οι δυναμικές αντικαταστάσεις του streaming SSR δεν απαιτούν επανασύνδεση listeners.
         // Η αρχικοποίηση του login form παραμένει τοπική στη στατική σελίδα.
