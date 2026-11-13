@@ -41,6 +41,8 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
         // Η ταξινόμηση εκτελείται στη SQL, πριν από το Skip/Take.
         // Οι καθαρά αριθμητικοί κωδικοί ταξινομούνται ως 1, 2, 10·
         // οι μη αριθμητικοί ακολουθούν αλφαβητικά, με σταθερό Id tie-breaker.
+        // Το Convert.ToInt64 εφαρμόζεται μόνο για καθαρά ψηφία έως 18 χαρακτήρες,
+        // ώστε οι παλιοί κωδικοί 001/002 να συγκρίνονται αριθμητικά χωρίς overflow.
         var numericCategories = categories.Select(category => new
         {
             Category = category,
@@ -58,10 +60,16 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
             ("status", true) => numericCategories.OrderByDescending(x => x.Category.IsActive)
                 .ThenBy(x => x.Category.Id),
             (_, false) => numericCategories.OrderBy(x => x.IsTextCode)
-                .ThenBy(x => x.IsTextCode ? int.MaxValue : x.Category.Code.Length)
+                .ThenBy(x => x.IsTextCode ? 0L : x.Category.Code.Length > 18
+                    ? long.MaxValue : Convert.ToInt64(x.Category.Code))
+                .ThenBy(x => x.IsTextCode ? 0 : x.Category.Code.Length > 18
+                    ? x.Category.Code.Length : 0)
                 .ThenBy(x => x.Category.Code).ThenBy(x => x.Category.Id),
             _ => numericCategories.OrderBy(x => x.IsTextCode)
-                .ThenByDescending(x => x.IsTextCode ? int.MinValue : x.Category.Code.Length)
+                .ThenByDescending(x => x.IsTextCode ? 0L : x.Category.Code.Length > 18
+                    ? long.MaxValue : Convert.ToInt64(x.Category.Code))
+                .ThenByDescending(x => x.IsTextCode ? 0 : x.Category.Code.Length > 18
+                    ? x.Category.Code.Length : 0)
                 .ThenByDescending(x => x.Category.Code).ThenBy(x => x.Category.Id)
         };
 
@@ -152,10 +160,16 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
             ("status", true) => joined.OrderByDescending(x => x.Item.IsActive)
                 .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
             (_, false) => joined.OrderBy(x => x.IsTextCode)
-                .ThenBy(x => x.IsTextCode ? int.MaxValue : x.Item.Code.Length)
+                .ThenBy(x => x.IsTextCode ? 0L : x.Item.Code.Length > 18
+                    ? long.MaxValue : Convert.ToInt64(x.Item.Code))
+                .ThenBy(x => x.IsTextCode ? 0 : x.Item.Code.Length > 18
+                    ? x.Item.Code.Length : 0)
                 .ThenBy(x => x.Item.Code).ThenBy(x => x.Item.Id),
             _ => joined.OrderBy(x => x.IsTextCode)
-                .ThenByDescending(x => x.IsTextCode ? int.MinValue : x.Item.Code.Length)
+                .ThenByDescending(x => x.IsTextCode ? 0L : x.Item.Code.Length > 18
+                    ? long.MaxValue : Convert.ToInt64(x.Item.Code))
+                .ThenByDescending(x => x.IsTextCode ? 0 : x.Item.Code.Length > 18
+                    ? x.Item.Code.Length : 0)
                 .ThenByDescending(x => x.Item.Code).ThenBy(x => x.Item.Id)
         };
 
