@@ -52,6 +52,10 @@ public sealed class PriceListManagementServiceTests
         Assert.AreEqual(PriceListStatus.Denied, prices.Status);
         Assert.AreEqual(0, store.ApplyCalls);
         Assert.AreEqual(0, store.PriceCalls);
+        Assert.AreEqual(PriceListStatus.Denied,
+            (await service.RemovePriceAsync(User, Tenant, Guid.NewGuid(),
+                Guid.NewGuid(), 10m)).Status);
+        Assert.AreEqual(0, store.RemoveCalls);
     }
 
     [TestMethod]
@@ -109,6 +113,22 @@ public sealed class PriceListManagementServiceTests
         Assert.AreEqual(0, store.ApplyCalls);
     }
 
+    [TestMethod]
+    public async Task OwnerCanRemovePriceButInvalidExpectedPriceIsRejected()
+    {
+        var store = new FakeStore();
+        var service = Create(TenantMembershipRole.Owner, store);
+        PriceListResult denied = await service.RemovePriceAsync(User, Tenant,
+            Guid.NewGuid(), Guid.NewGuid(), -1m);
+        Assert.AreEqual(PriceListStatus.Invalid, denied.Status);
+        Assert.AreEqual(0, store.RemoveCalls);
+
+        PriceListResult removed = await service.RemovePriceAsync(User, Tenant,
+            Guid.NewGuid(), Guid.NewGuid(), 12.5000m);
+        Assert.AreEqual(PriceListStatus.Saved, removed.Status);
+        Assert.AreEqual(1, store.RemoveCalls);
+    }
+
     private static PriceListManagementService Create(TenantMembershipRole role, FakeStore store) =>
         new(new TenantAuthorizationService(new FakeAccess(role)), store);
 
@@ -117,6 +137,7 @@ public sealed class PriceListManagementServiceTests
         public int ReadCalls;
         public int ApplyCalls;
         public int PriceCalls;
+        public int RemoveCalls;
         public Guid LastTenant;
 
         public Task<PriceListPage> ListAsync(Guid tenantId, string? search,
@@ -145,6 +166,13 @@ public sealed class PriceListManagementServiceTests
             IReadOnlyList<PriceListPriceChange> changes, CancellationToken token)
         {
             PriceCalls++;
+            return Task.FromResult(new PriceListResult(PriceListStatus.Saved, priceListId));
+        }
+
+        public Task<PriceListResult> RemovePriceAsync(Guid tenantId, Guid priceListId,
+            Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token)
+        {
+            RemoveCalls++;
             return Task.FromResult(new PriceListResult(PriceListStatus.Saved, priceListId));
         }
     }
