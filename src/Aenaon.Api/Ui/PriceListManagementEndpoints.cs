@@ -196,11 +196,34 @@ public static class PriceListManagementEndpoints
                 return Results.BadRequest();
             }
 
+            // Ελέγχουμε την αρχική τιμή για να μην αντικατασταθούν ξένες νεότερες αλλαγές.
+            string expectedField = "expected_" + field.Key["price_".Length..];
+            if (!form.ContainsKey(expectedField) ||
+                !TrySingle(form, expectedField, out string originalText))
+            {
+                return Results.BadRequest();
+            }
+
+            decimal? expected = null;
+            if (!string.IsNullOrWhiteSpace(originalText))
+            {
+                if (!decimal.TryParse(originalText,
+                    NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
+                    CultureInfo.InvariantCulture, out decimal parsedExpected))
+                {
+                    return Results.BadRequest();
+                }
+
+                expected = parsedExpected;
+            }
+
             string amountText = field.Value.ToString();
             if (string.IsNullOrWhiteSpace(amountText))
             {
+                // Ένα κενό πεδίο δεν αφαιρεί ούτε αντικαθιστά αποθηκευμένη τιμή.
                 continue;
             }
+
             if (!decimal.TryParse(amountText,
                 NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
                 CultureInfo.InvariantCulture, out decimal price))
@@ -209,14 +232,19 @@ public static class PriceListManagementEndpoints
                     $"&page={page}&error=invalid");
             }
 
-            changes.Add(new(itemId, price));
+            if (expected == price)
+            {
+                continue;
+            }
+
+            changes.Add(new(itemId, price, expected, CheckExpected: true));
         }
 
         string destination = EditorUrl(tenant.Value, currentStore, id) +
             $"&page={page}" + (search.Length > 0 ? "&search=" + Uri.EscapeDataString(search) : "");
         if (changes.Count == 0)
         {
-            return Results.Redirect(destination + "&error=invalid");
+            return Results.Redirect(destination + "&unchanged=1");
         }
 
         PriceListResult result = await service.SetPricesAsync(
@@ -235,8 +263,9 @@ public static class PriceListManagementEndpoints
 
         context.Response.Headers.CacheControl = "no-store";
         return Results.Redirect(destination + (result.Status == PriceListStatus.Saved ?
-            "&saved=1" : result.Error == "pricelist.inactive" ?
-                "&error=inactive" : "&error=invalid"));
+            "&saved=1" : result.Status == PriceListStatus.Conflict ?
+                "&error=conflict" : result.Error == "pricelist.inactive" ?
+                    "&error=inactive" : "&error=invalid"));
     }
 
     private static async Task<bool> VerifyRequestAsync(HttpContext context,
