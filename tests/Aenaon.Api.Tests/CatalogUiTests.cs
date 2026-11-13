@@ -147,6 +147,53 @@ public sealed class CatalogUiTests
     }
 
     [TestMethod]
+    public async Task SortingHeaders_UseAccessibleLinksAndPreserveFiltersPagingAndTenant()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string products = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/catalog?view=products&tenantId={TenantId:D}&search=SKU&" +
+            "pageSize=50&inactive=true&sort=name&desc=true"));
+
+        Assert.Contains("aria-sort=\"descending\"", products);
+        Assert.Contains("catalog-sort-header", products);
+        Assert.Contains("sort=name", products);
+        Assert.Contains("search=SKU", products);
+        Assert.Contains("pageSize=50", products);
+        Assert.Contains("inactive=true", products);
+        Assert.AreEqual("name", factory.Catalog.LastQuery?.SortBy);
+        Assert.IsTrue(factory.Catalog.LastQuery?.Descending);
+
+        string categories = WebUtility.HtmlDecode(await client.GetStringAsync(
+            "/catalog?view=categories&sort=status&desc=true"));
+        Assert.Contains("Κατηγορία", categories);
+        Assert.Contains("aria-sort=\"descending\"", categories);
+        Assert.AreEqual("status", factory.Catalog.LastQuery?.SortBy);
+        Assert.IsTrue(factory.Catalog.LastQuery?.Descending);
+    }
+
+    [TestMethod]
+    public async Task InvalidSortParameters_AreRejectedBeforeReadingDatabase()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+        int readsBefore = factory.Catalog.ItemReads;
+
+        string invalid = WebUtility.HtmlDecode(await client.GetStringAsync(
+            "/catalog?view=products&sort=code%3BDROP%20TABLE"));
+        Assert.Contains("Μη έγκυρα φίλτρα", invalid);
+        Assert.AreEqual(readsBefore, factory.Catalog.ItemReads);
+
+        string invalidCategory = WebUtility.HtmlDecode(await client.GetStringAsync(
+            "/catalog?view=categories&sort=stock"));
+        Assert.Contains("Μη έγκυρα φίλτρα", invalidCategory);
+        Assert.AreEqual(0, factory.Catalog.CategoryReads);
+    }
+
+    [TestMethod]
     public async Task Catalog_InvalidInputsNeverReachCatalogStore()
     {
         await using var factory = new SessionApiFactory();
