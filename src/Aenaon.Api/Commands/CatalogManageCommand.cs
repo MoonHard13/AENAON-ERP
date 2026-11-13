@@ -31,7 +31,7 @@ public static class CatalogManageCommand
 
             if (option is not ("--username" or "--tenant-id" or "--confirm-database" or
                 "--view" or "--action" or "--id" or "--code" or "--name" or "--category-id" or
-                "--parent-category-id") ||
+                "--parent-category-id" or "--unit" or "--accounting-type") ||
                 index == args.Length ||
                 args[index].StartsWith("--", StringComparison.Ordinal))
             {
@@ -84,6 +84,36 @@ public static class CatalogManageCommand
             parentId = parsedParent;
         }
 
+        CatalogUnitOfMeasure? unitOfMeasure = null;
+        CatalogAccountingType? accountingType = null;
+        string? unitText = values.GetValueOrDefault("--unit");
+        string? accountingText = values.GetValueOrDefault("--accounting-type");
+        if (unitText is not null)
+        {
+            if (Enum.TryParse(unitText, true, out CatalogUnitOfMeasure parsedUnit) &&
+                Enum.IsDefined(parsedUnit))
+            {
+                unitOfMeasure = parsedUnit;
+            }
+            else
+            {
+                invalid = true;
+            }
+        }
+
+        if (accountingText is not null)
+        {
+            if (Enum.TryParse(accountingText, true, out CatalogAccountingType parsedAccounting) &&
+                Enum.IsDefined(parsedAccounting))
+            {
+                accountingType = parsedAccounting;
+            }
+            else
+            {
+                invalid = true;
+            }
+        }
+
         if (invalid || apply == dryRun || !Enum.IsDefined(entity) ||
             !Enum.IsDefined(action) ||
             !Guid.TryParse(values.GetValueOrDefault("--tenant-id"), out Guid tenantId) ||
@@ -100,6 +130,16 @@ public static class CatalogManageCommand
             (autoCode && (action != CatalogChangeAction.Create ||
                 values.ContainsKey("--code"))) ||
             (entity == CatalogManagedEntity.Category && categoryField is not null) ||
+            (entity == CatalogManagedEntity.Category &&
+             (unitText is not null || accountingText is not null)) ||
+            (entity == CatalogManagedEntity.Product &&
+             (unitOfMeasure == CatalogUnitOfMeasure.Service ||
+              accountingType == CatalogAccountingType.Service)) ||
+            (entity == CatalogManagedEntity.Service &&
+             (unitOfMeasure is { } selectedUnit &&
+              selectedUnit is not (CatalogUnitOfMeasure.Service or CatalogUnitOfMeasure.Hour) ||
+              accountingType is { } selectedAccounting &&
+              selectedAccounting != CatalogAccountingType.Service)) ||
             (entity != CatalogManagedEntity.Product && flags.Contains("--tracks-stock")) ||
             (action is CatalogChangeAction.Create or CatalogChangeAction.Update &&
              ((!autoCode && string.IsNullOrWhiteSpace(values.GetValueOrDefault("--code"))) ||
@@ -112,13 +152,16 @@ public static class CatalogManageCommand
                 "--view categories|products|services --action create|update|activate|deactivate " +
                 "[--id GUID] [--code CODE | --auto-code] [--name NAME] " +
                 "[--category-id GUID] [--parent-category-id GUID | --root] " +
-                "[--tracks-stock] (--dry-run | --apply). Απαιτείται διαδραστικό τερματικό.");
+                "[--tracks-stock] [--unit Piece|Kilogram|Gram|Liter|Milliliter|Portion|Hour|Service] " +
+                "[--accounting-type Merchandise|FinishedProduct|RawMaterial|Consumable|Service|FixedAsset] " +
+                "(--dry-run | --apply). Απαιτείται διαδραστικό τερματικό.");
             return 2;
         }
 
         CatalogChangeCommand command = new(entity, action, id,
             values.GetValueOrDefault("--code"), values.GetValueOrDefault("--name"),
-            categoryId, flags.Contains("--tracks-stock"), parentId, autoCode, Guid.NewGuid());
+            categoryId, flags.Contains("--tracks-stock"), parentId, autoCode, Guid.NewGuid(),
+            unitOfMeasure, accountingType);
 
         try
         {
@@ -192,7 +235,7 @@ public static class CatalogManageCommand
                         validationCode, command.Name,
                         entity == CatalogManagedEntity.Service
                             ? CatalogItemKind.Service : CatalogItemKind.Product,
-                        command.TracksStock);
+                        command.TracksStock, command.UnitOfMeasure, command.AccountingType);
                 }
             }
 
