@@ -50,6 +50,10 @@
                 {
                     <div class="catalog-success" role="status"><AppIcon Name="check" /> Οι αλλαγές αποθηκεύτηκαν επιτυχώς.</div>
                 }
+                else if (Unchanged == 1)
+                {
+                    <div class="catalog-success" role="status">Δεν βρέθηκαν αλλαγές στις τιμές. Καμία εγγραφή δεν τροποποιήθηκε.</div>
+                }
                 else if (!string.IsNullOrWhiteSpace(Error))
                 {
                     <div class="form-alert" role="alert">@ErrorMessage</div>
@@ -83,7 +87,7 @@
                             }
                             <div class="catalog-editor__grid">
                                 <div class="catalog-editor__field">
-                                    <label for="price-code">Κωδικός *</label>
+                                    <label for="price-code">Κωδικός @(_list is null ? "*" : "")</label>
                                     <input id="price-code" name="code" maxlength="30" required="@(_list is null)"
                                            disabled="@(_list is not null)" autocomplete="off"
                                            value="@_list?.Code" placeholder="π.χ. RETAIL, DELIVERY" />
@@ -198,13 +202,19 @@
                             {
                                 <input type="hidden" name="storeId" value="@filterScopeStore.StoreId" />
                             }
-                            <div class="catalog-search">
-                                <label for="price-item-search">Κωδικός ή περιγραφή είδους</label>
-                                <input id="price-item-search" type="search" name="search" maxlength="80" accesskey="f"
-                                       value="@Search" placeholder="Αναζήτηση προϊόντος / υπηρεσίας" />
+                            <div class="catalog-field catalog-field--search">
+                                <label for="price-item-search">Κωδικός ή περιγραφή είδους (αρχίζει από)</label>
+                                <div class="catalog-search">
+                                    <AppIcon Name="search" />
+                                    <input id="price-item-search" type="search" name="search" maxlength="80"
+                                           accesskey="f" autocomplete="off" value="@Search"
+                                           placeholder="Αναζήτηση προϊόντος ή υπηρεσίας…" />
+                                </div>
                             </div>
-                            <button class="button button--primary" type="submit">Αναζήτηση</button>
-                            <a class="button button--outline" href="@ManageUrl(selected.Id)">Καθαρισμός</a>
+                            <button class="button button--primary catalog-filter-button" type="submit">
+                                <AppIcon Name="search" /> Αναζήτηση
+                            </button>
+                            <a class="catalog-reset" href="@ManageUrl(selected.Id)">Καθαρισμός</a>
                         </form>
                         @if (_items is null || _items.Rows.Count == 0)
                         {
@@ -245,6 +255,8 @@
                                                     <td>
                                                         @if (CanManage && selected.IsActive)
                                                         {
+                                                            <input type="hidden" name="@($"expected_{row.Id:D}")"
+                                                                   value="@(row.UnitPrice?.ToString("0.0000", CultureInfo.InvariantCulture))" />
                                                             <label class="price-list-sr" for="@($"price-{row.Id:D}")">Τιμή @row.Name</label>
                                                             <input id="@($"price-{row.Id:D}")" name="@($"price_{row.Id:D}")"
                                                                    type="number" min="0" max="999999999999.9999"
@@ -301,6 +313,7 @@
     [SupplyParameterFromQuery(Name = "search")] public string? Search { get; set; }
     [SupplyParameterFromQuery(Name = "page")] public int? Page { get; set; }
     [SupplyParameterFromQuery(Name = "saved")] public int? Saved { get; set; }
+    [SupplyParameterFromQuery(Name = "unchanged")] public int? Unchanged { get; set; }
     [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
 
     private TenantWorkspaceSnapshot? _workspace;
