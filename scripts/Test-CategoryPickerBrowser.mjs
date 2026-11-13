@@ -58,7 +58,7 @@ const fixture = `<!doctype html>
 <button hidden type="submit" data-category-quick-submit formnovalidate
  formaction="/ui/catalog/new-category" formmethod="post"></button>
 </form></div>
-<script src="/js/aenaon-category-picker.js" defer></script>
+<script src="/js/aenaon.js" defer></script>\n<script src="/js/aenaon-category-picker.js" defer></script>
 </body></html>`;
 
 const categories = Array.from({ length: 30 }, (_, index) => ({
@@ -111,7 +111,12 @@ const server = createServer(async (request, response) => {
 
 async function waitFor(predicate, message, tries = 90) {
     for (let attempt = 0; attempt < tries; attempt++) {
-        const result = await predicate().catch(() => null);
+        let result = null;
+        try {
+            result = await predicate();
+        } catch {
+            // Κατά τη φόρτωση μπορεί να μην είναι ακόμη διαθέσιμο το DOM.
+        }
         if (result) {
             return result;
         }
