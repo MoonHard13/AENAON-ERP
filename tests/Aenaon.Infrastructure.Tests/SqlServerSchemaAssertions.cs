@@ -22,7 +22,7 @@ internal static class SqlServerSchemaAssertions
 
         var preview = await manager.ExecuteAsync(false, null, cancellationToken);
         Assert.AreEqual(DatabaseSchemaStatus.Ready, preview.Status);
-        Assert.HasCount(7, preview.PendingMigrations!);
+        Assert.HasCount(8, preview.PendingMigrations!);
         Assert.HasCount(0, preview.AppliedMigrations!);
         await AssertUserTableCountAsync(connection, 0, cancellationToken);
 
