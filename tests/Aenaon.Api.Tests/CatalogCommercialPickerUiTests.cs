@@ -26,7 +26,7 @@ public sealed class CatalogCommercialPickerUiTests
         Assert.AreEqual(2, Regex.Matches(html, "data-commercial-popup").Count);
         Assert.AreEqual(2, Regex.Matches(html, "data-commercial-native").Count);
         Assert.AreEqual(2, Regex.Matches(html, "data-commercial-value").Count);
-        Assert.AreEqual(2, Regex.Matches(html, "role=\"combobox\"").Count + -1,
+        Assert.AreEqual(3, Regex.Matches(html, "role=\"combobox\"").Count,
             "Οι δύο εμπορικοί επιλογείς και η κατηγορία παρέχουν προσβάσιμο combobox.");
         Assert.Contains("aria-autocomplete=\"list\"", html);
         Assert.Contains("aria-expanded=\"false\"", html);
