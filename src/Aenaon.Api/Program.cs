@@ -345,6 +345,7 @@ public partial class Program
             app.MapUiSessionEndpoints();
             app.MapWorkspaceSelectionEndpoints();
             app.MapCatalogManagementEndpoints();
+            app.MapPriceListManagementEndpoints();
             app.MapRazorComponents<App>();
         }
         app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
