@@ -185,41 +185,28 @@
                                     <p>Η μονάδα και ο λογιστικός τύπος δεν ορίζουν αυτόματα ΦΠΑ ή myDATA.</p>
                                 </div>
                                 <div class="catalog-editor__field">
-                                    <label for="edit-unit">Μονάδα μέτρησης *</label>
-                                    <select id="edit-unit" name="unitOfMeasure" required>
-                                        @foreach (CatalogUnitOfMeasure unit in View == "services"
-                                            ? CatalogCommercialOptions.ServiceUnits
-                                            : CatalogCommercialOptions.ProductUnits)
-                                        {
-                                            <option value="@((int)unit)" selected="@(unit == CurrentUnit)">
-                                                @CatalogCommercialOptions.UnitName(unit)
-                                            </option>
-                                        }
-                                    </select>
-                                    <small>Η μονάδα χρησιμοποιείται στην εμπορική καρτέλα και σε μελλοντικούς τιμοκαταλόγους.</small>
+                                    <CatalogCommercialPicker
+                                        Id="edit-unit"
+                                        FieldName="unitOfMeasure"
+                                        Label="Μονάδα μέτρησης"
+                                        SelectedValue="@((int)CurrentUnit)"
+                                        Options="@(View == "services"
+                                            ? CatalogCommercialOptions.ServiceUnitOptions
+                                            : CatalogCommercialOptions.ProductUnitOptions)"
+                                        HelpText="Η μονάδα χρησιμοποιείται στην εμπορική καρτέλα και σε μελλοντικούς τιμοκαταλόγους." />
                                 </div>
                                 <div class="catalog-editor__field">
-                                    <label for="edit-accounting">Λογιστικός τύπος *</label>
-                                    @if (View == "services")
-                                    {
-                                        <select id="edit-accounting" name="accountingType" required>
-                                            <option value="@((int)CatalogAccountingType.Service)">Υπηρεσία</option>
-                                        </select>
-                                        <small>Οι υπηρεσίες έχουν λογιστικό τύπο «Υπηρεσία».</small>
-                                    }
-                                    else
-                                    {
-                                        <select id="edit-accounting" name="accountingType" required>
-                                            @foreach (CatalogAccountingType accounting in CatalogCommercialOptions.ProductAccountingTypes)
-                                            {
-                                                <option value="@((int)accounting)"
-                                                        selected="@(accounting == CurrentAccounting)">
-                                                    @CatalogCommercialOptions.AccountingName(accounting)
-                                                </option>
-                                            }
-                                        </select>
-                                        <small>Εμπόρευμα, προϊόν παραγωγής, πρώτη ύλη, αναλώσιμο ή πάγιο.</small>
-                                    }
+                                    <CatalogCommercialPicker
+                                        Id="edit-accounting"
+                                        FieldName="accountingType"
+                                        Label="Λογιστικός τύπος"
+                                        SelectedValue="@((int)CurrentAccounting)"
+                                        Options="@(View == "services"
+                                            ? CatalogCommercialOptions.ServiceAccountingOptions
+                                            : CatalogCommercialOptions.ProductAccountingOptions)"
+                                        HelpText="@(View == "services"
+                                            ? "Οι υπηρεσίες έχουν λογιστικό τύπο «Υπηρεσία»."
+                                            : "Εμπόρευμα, προϊόν παραγωγής, πρώτη ύλη, αναλώσιμο ή πάγιο.")" />
                                 </div>
                                 @if (CurrentError is "unit" or "accounting")
                                 {
