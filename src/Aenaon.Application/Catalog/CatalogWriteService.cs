@@ -34,7 +34,9 @@ public sealed record CatalogChangeCommand(
     bool AutoCode = false,
     Guid? RequestId = null,
     CatalogUnitOfMeasure? UnitOfMeasure = null,
-    CatalogAccountingType? AccountingType = null);
+    CatalogAccountingType? AccountingType = null,
+    string? Barcode = null, string? LongDescription = null,
+    bool SetBarcode = false, bool SetLongDescription = false);
 
 public enum CatalogChangeStatus
 {
@@ -54,7 +56,8 @@ public sealed record CatalogManageRecord(
     Guid? CategoryId = null, CatalogItemKind? Kind = null, bool TracksStock = false,
     Guid? ParentCategoryId = null,
     CatalogUnitOfMeasure? UnitOfMeasure = null,
-    CatalogAccountingType? AccountingType = null);
+    CatalogAccountingType? AccountingType = null,
+    string? Barcode = null, string? LongDescription = null);
 
 public sealed record CatalogCategoryOption(Guid Id, string Code, string Name,
     string? Path = null, Guid? ParentId = null);
@@ -110,7 +113,12 @@ public sealed class CatalogWriteService(
             (command.Action != CatalogChangeAction.Create && command.AutoCode) ||
             (command.Entity == CatalogManagedEntity.Category &&
              (command.CategoryId.HasValue || command.TracksStock ||
-              command.UnitOfMeasure.HasValue || command.AccountingType.HasValue)) ||
+              command.UnitOfMeasure.HasValue || command.AccountingType.HasValue ||
+               command.SetBarcode || command.SetLongDescription ||
+               command.Barcode is not null || command.LongDescription is not null)) ||
+            (command.Action is CatalogChangeAction.Activate or CatalogChangeAction.Deactivate &&
+             (command.SetBarcode || command.SetLongDescription ||
+              command.Barcode is not null || command.LongDescription is not null)) ||
             (command.Entity == CatalogManagedEntity.Service && command.TracksStock) ||
             (command.UnitOfMeasure is { } unit && !Enum.IsDefined(unit)) ||
             (command.AccountingType is { } accounting && !Enum.IsDefined(accounting)) ||
