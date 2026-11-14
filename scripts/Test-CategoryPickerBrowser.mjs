@@ -58,6 +58,55 @@ const fixture = `<!doctype html>
 <button hidden type="submit" data-category-quick-submit formnovalidate
  formaction="/ui/catalog/new-category" formmethod="post"></button>
 </form></div>
+<!-- Απομονωμένο responsive shell: το ίδιο πραγματικό CSS και διάταξη με το Back Office. -->
+<section class="mobile-fixture" style="display:none">
+<main class="dashboard">
+ <aside class="sidebar"><div class="sidebar__header">
+  <a class="sidebar__brand" href="#"><div class="sidebar__logo"><img width="48" height="48" alt="" src="/images/aenaon-favicon.png"></div>
+  <div class="sidebar__brand-text"><strong>AENAON</strong><span>ERP · MOONHARD</span></div></a>
+ </div><nav class="sidebar__nav"></nav></aside>
+ <div class="dashboard__content">
+  <header class="topbar"><details class="mobile-navigation"><summary>☰ Μενού</summary>
+   <nav><a href="#">Κατάλογος</a><a href="#">Τιμοκατάλογοι</a></nav></details>
+   <div class="topbar__actions"><a class="workspace-indicator" href="#"><span class="workspace-indicator__tenant">Aenaon Demo</span></a>
+   <button class="theme-toggle" type="button">◐</button><details class="user-menu"><summary>Α</summary></details></div>
+  </header>
+  <div class="dashboard__body catalog-page price-lists-page">
+   <section class="surface-card catalog-surface">
+    <div class="catalog-surface__header">
+     <div class="catalog-surface__identity"><h1>Τιμοκατάλογοι</h1><span class="count-pill">2 εγγραφές</span></div>
+     <div class="catalog-surface__actions">
+      <a class="button button--outline" href="#">Προεπισκόπηση τιμής</a>
+      <a class="button button--primary catalog-create" href="#">Νέος τιμοκατάλογος</a>
+     </div>
+    </div>
+    <form class="catalog-filters" method="get">
+      <div class="catalog-field catalog-field--search"><label for="mobile-query">Αναζήτηση</label>
+        <input id="mobile-query" type="search" placeholder="Κωδικός ή περιγραφή"></div>
+      <div class="mobile-sort-controls">
+       <div class="catalog-field"><label for="mobile-sort">Ταξινόμηση</label>
+        <select id="mobile-sort" name="sort"><option value="code">Κωδικός</option><option value="name">Περιγραφή</option></select></div>
+       <div class="catalog-field"><label for="mobile-desc">Σειρά</label>
+        <select id="mobile-desc" name="desc"><option value="false">Αύξουσα</option><option value="true">Φθίνουσα</option></select></div>
+      </div><button type="submit" class="button button--primary catalog-filter-button">Αναζήτηση</button>
+     </form>
+    <div class="catalog-table-wrap"><table class="catalog-table mobile-card-table mobile-price-lists-table">
+      <thead><tr><th scope="col">Κωδικός</th><th scope="col">Περιγραφή</th><th scope="col">Κατάσταση</th><th scope="col">Ενέργειες</th></tr></thead>
+      <tbody><tr><td data-label="Κωδικός" class="mobile-card-primary">1</td>
+       <td data-label="Περιγραφή" class="mobile-card-title">Βασικός Τιμοκατάλογος</td>
+       <td data-label="Κατάσταση">Ενεργός</td>
+       <td data-label="Ενέργειες"><a class="catalog-edit-link" href="#">Διαχείριση</a></td>
+      </tr><tr><td data-label="Κωδικός" class="mobile-card-primary">10</td>
+       <td data-label="Περιγραφή" class="mobile-card-title">Δεύτερος Τιμοκατάλογος</td>
+       <td data-label="Κατάσταση">Ενεργός</td>
+       <td data-label="Ενέργειες"><a class="catalog-edit-link" href="#">Διαχείριση</a></td>
+      </tr></tbody>
+    </table></div>
+   </section>
+  </div>
+ </div>
+</main>
+</section>
 <script src="/js/aenaon.js" defer></script>\n<script src="/js/aenaon-category-picker.js" defer></script>
 </body></html>`;
 
@@ -352,6 +401,63 @@ try {
     });
     await waitFor(() => received.length === 2, "Το μόνιμο κουμπί δεν υπέβαλε POST.");
     assert.equal(received[1].view, "products");
+
+    // Πραγματικός Chromium CSS έλεγχος σε πολλαπλά πλάτη, χωρίς πρόσθετες εξαρτήσεις.
+    await cdp.command("Page.navigate", {
+        url: "http://127.0.0.1:" + httpPort + "/"
+    });
+    await waitFor(() => cdp.evaluate(
+        'document.querySelector(".mobile-fixture") !== null'),
+        "Δεν φορτώθηκε το responsive layout fixture.");
+    await cdp.evaluate(`(() => {
+        document.querySelector(".demo").style.display = "none";
+        document.querySelector("body > h1").style.display = "none";
+        document.querySelector(".mobile-fixture").style.display = "block";
+    })()`);
+
+    for (const width of [375, 390, 430, 768, 1366]) {
+        await cdp.command("Emulation.setDeviceMetricsOverride", {
+            width, height: 850, deviceScaleFactor: 1, mobile: width < 600
+        });
+        const metrics = await cdp.evaluate(`(() => {
+            const rect = selector => {
+                const box = document.querySelector(selector).getBoundingClientRect();
+                return { left: box.left, right: box.right, width: box.width, height: box.height };
+            };
+            const cards = document.querySelector(".mobile-card-table");
+            const actions = Array.from(document.querySelectorAll(".catalog-surface__actions .button"))
+                .map(element => {
+                    const r = element.getBoundingClientRect();
+                    return { left: r.left, right: r.right, height: r.height };
+                });
+            return {
+                width: innerWidth, scrollWidth: document.documentElement.scrollWidth,
+                sidebar: rect(".mobile-fixture .sidebar"),
+                topbar: rect(".mobile-fixture .topbar"),
+                surface: rect(".mobile-fixture .catalog-surface"),
+                table: rect(".mobile-fixture .catalog-table"),
+                tableDisplay: getComputedStyle(cards).display,
+                rowDisplay: getComputedStyle(cards.querySelector("tbody tr")).display,
+                sortDisplay: getComputedStyle(document.querySelector(".mobile-sort-controls")).display,
+                actions
+            };
+        })()`);
+        assert.ok(metrics.scrollWidth <= metrics.width + 2,
+            "Οριζόντιο overflow σε " + width + ": " + JSON.stringify(metrics));
+        assert.ok(metrics.actions.every(action => action.left >= -1 &&
+            action.right <= metrics.width + 2 && action.height >= 40),
+            "Κομμένη ενέργεια σε " + width + ": " + JSON.stringify(metrics));
+        if (width <= 650) {
+            assert.ok(metrics.sidebar.height <= 75, "Υπερβολικό mobile brand header: " +
+                JSON.stringify(metrics));
+            assert.equal(metrics.tableDisplay, "block");
+            assert.equal(metrics.rowDisplay, "grid");
+            assert.equal(metrics.sortDisplay, "grid");
+        } else {
+            assert.equal(metrics.sortDisplay, "none");
+        }
+        process.stdout.write("Back Office responsive " + width + "px: no overflow, visible actions and cards OK\\n");
+    }
 
     process.stdout.write("Category Picker Chromium smoke: 4 viewports, focus, keyboard, popup and inline clicks + 2 POSTs OK\\n");
 } finally {
