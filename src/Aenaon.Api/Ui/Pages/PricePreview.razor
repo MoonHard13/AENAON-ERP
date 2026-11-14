@@ -60,6 +60,7 @@
                           class="price-preview-filters" role="search"
                           aria-label="Επιλογή εμπορικής τιμής">
                         <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
+                        <input type="hidden" name="page" value="@_pageNumber" />
                         @if (_workspace.Store is { } currentStore)
                         {
                             <input type="hidden" name="storeId" value="@currentStore.StoreId" />
@@ -104,7 +105,7 @@
                             </div>
                         </div>
                         <div class="price-preview-filter-actions">
-                            <button type="submit" class="button button--primary">
+                            <button type="submit" class="button button--primary" name="pageAction" value="search">
                                 <AppIcon Name="search" /> Αναζήτηση ειδών
                             </button>
                             <a class="catalog-reset" href="@ResetUrl">Καθαρισμός</a>
@@ -166,12 +167,12 @@
                                 <nav class="catalog-pagination" aria-label="Σελιδοποίηση ειδών">
                                     @if (catalogPage.Page > 1)
                                     {
-                                        <button type="submit" name="page" value="@(catalogPage.Page - 1)" class="price-preview-page-button">Προηγούμενη</button>
+                                        <button type="submit" name="requestedPage" value="@(catalogPage.Page - 1)" class="price-preview-page-button">Προηγούμενη</button>
                                     }
                                     <span>Σελίδα @catalogPage.Page</span>
                                     @if (catalogPage.HasMore)
                                     {
-                                        <button type="submit" name="page" value="@(catalogPage.Page + 1)" class="price-preview-page-button">Επόμενη</button>
+                                        <button type="submit" name="requestedPage" value="@(catalogPage.Page + 1)" class="price-preview-page-button">Επόμενη</button>
                                     }
                                 </nav>
                             }
@@ -262,6 +263,8 @@
     [SupplyParameterFromQuery(Name = "date")] public string? DateText { get; set; }
     [SupplyParameterFromQuery(Name = "search")] public string? Search { get; set; }
     [SupplyParameterFromQuery(Name = "page")] public int? Page { get; set; }
+    [SupplyParameterFromQuery(Name = "requestedPage")] public int? RequestedPage { get; set; }
+    [SupplyParameterFromQuery(Name = "pageAction")] public string? PageAction { get; set; }
     [SupplyParameterFromQuery(Name = "itemId")] public Guid? ItemId { get; set; }
 
     private static readonly CultureInfo GreekCulture = CultureInfo.GetCultureInfo("el-GR");
@@ -287,6 +290,7 @@
     private string _dateText = "";
     private Guid? _priceStore;
     private PriceListChannel _channel = PriceListChannel.All;
+    private int _pageNumber = 1;
 
     private IReadOnlyList<PriceListSelectOption> StoreOptions =>
         [new("all", "Όλα τα καταστήματα"),
@@ -370,12 +374,18 @@
             }
 
             _scope = Scope ?? (_workspace.Store?.StoreId.ToString("D") ?? "all");
-            if (!Enum.TryParse(Channel ?? "All", false, out _channel) ||
+            // Η αναζήτηση ξεκινά από την πρώτη σελίδα, ενώ επιλογή είδους
+            // διατηρεί την τρέχουσα σελίδα και η σελιδοποίηση ζητά ρητά νέα.
+            _pageNumber = RequestedPage ?? (PageAction == "search" ? 1 : Page ?? 1);
+            if (PageAction is not (null or "search") ||
+                !Enum.TryParse(Channel ?? "All", false, out _channel) ||
                 !Enum.IsDefined(_channel) ||
                 (_scope != "all" &&
                  (!Guid.TryParse(_scope, out Guid parsedStore) || parsedStore == Guid.Empty ||
                   !_workspace.Stores.Any(x => x.StoreId == parsedStore))) ||
                 Page is < 1 or > CatalogReadQuery.MaxPage ||
+                RequestedPage is < 1 or > CatalogReadQuery.MaxPage ||
+                _pageNumber is < 1 or > CatalogReadQuery.MaxPage ||
                 ItemId == Guid.Empty)
             {
                 _error = "invalid";
@@ -384,7 +394,7 @@
 
             _priceStore = _scope == "all" ? null : Guid.Parse(_scope);
             _items = await CatalogReader.ReadItemsAsync(userId, _workspace.Tenant!.TenantId,
-                new CatalogReadQuery(Page ?? 1, 25, Search), context.RequestAborted);
+                new CatalogReadQuery(_pageNumber, 25, Search), context.RequestAborted);
 
             if (ItemId.HasValue)
             {
