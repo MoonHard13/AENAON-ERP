@@ -22,7 +22,9 @@ public sealed record PriceResolutionResult(
     decimal? UnitPrice = null,
     bool? PricesIncludeVat = null,
     string? Currency = null,
-    IReadOnlyList<Guid>? ConflictingPriceListIds = null);
+    IReadOnlyList<Guid>? ConflictingPriceListIds = null,
+    Guid? PriceListStoreId = null,
+    PriceListChannel? PriceListChannel = null);
 
 /// <summary>Μόνο ανάγνωση υποψήφιων τιμών εντός συγκεκριμένου Tenant.</summary>
 public interface IPriceResolutionStore
@@ -79,7 +81,9 @@ public sealed class PriceResolutionService(
                 selected.Selected.PriceListCode,
                 selected.Selected.UnitPrice,
                 selected.Selected.PricesIncludeVat,
-                selected.Selected.Currency),
+                selected.Selected.Currency,
+                PriceListStoreId: selected.Selected.StoreId,
+                PriceListChannel: selected.Selected.Channel),
 
             PriceSelectionStatus.Ambiguous => new(
                 PriceResolutionStatus.Ambiguous,
