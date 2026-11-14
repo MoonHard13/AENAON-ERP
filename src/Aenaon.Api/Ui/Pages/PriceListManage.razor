@@ -42,13 +42,17 @@
             }
             else
             {
-                <div class="price-list-toolbar">
-                    <a class="button button--outline" href="@BackUrl" accesskey="b"><AppIcon Name="chevron" /> Επιστροφή στους τιμοκαταλόγους</a>
-                    @if (!CanManage) { <span class="catalog-readonly">Μόνο ανάγνωση</span> }
-                </div>
                 @if (Saved == 1)
                 {
                     <div class="catalog-success" role="status"><AppIcon Name="check" /> Οι αλλαγές αποθηκεύτηκαν επιτυχώς.</div>
+                }
+                else if (Unchanged == 1)
+                {
+                    <div class="catalog-success" role="status">Δεν βρέθηκαν αλλαγές στις τιμές. Καμία εγγραφή δεν τροποποιήθηκε.</div>
+                }
+                else if (Removed == 1)
+                {
+                    <div class="catalog-success" role="status"><AppIcon Name="check" /> Η τιμή αφαιρέθηκε μόνο από αυτόν τον τιμοκατάλογο.</div>
                 }
                 else if (!string.IsNullOrWhiteSpace(Error))
                 {
@@ -56,17 +60,37 @@
                 }
                 <section class="surface-card catalog-editor" aria-labelledby="price-editor-title">
                     <div class="catalog-editor__header">
-                        <div>
-                            <h1 id="price-editor-title">@Heading</h1>
-                            <p>Κωδικός, κατάστημα, κανάλι και καθεστώς ΦΠΑ δεν μεταβάλλονται μετά τη δημιουργία.</p>
+                        <div class="catalog-editor__heading">
+                            <div class="catalog-editor__title-row">
+                                <h1 id="price-editor-title">
+                                    <button type="button" class="price-list-panel-toggle"
+                                            data-panel-toggle="price-list-details" data-panel-key="details"
+                                            aria-controls="price-list-details" aria-expanded="true"
+                                            title="Σύμπτυξη ή ανάπτυξη στοιχείων τιμοκαταλόγου">
+                                        @Heading <AppIcon Name="chevron" />
+                                    </button>
+                                </h1>
+                                @if (_list is { } existing)
+                                {
+                                    <span class="@(existing.IsActive ? "catalog-status catalog-status--active" : "catalog-status catalog-status--inactive")"
+                                          aria-label="Κατάσταση τιμοκαταλόγου: @(existing.IsActive ? "Ενεργός" : "Ανενεργός")">
+                                        @(existing.IsActive ? "Ενεργός" : "Ανενεργός")
+                                    </span>
+                                }
+                                @if (!CanManage)
+                                {
+                                    <span class="catalog-readonly">Μόνο ανάγνωση</span>
+                                }
+                            </div>
+                            <p>Μπορείτε να επεξεργαστείτε κατάστημα, κανάλι και ερμηνεία τιμής. Για ήδη τιμολογημένα είδη απαιτείται επιβεβαίωση αλλαγής πολιτικής.</p>
                         </div>
-                        @if (_list is { } existing)
-                        {
-                            <span class="@(existing.IsActive ? "catalog-status catalog-status--active" : "catalog-status catalog-status--inactive")">
-                                @(existing.IsActive ? "Ενεργός" : "Ανενεργός")
-                            </span>
-                        }
+                        <div class="catalog-editor__header-actions">
+                            <a class="button button--outline" href="@BackUrl" accesskey="b">
+                                <AppIcon Name="chevron" /> Επιστροφή στους τιμοκαταλόγους
+                            </a>
+                        </div>
                     </div>
+                    <div id="price-list-details" data-panel-content>
                     @if (CanManage)
                     {
                         <form class="catalog-editor__form" method="post" action="/ui/price-lists/save">
@@ -81,9 +105,17 @@
                             {
                                 <input type="hidden" name="id" value="@Id.Value" />
                             }
+                            @if (_list is { } storedPolicy)
+                            {
+                                <input type="hidden" name="expectedScopeStoreId"
+                                       value="@storedPolicy.StoreId?.ToString("D")" />
+                                <input type="hidden" name="expectedChannel" value="@storedPolicy.Channel" />
+                                <input type="hidden" name="expectedIncludeVat"
+                                       value="@(storedPolicy.PricesIncludeVat ? "true" : "false")" />
+                            }
                             <div class="catalog-editor__grid">
                                 <div class="catalog-editor__field">
-                                    <label for="price-code">Κωδικός *</label>
+                                    <label for="price-code">Κωδικός @(_list is null ? "*" : "")</label>
                                     <input id="price-code" name="code" maxlength="30" required="@(_list is null)"
                                            disabled="@(_list is not null)" autocomplete="off"
                                            value="@_list?.Code" placeholder="π.χ. RETAIL, DELIVERY" />
@@ -93,63 +125,70 @@
                                     <input id="price-name" name="name" maxlength="160" required
                                            autocomplete="off" value="@_list?.Name" placeholder="Τίτλος τιμοκαταλόγου" />
                                 </div>
-                                @if (_list is null)
-                                {
-                                    <div class="catalog-editor__field">
-                                        <label for="price-store">Κατάστημα</label>
-                                        <select id="price-store" name="scopeStoreId">
-                                            <option value="">Όλα τα καταστήματα της επιχείρησης</option>
-                                            @foreach (TenantStoreSummary store in _workspace.Stores)
-                                            {
-                                                <option value="@store.StoreId">@store.Code — @store.Name</option>
-                                            }
-                                        </select>
-                                    </div>
-                                    <div class="catalog-editor__field">
-                                        <label for="price-channel">Κανάλι πώλησης</label>
-                                        <select id="price-channel" name="channel" required>
-                                            <option value="All">Όλα τα κανάλια</option>
-                                            <option value="DineIn">Σάλα</option>
-                                            <option value="Takeaway">Takeaway</option>
-                                            <option value="Delivery">Delivery</option>
-                                            <option value="Retail">Λιανική</option>
-                                            <option value="Online">Online</option>
-                                        </select>
-                                    </div>
-                                    <div class="catalog-editor__field">
-                                        <label for="price-vat">Ερμηνεία τιμής</label>
-                                        <select id="price-vat" name="includeVat">
-                                            <option value="true">Τιμή με ΦΠΑ</option>
-                                            <option value="false">Τιμή χωρίς ΦΠΑ</option>
-                                        </select>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="catalog-editor__field">
-                                        <label>Κατάστημα</label>
-                                        <p class="price-list-readonly-value">@StoreLabel(_list.StoreId)</p>
-                                    </div>
-                                    <div class="catalog-editor__field">
-                                        <label>Κανάλι πώλησης</label>
-                                        <p class="price-list-readonly-value">@ChannelLabel(_list.Channel)</p>
-                                    </div>
-                                    <div class="catalog-editor__field">
-                                        <label>Ερμηνεία τιμής</label>
-                                        <p class="price-list-readonly-value">@(_list.PricesIncludeVat ? "Τιμή με ΦΠΑ" : "Τιμή χωρίς ΦΠΑ")</p>
-                                    </div>
-                                }
+                                <div class="catalog-editor__field">
+                                    <PriceListSelectPicker Id="price-store" FieldName="scopeStoreId"
+                                        Label="Κατάστημα" Required="false"
+                                        SelectedValue="@(_list?.StoreId?.ToString("D") ?? "")"
+                                        Options="@StorePickerOptions"
+                                        HelpText="Προαιρετικό. Αφήστε το σε όλα τα καταστήματα ή επιλέξτε κατάστημα." />
+                                </div>
+                                <div class="catalog-editor__field">
+                                    <PriceListSelectPicker Id="price-channel" FieldName="channel"
+                                        Label="Κανάλι πώλησης" Required="true"
+                                        SelectedValue="@(_list?.Channel.ToString() ?? "All")"
+                                        Options="@ChannelPickerOptions"
+                                        HelpText="Επιλέξτε το εμπορικό κανάλι του τιμοκαταλόγου." />
+                                </div>
+                                <div class="catalog-editor__field">
+                                    <PriceListSelectPicker Id="price-vat" FieldName="includeVat"
+                                        Label="Ερμηνεία τιμής" Required="true"
+                                        SelectedValue="@(_list?.PricesIncludeVat == false ? "false" : "true")"
+                                        Options="@VatPickerOptions"
+                                        HelpText="Εμπορική ερμηνεία με/χωρίς ΦΠΑ — δεν μετατρέπει αυτόματα αριθμητικές τιμές." />
+                                </div>
                                 <div class="catalog-editor__field">
                                     <label for="price-from">Έναρξη ισχύος *</label>
-                                    <input id="price-from" type="date" name="validFrom" required
-                                           value="@(_list?.ValidFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))" />
+                                    <div class="price-list-date-control">
+                                        <input id="price-from" type="text" name="validFrom" required
+                                               inputmode="numeric" maxlength="10" autocomplete="off"
+                                               pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}"
+                                               placeholder="ηη/μμ/εεεε" aria-describedby="price-date-help"
+                                               value="@(_list?.ValidFrom.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) ?? DateOnly.FromDateTime(DateTime.Today).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture))" />
+                                        <button type="button" class="price-list-date-button"
+                                                data-date-calendar="price-from" aria-label="Επιλογή ημερομηνίας έναρξης">
+                                            <AppIcon Name="calendar" />
+                                        </button>
+                                        <input type="date" class="price-list-date-native" data-date-native
+                                               tabindex="-1" aria-hidden="true" />
+                                    </div>
+                                    <small id="price-date-help">Μορφή ημερομηνίας: ηη/μμ/εεεε</small>
                                 </div>
                                 <div class="catalog-editor__field">
                                     <label for="price-until">Λήξη ισχύος (προαιρετική)</label>
-                                    <input id="price-until" type="date" name="validUntil"
-                                           value="@_list?.ValidUntil?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" />
+                                    <div class="price-list-date-control">
+                                        <input id="price-until" type="text" name="validUntil"
+                                               inputmode="numeric" maxlength="10" autocomplete="off"
+                                               pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}"
+                                               placeholder="ηη/μμ/εεεε"
+                                               value="@_list?.ValidUntil?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)" />
+                                        <button type="button" class="price-list-date-button"
+                                                data-date-calendar="price-until" aria-label="Επιλογή ημερομηνίας λήξης">
+                                            <AppIcon Name="calendar" />
+                                        </button>
+                                        <input type="date" class="price-list-date-native" data-date-native
+                                               tabindex="-1" aria-hidden="true" />
+                                    </div>
                                 </div>
                             </div>
+                            @if (_list is { ItemCount: > 0 })
+                            {
+                                <label class="price-list-policy-confirm">
+                                    <input type="checkbox" name="confirmPolicyChange" value="yes" />
+                                    <span>Επιβεβαιώνω ότι η αλλαγή καταστήματος, καναλιού ή ερμηνείας τιμής
+                                    μπορεί να επηρεάσει την τιμολογιακή πολιτική των ήδη καταχωρημένων ειδών.
+                                    Οι ποσότητες και τα ποσά δεν μετατρέπονται αυτόματα.</span>
+                                </label>
+                            }
                             <div class="catalog-editor__footer">
                                 <button type="submit" class="button button--primary" accesskey="s"><AppIcon Name="check" /> @(_list is null ? "Δημιουργία τιμοκαταλόγου" : "Αποθήκευση αλλαγών")</button>
                                 <a class="button button--outline" href="@BackUrl">Ακύρωση</a>
@@ -180,6 +219,7 @@
                             </form>
                         </details>
                     }
+                    </div>
                 </section>
 
                 @if (_list is { } selected)
@@ -187,10 +227,18 @@
                     <section class="surface-card catalog-surface price-list-items" aria-labelledby="price-items-title">
                         <div class="catalog-surface__header">
                             <div class="catalog-surface__identity">
-                                <h2 id="price-items-title">Τιμές προϊόντων και υπηρεσιών</h2>
+                                <h2 id="price-items-title">
+                                    <button type="button" class="price-list-panel-toggle"
+                                            data-panel-toggle="price-list-items-content" data-panel-key="items"
+                                            aria-controls="price-list-items-content" aria-expanded="true"
+                                            title="Σύμπτυξη ή ανάπτυξη τιμών ειδών">
+                                        Τιμές προϊόντων και υπηρεσιών <AppIcon Name="chevron" />
+                                    </button>
+                                </h2>
                                 <span class="count-pill">@selected.ItemCount τιμολογημένα είδη</span>
                             </div>
                         </div>
+                        <div id="price-list-items-content" data-panel-content>
                         <form method="get" action="/price-lists/manage" class="catalog-filters" role="search" aria-label="Αναζήτηση ειδών για τιμολόγηση">
                             <input type="hidden" name="id" value="@selected.Id" />
                             <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
@@ -198,13 +246,19 @@
                             {
                                 <input type="hidden" name="storeId" value="@filterScopeStore.StoreId" />
                             }
-                            <div class="catalog-search">
-                                <label for="price-item-search">Κωδικός ή περιγραφή είδους</label>
-                                <input id="price-item-search" type="search" name="search" maxlength="80" accesskey="f"
-                                       value="@Search" placeholder="Αναζήτηση προϊόντος / υπηρεσίας" />
+                            <div class="catalog-field catalog-field--search">
+                                <label for="price-item-search">Κωδικός ή περιγραφή είδους (αρχίζει από)</label>
+                                <div class="catalog-search">
+                                    <AppIcon Name="search" />
+                                    <input id="price-item-search" type="search" name="search" maxlength="80"
+                                           accesskey="f" autocomplete="off" value="@Search"
+                                           placeholder="Αναζήτηση προϊόντος ή υπηρεσίας…" />
+                                </div>
                             </div>
-                            <button class="button button--primary" type="submit">Αναζήτηση</button>
-                            <a class="button button--outline" href="@ManageUrl(selected.Id)">Καθαρισμός</a>
+                            <button class="button button--primary catalog-filter-button" type="submit">
+                                <AppIcon Name="search" /> Αναζήτηση
+                            </button>
+                            <a class="catalog-reset" href="@ManageUrl(selected.Id)">Καθαρισμός</a>
                         </form>
                         @if (_items is null || _items.Rows.Count == 0)
                         {
@@ -233,6 +287,10 @@
                                                 <th scope="col">Περιγραφή</th>
                                                 <th scope="col">Είδος</th>
                                                 <th scope="col">Τιμή μονάδας (€)</th>
+                                            @if (CanManage && selected.IsActive)
+                                            {
+                                                <th scope="col">Αφαίρεση</th>
+                                            }
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -245,6 +303,8 @@
                                                     <td>
                                                         @if (CanManage && selected.IsActive)
                                                         {
+                                                            <input type="hidden" name="@($"expected_{row.Id:D}")"
+                                                                   value="@(row.UnitPrice?.ToString("0.0000", CultureInfo.InvariantCulture))" />
                                                             <label class="price-list-sr" for="@($"price-{row.Id:D}")">Τιμή @row.Name</label>
                                                             <input id="@($"price-{row.Id:D}")" name="@($"price_{row.Id:D}")"
                                                                    type="number" min="0" max="999999999999.9999"
@@ -258,6 +318,26 @@
                                                             <span>@(row.UnitPrice?.ToString("0.0000", CultureInfo.InvariantCulture) ?? "Δεν έχει οριστεί")</span>
                                                         }
                                                     </td>
+                                                    @if (CanManage && selected.IsActive)
+                                                    {
+                                                        <td>
+                                                            @if (row.UnitPrice.HasValue)
+                                                            {
+                                                                <details class="price-list-remove-confirm">
+                                                                    <summary>Αφαίρεση τιμής</summary>
+                                                                    <p>Αφαιρείται μόνο η τιμή αυτού του τιμοκαταλόγου. Τυχόν άλλες μη αποθηκευμένες αλλαγές της σελίδας δεν θα διατηρηθούν.</p>
+                                                                    <button type="submit" class="price-list-remove-submit"
+                                                                            form="@($"price-remove-{row.Id:D}")">
+                                                                        <AppIcon Name="trash" /> Επιβεβαίωση αφαίρεσης
+                                                                    </button>
+                                                                </details>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="price-list-hint">—</span>
+                                                            }
+                                                        </td>
+                                                    }
                                                 </tr>
                                             }
                                         </tbody>
@@ -271,18 +351,44 @@
                                     </div>
                                 }
                             </form>
-                            <nav class="catalog-pagination" aria-label="Σελιδοποίηση ειδών">
-                                @if (_items.Page > 1)
+                            @* Οι ανεξάρτητες φόρμες συνδέονται στα κουμπιά με HTML form=id και δεν εμφωλεύονται. *@
+                            @if (CanManage && selected.IsActive)
+                            {
+                                @foreach (PriceListItemRow row in _items.Rows.Where(item => item.UnitPrice.HasValue))
                                 {
-                                    <a rel="prev" href="@ItemsUrl(selected.Id, _items.Page - 1)">Προηγούμενη</a>
+                                    <form id="@($"price-remove-{row.Id:D}")" method="post"
+                                          action="/ui/price-lists/remove-price" class="price-list-remove-form">
+                                        <input type="hidden" name="__RequestVerificationToken" value="@_csrfToken" />
+                                        <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
+                                        @if (_workspace.Store is { } removeScopeStore)
+                                        {
+                                            <input type="hidden" name="storeId" value="@removeScopeStore.StoreId" />
+                                        }
+                                        <input type="hidden" name="id" value="@selected.Id" />
+                                        <input type="hidden" name="catalogItemId" value="@row.Id" />
+                                        <input type="hidden" name="expectedPrice"
+                                               value="@(row.UnitPrice!.Value.ToString("0.0000", CultureInfo.InvariantCulture))" />
+                                        <input type="hidden" name="search" value="@Search" />
+                                        <input type="hidden" name="page" value="@_items.Page" />
+                                    </form>
                                 }
-                                <span>Σελίδα @_items.Page</span>
-                                @if (_items.HasMore)
-                                {
-                                    <a rel="next" href="@ItemsUrl(selected.Id, _items.Page + 1)">Επόμενη</a>
-                                }
-                            </nav>
+                            }
+                            @if (_items.Page > 1 || _items.HasMore)
+                            {
+                                <nav class="catalog-pagination" aria-label="Σελιδοποίηση ειδών">
+                                    @if (_items.Page > 1)
+                                    {
+                                        <a rel="prev" href="@ItemsUrl(selected.Id, _items.Page - 1)">Προηγούμενη</a>
+                                    }
+                                    <span>Σελίδα @_items.Page</span>
+                                    @if (_items.HasMore)
+                                    {
+                                        <a rel="next" href="@ItemsUrl(selected.Id, _items.Page + 1)">Επόμενη</a>
+                                    }
+                                </nav>
+                            }
                         }
+                        </div>
                     </section>
                 }
                 <p class="catalog-disclaimer">
@@ -301,6 +407,8 @@
     [SupplyParameterFromQuery(Name = "search")] public string? Search { get; set; }
     [SupplyParameterFromQuery(Name = "page")] public int? Page { get; set; }
     [SupplyParameterFromQuery(Name = "saved")] public int? Saved { get; set; }
+    [SupplyParameterFromQuery(Name = "unchanged")] public int? Unchanged { get; set; }
+    [SupplyParameterFromQuery(Name = "removed")] public int? Removed { get; set; }
     [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
 
     private TenantWorkspaceSnapshot? _workspace;
@@ -310,6 +418,43 @@
     private string? _csrfToken;
     private bool _loading = true;
     private string? _error;
+
+    private IReadOnlyList<PriceListSelectOption> StorePickerOptions
+    {
+        get
+        {
+            var available = (_workspace?.Stores ?? [])
+                .Select(store => new PriceListSelectOption(
+                    store.StoreId.ToString("D"), $"{store.Code} — {store.Name}"))
+                .ToList();
+
+            // Διατηρείται ο αρχικός συσχετισμός ακόμη και αν το κατάστημα είναι ανενεργό.
+            if (_list?.StoreId is { } original &&
+                !available.Any(option => option.Value == original.ToString("D")))
+            {
+                available.Add(new PriceListSelectOption(original.ToString("D"),
+                    $"Υφιστάμενο κατάστημα ({original:D})"));
+            }
+
+            return [new("", "Όλα τα καταστήματα της επιχείρησης"), .. available];
+        }
+    }
+
+    private static readonly IReadOnlyList<PriceListSelectOption> ChannelPickerOptions =
+    [
+        new("All", "Όλα τα κανάλια"),
+        new("DineIn", "Dine In"),
+        new("Takeaway", "Takeaway"),
+        new("Delivery", "Delivery"),
+        new("Retail", "Λιανική"),
+        new("Online", "Online")
+    ];
+
+    private static readonly IReadOnlyList<PriceListSelectOption> VatPickerOptions =
+    [
+        new("true", "Τιμή με ΦΠΑ"),
+        new("false", "Τιμή χωρίς ΦΠΑ")
+    ];
 
     private string Heading => _list?.Name ?? (Id.HasValue ? "Τιμοκατάλογος" : "Νέος τιμοκατάλογος");
     private bool CanManage => _workspace?.Tenant?.Role == TenantMembershipRole.Owner &&
@@ -321,7 +466,8 @@
         "missing" => "Η καταχώρηση δεν υπάρχει σε αυτήν την επιχείρηση.",
         "inactive" => "Ο ανενεργός τιμοκατάλογος δεν επιτρέπει αλλαγές τιμών.",
         "invalid" => "Ελέγξτε τα πεδία, τις ημερομηνίες, τους κωδικούς και τις τιμές.",
-        "conflict" => "Η αποθήκευση συγκρούστηκε με υπάρχοντα δεδομένα. Επαναφορτώστε τη σελίδα.",
+        "conflict" => "Η αποθήκευση συγκρούστηκε με νεότερες αλλαγές. Επαναφορτώστε τη σελίδα.",
+        "confirm-policy" => "Για αλλαγή καταστήματος, καναλιού ή ερμηνείας τιμής σε ήδη τιμολογημένο κατάλογο απαιτείται ρητή επιβεβαίωση.",
         _ => "Η αλλαγή δεν ολοκληρώθηκε. Δοκιμάστε ξανά."
     };
 
@@ -330,7 +476,7 @@
 
     private static string ChannelLabel(PriceListChannel channel) => channel switch
     {
-        PriceListChannel.DineIn => "Σάλα",
+        PriceListChannel.DineIn => "Dine In",
         PriceListChannel.Takeaway => "Takeaway",
         PriceListChannel.Delivery => "Delivery",
         PriceListChannel.Retail => "Λιανική",

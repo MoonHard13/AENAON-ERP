@@ -3,7 +3,80 @@
     "use strict";
 
     const storageKey = "aenaon-theme";
+    const sidebarStorageKey = "aenaon-sidebar";
     const root = document.documentElement;
+
+    function updateSidebarToggle() {
+        const collapsed = root.dataset.sidebar === "collapsed";
+        document.querySelectorAll("[data-sidebar-toggle]").forEach(button => {
+            const description = collapsed ? "Ανάπτυξη πλαϊνού μενού" : "Σύμπτυξη πλαϊνού μενού";
+            button.setAttribute("aria-pressed", String(collapsed));
+            button.setAttribute("aria-label", description);
+            button.title = description;
+            const label = button.querySelector(".sidebar__toggle-label");
+            if (label) {
+                label.textContent = description;
+            }
+        });
+    }
+
+    function toggleSidebar() {
+        const collapsed = root.dataset.sidebar === "collapsed";
+        root.dataset.sidebar = collapsed ? "expanded" : "collapsed";
+        try {
+            window.localStorage.setItem(sidebarStorageKey, root.dataset.sidebar);
+        } catch {
+            // Χωρίς τοπική αποθήκευση παραμένει ενεργή η σύμπτυξη στην τρέχουσα σελίδα.
+        }
+        updateSidebarToggle();
+    }
+
+    // Οι εμπορικές κάρτες αναδιπλώνονται ανεξάρτητα και διατηρούν την κατάστασή τους ανά τιμοκατάλογο.
+    function panelStorageKey(button) {
+        const documentId = new URLSearchParams(window.location.search).get("id") || "new";
+        return "aenaon-panel:" + window.location.pathname + ":" + documentId +
+            ":" + (button.dataset.panelKey || button.dataset.panelToggle);
+    }
+
+    function updatePanel(button, collapsed) {
+        const id = button.dataset.panelToggle;
+        const panel = id ? document.getElementById(id) : null;
+        if (!panel) {
+            return;
+        }
+
+        panel.hidden = collapsed;
+        button.setAttribute("aria-expanded", String(!collapsed));
+        button.title = collapsed ? "Ανάπτυξη ενότητας" : "Σύμπτυξη ενότητας";
+    }
+
+    function initializePanels() {
+        document.querySelectorAll("[data-panel-toggle]").forEach(button => {
+            let collapsed = false;
+            try {
+                collapsed = window.sessionStorage.getItem(panelStorageKey(button)) === "collapsed";
+            } catch {
+                // Η προεπιλεγμένη κατάσταση παραμένει ανοικτή χωρίς αποθήκευση συνεδρίας.
+            }
+            updatePanel(button, collapsed);
+        });
+    }
+
+    document.addEventListener("click", event => {
+        const button = event.target instanceof Element
+            ? event.target.closest("[data-panel-toggle]") : null;
+        if (!button) {
+            return;
+        }
+
+        const collapsed = button.getAttribute("aria-expanded") !== "false";
+        updatePanel(button, collapsed);
+        try {
+            window.sessionStorage.setItem(panelStorageKey(button), collapsed ? "collapsed" : "expanded");
+        } catch {
+            // Η αναδίπλωση εξακολουθεί να λειτουργεί στην ενεργή σελίδα.
+        }
+    });
 
     function saveTheme(value) {
         try {
@@ -43,6 +116,11 @@
             return;
         }
 
+        if (event.target.closest("[data-sidebar-toggle]")) {
+            toggleSidebar();
+            return;
+        }
+
         const button = event.target.closest("[data-password-toggle]");
         if (!(button instanceof HTMLButtonElement)) {
             return;
@@ -63,11 +141,17 @@
 
     // Το Blazor ανανεώνει τους τίτλους/menus όταν το streaming αντικαθιστά HTML.
     if (window.Blazor && typeof window.Blazor.addEventListener === "function") {
-        window.Blazor.addEventListener("enhancedload", updateThemeLabels);
+        window.Blazor.addEventListener("enhancedload", () => {
+            updateThemeLabels();
+            updateSidebarToggle();
+            initializePanels();
+        });
     }
 
     document.addEventListener("DOMContentLoaded", () => {
         updateThemeLabels();
+        updateSidebarToggle();
+        initializePanels();
 
         // Οι δυναμικές αντικαταστάσεις του streaming SSR δεν απαιτούν επανασύνδεση listeners.
         // Η αρχικοποίηση του login form παραμένει τοπική στη στατική σελίδα.
@@ -130,6 +214,65 @@
         });
         if (!auto) {
             input.focus({ preventScroll: true });
+        }
+    });
+
+    // Η ορατή ημερομηνία παραμένει πάντοτε ηη/μμ/εεεε, ανεξάρτητα από το locale.
+    document.addEventListener("click", event => {
+        if (!(event.target instanceof Element)) {
+            return;
+        }
+
+        const button = event.target.closest("[data-date-calendar]");
+        if (!(button instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        const group = button.closest(".price-list-date-control");
+        const inputId = button.dataset.dateCalendar;
+        const displayed = inputId ? document.getElementById(inputId) : null;
+        const native = group?.querySelector("[data-date-native]");
+        if (!(displayed instanceof HTMLInputElement) ||
+            !(native instanceof HTMLInputElement)) {
+            return;
+        }
+
+        const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(displayed.value.trim());
+        if (match) {
+            const iso = match[3] + "-" + match[2] + "-" + match[1];
+            native.value = iso;
+        } else {
+            native.value = "";
+        }
+
+        try {
+            if (typeof native.showPicker === "function") {
+                native.showPicker();
+            } else {
+                native.focus({ preventScroll: true });
+                native.click();
+            }
+        } catch {
+            // Το πεδίο κειμένου συνεχίζει να λειτουργεί όταν ο browser δεν ανοίγει picker.
+            displayed.focus({ preventScroll: true });
+        }
+    });
+
+    document.addEventListener("change", event => {
+        const native = event.target;
+        if (!(native instanceof HTMLInputElement) ||
+            !native.matches("[data-date-native]") || !native.value) {
+            return;
+        }
+
+        const group = native.closest(".price-list-date-control");
+        const displayed = group?.querySelector('input[type="text"][name]');
+        if (displayed instanceof HTMLInputElement &&
+            /^\d{4}-\d{2}-\d{2}$/.test(native.value)) {
+            const [year, month, day] = native.value.split("-");
+            displayed.value = day + "/" + month + "/" + year;
+            displayed.dispatchEvent(new Event("input", { bubbles: true }));
+            displayed.focus({ preventScroll: true });
         }
     });
 

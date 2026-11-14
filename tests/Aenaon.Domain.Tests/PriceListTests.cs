@@ -57,6 +57,34 @@ public sealed class PriceListTests
     }
 
     [TestMethod]
+    public void UpdateCommercialProfile_ChangesScopeAndBasisWithoutChangingIdentity()
+    {
+        var priceList = PriceList.Create(Tenant, null, "RETAIL", "Λιανική",
+            PriceListChannel.Retail, true, new DateOnly(2026, 11, 13));
+        Guid originalId = priceList.Id;
+        Guid storeId = Guid.NewGuid();
+        priceList.UpdateCommercialProfile("Κατάστημα", storeId, PriceListChannel.DineIn,
+            false, new DateOnly(2026, 11, 14), null);
+
+        Assert.AreEqual(originalId, priceList.Id);
+        Assert.AreEqual(Tenant, priceList.TenantId);
+        Assert.AreEqual("RETAIL", priceList.Code);
+        Assert.AreEqual(storeId, priceList.StoreId);
+        Assert.AreEqual(PriceListChannel.DineIn, priceList.Channel);
+        Assert.IsFalse(priceList.PricesIncludeVat);
+        Assert.AreEqual("Κατάστημα", priceList.Name);
+
+        Assert.ThrowsExactly<DomainRuleException>(() =>
+            priceList.UpdateCommercialProfile("Λάθος", Guid.Empty, PriceListChannel.Online,
+                true, new DateOnly(2026, 11, 14), null));
+        Assert.ThrowsExactly<DomainRuleException>(() =>
+            priceList.UpdateCommercialProfile("Λάθος", null, (PriceListChannel)99,
+                true, new DateOnly(2026, 11, 14), null));
+        Assert.AreEqual(storeId, priceList.StoreId);
+        Assert.IsFalse(priceList.PricesIncludeVat);
+    }
+
+    [TestMethod]
     public void PriceListItem_AcceptsFourDigitsAndRejectsInvalidPrice()
     {
         Guid list = Guid.NewGuid();

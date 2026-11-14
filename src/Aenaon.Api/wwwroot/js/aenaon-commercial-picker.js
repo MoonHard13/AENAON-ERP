@@ -26,7 +26,7 @@
             }
 
             this.options = [...this.native.options]
-                .filter(option => /^\d+$/.test(option.value))
+                .filter(option => option.value !== "" || root.dataset.required === "false")
                 .map(option => ({
                     value: option.value,
                     label: option.textContent?.trim() || ""

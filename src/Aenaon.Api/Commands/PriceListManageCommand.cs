@@ -24,7 +24,7 @@ public static class PriceListManageCommand
         for (int i = 0; i < args.Length && !invalid;)
         {
             string key = args[i++];
-            if (key is "--dry-run" or "--apply" or "--inactive")
+            if (key is "--dry-run" or "--apply" or "--inactive" or "--confirm-policy-change")
             {
                 invalid = !flags.Add(key);
                 continue;
@@ -33,7 +33,7 @@ public static class PriceListManageCommand
             if (key is not ("--username" or "--tenant-id" or "--confirm-database" or
                 "--action" or "--id" or "--code" or "--name" or "--scope-store-id" or
                 "--channel" or "--include-vat" or "--valid-from" or "--valid-until" or
-                "--search" or "--page" or "--price") || i == args.Length ||
+                "--search" or "--page" or "--price" or "--item-id" or "--expected-price") || i == args.Length ||
                 args[i].StartsWith("--", StringComparison.Ordinal))
             {
                 invalid = true;
@@ -57,7 +57,7 @@ public static class PriceListManageCommand
         bool dryRun = flags.Contains("--dry-run");
         Guid tenantId = Guid.Empty;
         bool valid = !invalid && interactive && dryRun != apply && (readOnly ? dryRun : true) &&
-            action is "list" or "items" or "create" or "update" or "activate" or "deactivate" or "prices" &&
+            action is "list" or "items" or "create" or "update" or "activate" or "deactivate" or "prices" or "remove-price" &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--username")) &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--confirm-database")) &&
             Guid.TryParse(values.GetValueOrDefault("--tenant-id"), out tenantId) &&
@@ -79,7 +79,11 @@ public static class PriceListManageCommand
         }
         if (values.TryGetValue("--scope-store-id", out string? storeText))
         {
-            if (Guid.TryParse(storeText, out Guid parsed) && parsed != Guid.Empty)
+            if (string.Equals(storeText, "all", StringComparison.OrdinalIgnoreCase))
+            {
+                scopeStore = null;
+            }
+            else if (Guid.TryParse(storeText, out Guid parsed) && parsed != Guid.Empty)
             {
                 scopeStore = parsed;
             }
@@ -93,6 +97,31 @@ public static class PriceListManageCommand
         if (values.TryGetValue("--page", out string? pageText) &&
             (!int.TryParse(pageText, NumberStyles.None, CultureInfo.InvariantCulture, out page) ||
              page is < 1 or > 100_000))
+        {
+            valid = false;
+        }
+
+        Guid? removeItemId = null;
+        decimal? removeExpectedPrice = null;
+        if (action == "remove-price")
+        {
+            if (!Guid.TryParse(values.GetValueOrDefault("--item-id"), out Guid parsedItem) ||
+                parsedItem == Guid.Empty ||
+                !decimal.TryParse(values.GetValueOrDefault("--expected-price"),
+                    NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
+                    CultureInfo.InvariantCulture, out decimal parsedPrice) ||
+                parsedPrice < 0 || parsedPrice > PriceListItem.MaxUnitPrice ||
+                decimal.Round(parsedPrice, 4) != parsedPrice)
+            {
+                valid = false;
+            }
+            else
+            {
+                removeItemId = parsedItem;
+                removeExpectedPrice = parsedPrice;
+            }
+        }
+        else if (values.ContainsKey("--item-id") || values.ContainsKey("--expected-price"))
         {
             valid = false;
         }
@@ -115,7 +144,7 @@ public static class PriceListManageCommand
             changes.Add(new(itemId, price));
         }
 
-        if ((action is "items" or "update" or "activate" or "deactivate" or "prices" && !id.HasValue) ||
+        if ((action is "items" or "update" or "activate" or "deactivate" or "prices" or "remove-price" && !id.HasValue) ||
             (action == "create" && id.HasValue) ||
             (action == "prices" && (changes.Count == 0 || changes.Count > 50 ||
                 changes.Select(x => x.CatalogItemId).Distinct().Count() != changes.Count)) ||
@@ -164,16 +193,32 @@ public static class PriceListManageCommand
                     valid = false;
                 }
             }
-            else if (values.ContainsKey("--code") || scopeStore.HasValue ||
-                values.ContainsKey("--channel") || values.ContainsKey("--include-vat"))
+            else
             {
-                valid = false;
+                if (values.ContainsKey("--code"))
+                {
+                    valid = false;
+                }
+                if (values.TryGetValue("--channel", out string? updateChannel) &&
+                    (!Enum.TryParse(updateChannel, false, out channel) || !Enum.IsDefined(channel)))
+                {
+                    valid = false;
+                }
+                if (values.TryGetValue("--include-vat", out string? updateVat) &&
+                    !bool.TryParse(updateVat, out includeVat))
+                {
+                    valid = false;
+                }
             }
         }
-        else if (scopeStore.HasValue || values.ContainsKey("--code") ||
+        else if (values.ContainsKey("--scope-store-id") || values.ContainsKey("--code") ||
             values.ContainsKey("--name") || values.ContainsKey("--channel") ||
             values.ContainsKey("--include-vat") || values.ContainsKey("--valid-from") ||
             values.ContainsKey("--valid-until"))
+        {
+            valid = false;
+        }
+        if (flags.Contains("--confirm-policy-change") && action != "update")
         {
             valid = false;
         }
@@ -182,11 +227,12 @@ public static class PriceListManageCommand
         {
             await error.WriteLineAsync(
                 "Χρήση: --manage-price-lists --username NAME --tenant-id GUID --confirm-database NAME " +
-                "--action list|items|create|update|activate|deactivate|prices " +
-                "[--id GUID] [--code CODE] [--name NAME] [--scope-store-id GUID] " +
+                "--action list|items|create|update|activate|deactivate|prices|remove-price " +
+                "[--id GUID] [--code CODE] [--name NAME] [--scope-store-id GUID|all] " +
                 "[--channel All|DineIn|Takeaway|Delivery|Retail|Online] [--include-vat true|false] " +
                 "[--valid-from yyyy-MM-dd] [--valid-until yyyy-MM-dd] " +
-                "[--price ITEM_GUID=AMOUNT]... [--search PREFIX] [--page N] [--inactive] " +
+                "[--price ITEM_GUID=AMOUNT]... [--item-id GUID] [--expected-price AMOUNT] " +
+                "[--search PREFIX] [--page N] [--inactive] [--confirm-policy-change] " +
                 "(--dry-run | --apply). Απαιτείται διαδραστικό τερματικό.");
             return 2;
         }
@@ -262,10 +308,31 @@ public static class PriceListManageCommand
                 return await DeniedAsync();
             }
 
-            if (id.HasValue && await service.GetAsync(userId, tenant, id.Value, token) is null)
+            PriceListSummary? current = id.HasValue
+                ? await service.GetAsync(userId, tenant, id.Value, token) : null;
+            if (id.HasValue && current is null)
             {
                 await error.WriteLineAsync("Ο τιμοκατάλογος δεν βρέθηκε.");
                 return 4;
+            }
+
+            bool updateProfile = action == "update" &&
+                (values.ContainsKey("--scope-store-id") ||
+                 values.ContainsKey("--channel") || values.ContainsKey("--include-vat"));
+            if (updateProfile && current is not null)
+            {
+                if (!values.ContainsKey("--scope-store-id"))
+                {
+                    scopeStore = current.StoreId;
+                }
+                if (!values.ContainsKey("--channel"))
+                {
+                    channel = current.Channel;
+                }
+                if (!values.ContainsKey("--include-vat"))
+                {
+                    includeVat = current.PricesIncludeVat;
+                }
             }
 
             if (action == "create")
@@ -286,7 +353,10 @@ public static class PriceListManageCommand
 
             PriceListResult result = action == "prices"
                 ? await service.SetPricesAsync(userId, tenant, id!.Value, changes, token)
-                : await service.ApplyAsync(userId, tenant,
+                : action == "remove-price"
+                    ? await service.RemovePriceAsync(userId, tenant, id!.Value,
+                        removeItemId!.Value, removeExpectedPrice!.Value, token)
+                    : await service.ApplyAsync(userId, tenant,
                     new PriceListChange(action switch
                     {
                         "create" => PriceListAction.Create,
@@ -294,7 +364,12 @@ public static class PriceListManageCommand
                         "activate" => PriceListAction.Activate,
                         _ => PriceListAction.Deactivate
                     }, id, values.GetValueOrDefault("--code"), values.GetValueOrDefault("--name"),
-                    scopeStore, channel, includeVat, from, until), token);
+                    scopeStore, channel, includeVat, from, until,
+                    EditCommercialProfile: updateProfile,
+                    ConfirmPolicyChange: flags.Contains("--confirm-policy-change"),
+                    ExpectedStoreId: updateProfile ? current?.StoreId : null,
+                    ExpectedChannel: updateProfile ? current?.Channel : null,
+                    ExpectedPricesIncludeVat: updateProfile ? current?.PricesIncludeVat : null), token);
 
             if (result.Status != PriceListStatus.Saved)
             {

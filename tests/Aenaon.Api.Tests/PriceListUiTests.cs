@@ -23,16 +23,131 @@ public sealed class PriceListUiTests
         Assert.Contains("RETAIL", page);
         Assert.Contains("/price-lists/manage", page);
 
-        string create = await client.GetStringAsync("/price-lists/manage");
+        string create = WebUtility.HtmlDecode(await client.GetStringAsync("/price-lists/manage"));
         Assert.Contains("action=\"/ui/price-lists/save\"", create);
         Assert.Contains("name=\"scopeStoreId\"", create);
         Assert.Contains("name=\"__RequestVerificationToken\"", create);
+        Assert.Contains("data-commercial-picker", create);
+        Assert.Contains("data-commercial-native", create);
+        Assert.Contains("name=\"channel\"", create);
+        Assert.Contains("name=\"includeVat\"", create);
+        Assert.Contains("placeholder=\"ηη/μμ/εεεε\"", create);
+        Assert.Contains("pattern=\"[0-9]{2}/[0-9]{2}/[0-9]{4}\"", create);
+        int card = create.IndexOf("<section class=\"surface-card catalog-editor\"", StringComparison.Ordinal);
+        int title = create.IndexOf("id=\"price-editor-title\"", card, StringComparison.Ordinal);
+        int actions = create.IndexOf("class=\"catalog-editor__header-actions\"", title, StringComparison.Ordinal);
+        int back = create.IndexOf("Επιστροφή στους τιμοκαταλόγους", actions, StringComparison.Ordinal);
+        int form = create.IndexOf("action=\"/ui/price-lists/save\"", back, StringComparison.Ordinal);
+        Assert.IsTrue(card >= 0 && title > card && actions > title);
+        Assert.IsTrue(back > actions && form > back,
+            "Η επιστροφή πρέπει να βρίσκεται μέσα στην κεφαλίδα της κάρτας.");
+        Assert.DoesNotContain("class=\"price-list-toolbar\"", create);
 
         string edit = await client.GetStringAsync(
             $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}");
         Assert.Contains("action=\"/ui/price-lists/prices\"", edit);
         Assert.Contains($"price_{SessionPriceListFixture.ItemId:D}", edit);
         Assert.Contains("0.0001", edit);
+        Assert.DoesNotContain("Σελίδα 1", edit);
+        Assert.Contains("Αφαίρεση τιμής", edit);
+    }
+
+    [TestMethod]
+    public async Task PriceListEditor_UsesDineInLabelAndStatusBesideTitle()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string create = WebUtility.HtmlDecode(await client.GetStringAsync("/price-lists/manage"));
+        Assert.Contains("Dine In", create);
+        Assert.DoesNotContain("Σάλα", create);
+
+        string edit = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}"));
+        int card = edit.IndexOf("<section class=\"surface-card catalog-editor\"", StringComparison.Ordinal);
+        int titleRow = edit.IndexOf("class=\"catalog-editor__title-row\"", card, StringComparison.Ordinal);
+        int title = edit.IndexOf("id=\"price-editor-title\"", titleRow, StringComparison.Ordinal);
+        int status = edit.IndexOf("Κατάσταση τιμοκαταλόγου:", title, StringComparison.Ordinal);
+        int actions = edit.IndexOf("class=\"catalog-editor__header-actions\"", status, StringComparison.Ordinal);
+        int back = edit.IndexOf("Επιστροφή στους τιμοκαταλόγους", actions, StringComparison.Ordinal);
+
+        Assert.IsTrue(card >= 0 && titleRow > card && title > titleRow);
+        Assert.IsTrue(status > title && actions > status && back > actions,
+            "Η κατάσταση τιμοκαταλόγου πρέπει να εμφανίζεται δίπλα στον τίτλο.");
+    }
+
+    [TestMethod]
+    public async Task ExistingPriceList_ProvidesAccessibleCollapsiblePanelsAndEditablePolicy()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}"));
+
+        Assert.Contains("data-panel-toggle=\"price-list-details\"", html);
+        Assert.Contains("data-panel-toggle=\"price-list-items-content\"", html);
+        Assert.Contains("aria-controls=\"price-list-details\"", html);
+        Assert.Contains("data-panel-content", html);
+        Assert.Contains("name=\"expectedScopeStoreId\"", html);
+        Assert.Contains("name=\"expectedChannel\"", html);
+        Assert.Contains("name=\"expectedIncludeVat\"", html);
+        Assert.Contains("name=\"confirmPolicyChange\"", html);
+        Assert.Contains("name=\"scopeStoreId\"", html);
+        Assert.Contains("name=\"channel\"", html);
+        Assert.Contains("name=\"includeVat\"", html);
+        Assert.DoesNotContain("price-list-readonly-value", html);
+    }
+
+    [TestMethod]
+    public async Task UpdateCommercialPolicy_HasExpectedSnapshotAndRequiresValidParameters()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string page = await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}");
+
+        var fields = new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = Token(page),
+            ["tenantId"] = Tenant.ToString("D"),
+            ["id"] = SessionPriceListFixture.ListId.ToString("D"),
+            ["action"] = "update",
+            ["name"] = "Νέο όνομα",
+            ["scopeStoreId"] = "",
+            ["expectedScopeStoreId"] = "",
+            ["channel"] = "Delivery",
+            ["expectedChannel"] = "Retail",
+            ["includeVat"] = "false",
+            ["expectedIncludeVat"] = "true",
+            ["confirmPolicyChange"] = "yes",
+            ["validFrom"] = "13/11/2026",
+            ["validUntil"] = ""
+        };
+        using var posted = await client.PostAsync("/ui/price-lists/save",
+            new FormUrlEncodedContent(fields));
+
+        Assert.AreEqual(HttpStatusCode.Redirect, posted.StatusCode);
+        Assert.AreEqual(1, factory.PriceLists.SaveCalls);
+        Assert.IsNotNull(factory.PriceLists.LastChange);
+        Assert.IsTrue(factory.PriceLists.LastChange.EditCommercialProfile);
+        Assert.IsTrue(factory.PriceLists.LastChange.ConfirmPolicyChange);
+        Assert.AreEqual(Aenaon.Domain.Catalog.PriceListChannel.Delivery,
+            factory.PriceLists.LastChange.Channel);
+        Assert.IsFalse(factory.PriceLists.LastChange.PricesIncludeVat);
+        Assert.AreEqual(Aenaon.Domain.Catalog.PriceListChannel.Retail,
+            factory.PriceLists.LastChange.ExpectedChannel);
+        Assert.IsTrue(factory.PriceLists.LastChange.ExpectedPricesIncludeVat);
+
+        fields["channel"] = "INVALID";
+        using var invalid = await client.PostAsync("/ui/price-lists/save",
+            new FormUrlEncodedContent(fields));
+        Assert.AreEqual(HttpStatusCode.BadRequest, invalid.StatusCode);
+        Assert.AreEqual(1, factory.PriceLists.SaveCalls);
     }
 
     [TestMethod]
@@ -60,7 +175,7 @@ public sealed class PriceListUiTests
                 ["action"] = "create",
                 ["name"] = "Forbidden",
                 ["code"] = "FORBIDDEN",
-                ["validFrom"] = "2026-11-13",
+                ["validFrom"] = "13/11/2026",
                 ["validUntil"] = "",
                 ["channel"] = "Retail",
                 ["includeVat"] = "true"
@@ -82,7 +197,7 @@ public sealed class PriceListUiTests
             ["action"] = "create",
             ["name"] = "Δοκιμή",
             ["code"] = "RETAIL-NEW",
-            ["validFrom"] = "2026-11-13",
+            ["validFrom"] = "13/11/2026",
             ["validUntil"] = "",
             ["channel"] = "Retail",
             ["includeVat"] = "true"
@@ -122,6 +237,7 @@ public sealed class PriceListUiTests
             ["id"] = SessionPriceListFixture.ListId.ToString("D"),
             ["page"] = "1",
             ["search"] = "",
+            [$"expected_{SessionPriceListFixture.ItemId:D}"] = "10.0000",
             [$"price_{SessionPriceListFixture.ItemId:D}"] = "-1.0000"
         };
         using var invalid = await client.PostAsync("/ui/price-lists/prices",
@@ -135,6 +251,81 @@ public sealed class PriceListUiTests
             new FormUrlEncodedContent(fields));
         Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
         Assert.AreEqual(1, factory.PriceLists.PriceCalls);
+        Assert.IsNotNull(factory.PriceLists.LastPriceChanges);
+        Assert.AreEqual(10m, factory.PriceLists.LastPriceChanges[0].ExpectedUnitPrice);
+        Assert.IsTrue(factory.PriceLists.LastPriceChanges[0].CheckExpected);
+
+        fields[$"price_{SessionPriceListFixture.ItemId:D}"] = "10.0000";
+        using var unchanged = await client.PostAsync("/ui/price-lists/prices",
+            new FormUrlEncodedContent(fields));
+        Assert.AreEqual(HttpStatusCode.Redirect, unchanged.StatusCode);
+        Assert.Contains("&unchanged=1", unchanged.Headers.Location?.OriginalString ?? "");
+        Assert.AreEqual(1, factory.PriceLists.PriceCalls);
+    }
+
+    [TestMethod]
+    public async Task RemovePrice_RequiresOwnerAntiforgeryAndOriginalPrice()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+        string page = await client.GetStringAsync(
+            $"/price-lists/manage?id={SessionPriceListFixture.ListId:D}");
+        string token = Token(page);
+
+        var fields = new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["tenantId"] = Tenant.ToString("D"),
+            ["id"] = SessionPriceListFixture.ListId.ToString("D"),
+            ["catalogItemId"] = SessionPriceListFixture.ItemId.ToString("D"),
+            ["expectedPrice"] = "10.0000",
+            ["search"] = "",
+            ["page"] = "1"
+        };
+
+        using var success = await client.PostAsync("/ui/price-lists/remove-price",
+            new FormUrlEncodedContent(fields));
+        Assert.AreEqual(HttpStatusCode.Redirect, success.StatusCode);
+        Assert.Contains("&removed=1", success.Headers.Location?.OriginalString ?? "");
+        Assert.AreEqual(1, factory.PriceLists.RemoveCalls);
+
+        fields["expectedPrice"] = "not a price";
+        using var invalid = await client.PostAsync("/ui/price-lists/remove-price",
+            new FormUrlEncodedContent(fields));
+        Assert.AreEqual(HttpStatusCode.BadRequest, invalid.StatusCode);
+        Assert.AreEqual(1, factory.PriceLists.RemoveCalls);
+
+        fields["expectedPrice"] = "10.0000";
+        fields["tenantId"] = Guid.NewGuid().ToString("D");
+        using var foreign = await client.PostAsync("/ui/price-lists/remove-price",
+            new FormUrlEncodedContent(fields));
+        Assert.AreEqual(HttpStatusCode.Forbidden, foreign.StatusCode);
+        Assert.AreEqual(1, factory.PriceLists.RemoveCalls);
+    }
+
+    [TestMethod]
+    public async Task PriceListCreation_RejectsNonGreekDate()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+        string page = await client.GetStringAsync("/price-lists/manage");
+        using var bad = await client.PostAsync("/ui/price-lists/save",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["__RequestVerificationToken"] = Token(page),
+                ["tenantId"] = Tenant.ToString("D"),
+                ["action"] = "create",
+                ["name"] = "Bad date",
+                ["code"] = "BAD-DATE",
+                ["validFrom"] = "11/13/2026",
+                ["validUntil"] = "",
+                ["channel"] = "Retail",
+                ["includeVat"] = "true"
+            }));
+        Assert.AreEqual(HttpStatusCode.BadRequest, bad.StatusCode);
+        Assert.AreEqual(0, factory.PriceLists.SaveCalls);
     }
 
     private static async Task LoginAsync(HttpClient client)

@@ -10,7 +10,10 @@ internal sealed class SessionPriceListFixture : IPriceListManagementStore
     public static readonly Guid ListId = Guid.Parse("41111111-1111-4111-8111-111111111111");
     public static readonly Guid ItemId = Guid.Parse("42222222-2222-4222-8222-222222222222");
     public int SaveCalls { get; private set; }
+    public PriceListChange? LastChange { get; private set; }
     public int PriceCalls { get; private set; }
+    public int RemoveCalls { get; private set; }
+    public IReadOnlyList<PriceListPriceChange>? LastPriceChanges { get; private set; }
 
     private static PriceListSummary Summary => new(
         ListId, "RETAIL", "Βασική λιανική", null,
@@ -34,6 +37,7 @@ internal sealed class SessionPriceListFixture : IPriceListManagementStore
         CancellationToken token)
     {
         SaveCalls++;
+        LastChange = command;
         return Task.FromResult(new PriceListResult(PriceListStatus.Saved,
             command.Id ?? ListId));
     }
@@ -42,6 +46,14 @@ internal sealed class SessionPriceListFixture : IPriceListManagementStore
         IReadOnlyList<PriceListPriceChange> changes, CancellationToken token)
     {
         PriceCalls++;
+        LastPriceChanges = changes;
+        return Task.FromResult(new PriceListResult(PriceListStatus.Saved, listId));
+    }
+
+    public Task<PriceListResult> RemovePriceAsync(Guid tenantId, Guid listId,
+        Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token)
+    {
+        RemoveCalls++;
         return Task.FromResult(new PriceListResult(PriceListStatus.Saved, listId));
     }
 }

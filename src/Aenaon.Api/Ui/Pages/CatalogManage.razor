@@ -21,18 +21,6 @@
                           UserName="@_userName" Workspace="@_workspace"
                           CsrfToken="@_csrfToken" TenantId="@TenantId" StoreId="@StoreId" />
         <div class="dashboard__body catalog-page catalog-manage-page">
-            <div class="dashboard__heading">
-                <div>
-                    <p class="eyebrow eyebrow--green">ΚΑΤΑΛΟΓΟΣ / ΔΙΑΧΕΙΡΙΣΗ</p>
-                    <h1>@Heading</h1>
-                    <p>Συμπληρώστε τα βασικά στοιχεία του καταλόγου.</p>
-                </div>
-                <a class="button button--outline" href="@EditorCancelUrl">
-                    <AppIcon Name="chevron" />
-                    @(_returnEditor is null ? "Επιστροφή στον κατάλογο" : "Πίσω στην καταχώρηση")
-                </a>
-            </div>
-
             @if (!string.IsNullOrWhiteSpace(SavedCode) && !_error && !_denied)
             {
                 <div class="catalog-success" role="status">
@@ -69,17 +57,26 @@
 
                 <section class="surface-card catalog-editor">
                     <div class="catalog-editor__header">
-                        <div>
-                            <h2>Βασικά στοιχεία</h2>
+                        <div class="catalog-editor__heading">
+                            <div class="catalog-editor__title-row">
+                                <h1>Βασικά στοιχεία</h1>
+                                @if (_details.Record is { } record)
+                                {
+                                    <span class="catalog-status @(record.IsActive
+                                        ? "catalog-status--active" : "catalog-status--inactive")"
+                                          aria-label="Κατάσταση καταχώρησης: @StatusLabel(record.IsActive)">
+                                        @StatusLabel(record.IsActive)
+                                    </span>
+                                }
+                            </div>
                             <p>Τα υποχρεωτικά πεδία σημειώνονται με *.</p>
                         </div>
-                        @if (_details.Record is { } record)
-                        {
-                            <span class="catalog-status @(record.IsActive
-                                ? "catalog-status--active" : "catalog-status--inactive")">
-                                @StatusLabel(record.IsActive)
-                            </span>
-                        }
+                        <div class="catalog-editor__header-actions">
+                            <a class="button button--outline" href="@EditorCancelUrl" accesskey="b">
+                                <AppIcon Name="chevron" />
+                                @(_returnEditor is null ? "Επιστροφή στον κατάλογο" : "Πίσω στην καταχώρηση")
+                            </a>
+                        </div>
                     </div>
 
                     @if (View is not "categories" && _details.Categories.Count == 0)

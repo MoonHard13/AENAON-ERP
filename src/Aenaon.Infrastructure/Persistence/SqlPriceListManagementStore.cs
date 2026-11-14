@@ -115,8 +115,47 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
 
                 if (change.Action == PriceListAction.Update)
                 {
-                    // Το scope, το κανάλι και το καθεστώς ΦΠΑ δεν μεταβάλλονται.
-                    list.Update(change.Name, change.ValidFrom, change.ValidUntil);
+                    if (!change.EditCommercialProfile)
+                    {
+                        list.Update(change.Name, change.ValidFrom, change.ValidUntil);
+                    }
+                    else
+                    {
+                        // Όλες οι αλλαγές πλαισίου ελέγχονται με την αρχική εικόνα της φόρμας.
+                        if (list.StoreId != change.ExpectedStoreId ||
+                            list.Channel != change.ExpectedChannel ||
+                            list.PricesIncludeVat != change.ExpectedPricesIncludeVat)
+                        {
+                            return new(PriceListStatus.Conflict, Error: "pricelist.profile.conflict");
+                        }
+
+                        bool changed = list.StoreId != change.StoreId ||
+                            list.Channel != change.Channel ||
+                            list.PricesIncludeVat != change.PricesIncludeVat;
+
+                        if (changed)
+                        {
+                            if (change.StoreId.HasValue &&
+                                !await context.Stores.AsNoTracking().AnyAsync(x =>
+                                    x.TenantId == tenantId && x.Id == change.StoreId.Value, token))
+                            {
+                                return new(PriceListStatus.Invalid, Error: "pricelist.store.invalid");
+                            }
+
+                            // Η αλλαγή τιμής με/χωρίς ΦΠΑ αλλάζει την οικονομική σημασία:
+                            // απαιτείται ρητή επιβεβαίωση όταν ο τιμοκατάλογος έχει τιμές.
+                            if (!change.ConfirmPolicyChange &&
+                                await context.PriceListItems.AsNoTracking().AnyAsync(x =>
+                                    x.TenantId == tenantId && x.PriceListId == list.Id, token))
+                            {
+                                return new(PriceListStatus.Invalid, Error: "pricelist.policy.confirm_required");
+                            }
+                        }
+
+                        list.UpdateCommercialProfile(change.Name, change.StoreId,
+                            change.Channel, change.PricesIncludeVat,
+                            change.ValidFrom, change.ValidUntil);
+                    }
                 }
                 else
                 {
@@ -174,6 +213,17 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
                 .Where(x => x.TenantId == tenantId && x.PriceListId == priceListId &&
                     itemIds.Contains(x.CatalogItemId))
                 .ToDictionaryAsync(x => x.CatalogItemId, token);
+            // Η σύγκριση γίνεται στο ίδιο σειριοποιημένο transaction πριν από οποιαδήποτε αλλαγή.
+            foreach (PriceListPriceChange change in changes)
+            {
+                decimal? current = existing.TryGetValue(change.CatalogItemId, out PriceListItem? row)
+                    ? row.UnitPrice : null;
+                if (change.CheckExpected && current != change.ExpectedUnitPrice)
+                {
+                    return new(PriceListStatus.Conflict, Error: "pricelist.price.conflict");
+                }
+            }
+
             foreach (PriceListPriceChange change in changes)
             {
                 if (existing.TryGetValue(change.CatalogItemId, out PriceListItem? stored))
@@ -194,6 +244,54 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
         catch (DbUpdateException ex) when (HasSql(ex, 2601, 2627, 547))
         {
             return new(PriceListStatus.Invalid, Error: "pricelist.price.conflict");
+        }
+        finally
+        {
+            context.ChangeTracker.Clear();
+        }
+    }
+
+    /// <summary>Διαγράφει αποκλειστικά την εμπορική τιμή, ποτέ το προϊόν ή τον τιμοκατάλογο.</summary>
+    public async Task<PriceListResult> RemovePriceAsync(Guid tenantId, Guid priceListId,
+        Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token)
+    {
+        try
+        {
+            await using IDbContextTransaction transaction =
+                await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
+            PriceList? list = await context.PriceLists.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.TenantId == tenantId &&
+                    x.Id == priceListId, token);
+            if (list is null)
+            {
+                return new(PriceListStatus.Missing);
+            }
+            if (!list.IsActive)
+            {
+                return new(PriceListStatus.Invalid, Error: "pricelist.inactive");
+            }
+
+            PriceListItem? existing = await context.PriceListItems.SingleOrDefaultAsync(
+                x => x.TenantId == tenantId && x.PriceListId == priceListId &&
+                    x.CatalogItemId == catalogItemId, token);
+            if (existing is null)
+            {
+                return new(PriceListStatus.Missing, Error: "pricelist.price.missing");
+            }
+            if (existing.UnitPrice != expectedUnitPrice)
+            {
+                return new(PriceListStatus.Conflict, Error: "pricelist.price.conflict");
+            }
+
+            // Η διαγραφή περιορίζεται από σύνθετα FK στο ίδιο Tenant και τιμοκατάλογο.
+            context.PriceListItems.Remove(existing);
+            await context.SaveChangesAsync(token);
+            await transaction.CommitAsync(token);
+            return new(PriceListStatus.Saved, priceListId);
+        }
+        catch (DbUpdateException ex) when (HasSql(ex, 547))
+        {
+            return new(PriceListStatus.Invalid, Error: "pricelist.price.referenced");
         }
         finally
         {

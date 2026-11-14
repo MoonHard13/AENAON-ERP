@@ -1,27 +1,28 @@
 @* Κοινή πλοήγηση για όλες τις οθόνες του Back Office. *@
-<aside class="sidebar">
-    <a class="sidebar__brand" href="@DashboardHref" aria-label="Aenaon ERP — Επισκόπηση">
-        <div class="sidebar__logo">
-            <img src="/images/aenaon-favicon.png" alt="" width="48" height="48" />
-        </div>
-        <div class="sidebar__brand-text">
-            <strong>AENAON</strong><span>ERP · MOONHARD</span>
-        </div>
-    </a>
-
+<aside class="sidebar" aria-label="Πλαϊνό μενού">
+    <div class="sidebar__header">
+        <a class="sidebar__brand" href="@DashboardHref" aria-label="Aenaon ERP — Επισκόπηση">
+            <div class="sidebar__logo">
+                <img src="/images/aenaon-favicon.png" alt="" width="48" height="48" />
+            </div>
+            <div class="sidebar__brand-text">
+                <strong>AENAON</strong><span>ERP · MOONHARD</span>
+            </div>
+        </a>
+    </div>
     <div class="sidebar__section-title">ΠΛΟΗΓΗΣΗ</div>
-    <nav class="sidebar__nav" aria-label="Κύρια πλοήγηση">
+    <nav id="aenaon-primary-sidebar-nav" class="sidebar__nav" aria-label="Κύρια πλοήγηση">
         <a class="@LinkClass("dashboard")" href="@DashboardHref"
-           aria-current="@(ActivePage == "dashboard" ? "page" : null)">
-            <AppIcon Name="overview" /> Επισκόπηση
+           aria-current="@(ActivePage == "dashboard" ? "page" : null)" title="Επισκόπηση" aria-label="Επισκόπηση">
+            <AppIcon Name="overview" /> <span class="sidebar__link-label">Επισκόπηση</span>
         </a>
         <a class="@LinkClass("catalog")" href="@CatalogHref"
-           aria-current="@(ActivePage == "catalog" ? "page" : null)">
-            <AppIcon Name="catalog" /> Κατάλογος
+           aria-current="@(ActivePage == "catalog" ? "page" : null)" title="Κατάλογος" aria-label="Κατάλογος">
+            <AppIcon Name="catalog" /> <span class="sidebar__link-label">Κατάλογος</span>
         </a>
         <a class="@LinkClass("price-lists")" href="@PriceListsHref"
-           aria-current="@(ActivePage == "price-lists" ? "page" : null)">
-            <AppIcon Name="sales" /> Τιμοκατάλογοι
+           aria-current="@(ActivePage == "price-lists" ? "page" : null)" title="Τιμοκατάλογοι" aria-label="Τιμοκατάλογοι">
+            <AppIcon Name="sales" /> <span class="sidebar__link-label">Τιμοκατάλογοι</span>
         </a>
         <details class="sidebar__upcoming">
             <summary><AppIcon Name="settings" /> Επόμενες λειτουργίες <AppIcon Name="chevron" /></summary>
@@ -34,7 +35,14 @@
         </details>
     </nav>
     <div class="sidebar__foot">
-        <span class="sidebar__status-dot"></span> ΠΕΡΙΒΑΛΛΟΝ ΑΝΑΠΤΥΞΗΣ
+        @* Η σύμπτυξη παραμένει εξ ολοκλήρου μέσα στη στήλη, πάνω από τα στοιχεία περιβάλλοντος. *@
+        <button type="button" class="sidebar__collapse-toggle" data-sidebar-toggle
+                aria-controls="aenaon-primary-sidebar-nav" aria-pressed="false"
+                aria-label="Σύμπτυξη πλαϊνού μενού" title="Σύμπτυξη πλαϊνού μενού"
+                accesskey="x">
+            <AppIcon Name="panel-left-close" />
+        </button>
+        <span class="sidebar__status-dot"></span> <span class="sidebar__status-label">ΠΕΡΙΒΑΛΛΟΝ ΑΝΑΠΤΥΞΗΣ</span>
         <span class="sidebar__version">Aenaon ERP · Build @UiAppInfo.Version</span>
     </div>
 </aside>

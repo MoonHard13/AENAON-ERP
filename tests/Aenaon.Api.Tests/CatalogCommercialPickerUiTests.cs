@@ -50,6 +50,10 @@ public sealed class CatalogCommercialPickerUiTests
         Assert.Contains("value=\"" + (int)CatalogAccountingType.Merchandise + "\"", html);
         Assert.Contains("Τεμάχιο (τεμ.)", html);
         Assert.Contains("Εμπόρευμα", html);
+        Assert.IsTrue(Regex.IsMatch(html,
+            "<option value=\"2\"[^>]*>\\s*Προϊόν\\s*</option>",
+            RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)));
+        Assert.DoesNotContain("Προϊόν παραγωγής", html);
     }
 
     [TestMethod]

@@ -22,6 +22,9 @@ public static class PriceListManagementEndpoints
         endpoints.MapPost("/ui/price-lists/prices", SavePricesAsync)
             .WithMetadata(new RequestSizeLimitAttribute(16384))
             .RequireAuthorization();
+        endpoints.MapPost("/ui/price-lists/remove-price", RemovePriceAsync)
+            .WithMetadata(new RequestSizeLimitAttribute(16384))
+            .RequireAuthorization();
         return endpoints;
     }
 
@@ -80,11 +83,15 @@ public static class PriceListManagementEndpoints
         DateOnly? until = null;
         PriceListChannel channel = PriceListChannel.All;
         bool includeVat = true;
+        Guid? expectedStore = null;
+        PriceListChannel? expectedChannel = null;
+        bool? expectedIncludeVat = null;
+        bool confirmPolicyChange = false;
         if (action is PriceListAction.Create or PriceListAction.Update)
         {
             if (!TrySingle(form, "name", out string nameValue) ||
                 !TrySingle(form, "validFrom", out string fromValue) ||
-                !DateOnly.TryParseExact(fromValue, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                !DateOnly.TryParseExact(fromValue, "dd/MM/yyyy", CultureInfo.InvariantCulture,
                     DateTimeStyles.None, out from) ||
                 nameValue.Length > PriceList.MaxNameLength + 8 ||
                 !TrySingle(form, "validUntil", out string untilText))
@@ -95,7 +102,7 @@ public static class PriceListManagementEndpoints
             name = nameValue;
             if (untilText.Length > 0)
             {
-                if (!DateOnly.TryParseExact(untilText, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                if (!DateOnly.TryParseExact(untilText, "dd/MM/yyyy", CultureInfo.InvariantCulture,
                     DateTimeStyles.None, out DateOnly end))
                 {
                     return Results.BadRequest();
@@ -103,31 +110,61 @@ public static class PriceListManagementEndpoints
                 until = end;
             }
 
+            if (!TrySingle(form, "channel", out string channelText) ||
+                !Enum.TryParse(channelText, false, out channel) || !Enum.IsDefined(channel) ||
+                !TrySingle(form, "includeVat", out string includeText) ||
+                !bool.TryParse(includeText, out includeVat))
+            {
+                return Results.BadRequest();
+            }
+
             if (action == PriceListAction.Create)
             {
                 if (!TrySingle(form, "code", out string codeValue) ||
-                    codeValue.Length > PriceList.MaxCodeLength + 8 ||
-                    !TrySingle(form, "channel", out string channelText) ||
-                    !Enum.TryParse(channelText, false, out channel) || !Enum.IsDefined(channel) ||
-                    !TrySingle(form, "includeVat", out string includeText) ||
-                    !bool.TryParse(includeText, out includeVat))
+                    codeValue.Length > PriceList.MaxCodeLength + 8)
                 {
                     return Results.BadRequest();
                 }
 
                 code = codeValue;
             }
-            else if (scopeStore.HasValue)
+            else
             {
-                // Η επιχείρηση/κατάστημα δεν μπορούν να μεταβληθούν μέσω update.
-                return Results.BadRequest();
+                if (!form.ContainsKey("expectedScopeStoreId") ||
+                    !TryGuid(form, "expectedScopeStoreId", required: false, out expectedStore) ||
+                    !TrySingle(form, "expectedChannel", out string previousChannel) ||
+                    !Enum.TryParse(previousChannel, false, out PriceListChannel parsedChannel) ||
+                    !Enum.IsDefined(parsedChannel) ||
+                    !TrySingle(form, "expectedIncludeVat", out string previousBasis) ||
+                    !bool.TryParse(previousBasis, out bool parsedBasis))
+                {
+                    return Results.BadRequest();
+                }
+
+                expectedChannel = parsedChannel;
+                expectedIncludeVat = parsedBasis;
+                if (form.ContainsKey("confirmPolicyChange"))
+                {
+                    if (!TrySingle(form, "confirmPolicyChange", out string confirmText) ||
+                        confirmText != "yes")
+                    {
+                        return Results.BadRequest();
+                    }
+
+                    confirmPolicyChange = true;
+                }
             }
         }
 
         PriceListResult result = await service.ApplyAsync(userId, tenant.Value,
             new PriceListChange(action, id, code, name,
-                action == PriceListAction.Create ? scopeStore : null,
-                channel, includeVat, from, until), context.RequestAborted);
+                action is PriceListAction.Create or PriceListAction.Update ? scopeStore : null,
+                channel, includeVat, from, until,
+                EditCommercialProfile: action == PriceListAction.Update,
+                ConfirmPolicyChange: confirmPolicyChange,
+                ExpectedStoreId: expectedStore,
+                ExpectedChannel: expectedChannel,
+                ExpectedPricesIncludeVat: expectedIncludeVat), context.RequestAborted);
         loggerFactory.CreateLogger(nameof(PriceListManagementEndpoints)).LogInformation(
             "Price list SSR action {Action} {Status} user {UserId} tenant {TenantId} list {ListId}",
             action, result.Status, userId, tenant.Value, result.Id ?? id);
@@ -147,7 +184,13 @@ public static class PriceListManagementEndpoints
             return Results.Redirect(url + "&saved=1");
         }
 
-        string error = result.Status == PriceListStatus.Duplicate ? "duplicate" : "invalid";
+        string error = result.Status switch
+        {
+            PriceListStatus.Duplicate => "duplicate",
+            PriceListStatus.Conflict => "conflict",
+            _ when result.Error == "pricelist.policy.confirm_required" => "confirm-policy",
+            _ => "invalid"
+        };
         return Results.Redirect(url + "&error=" + error);
     }
 
@@ -196,11 +239,34 @@ public static class PriceListManagementEndpoints
                 return Results.BadRequest();
             }
 
+            // Ελέγχουμε την αρχική τιμή για να μην αντικατασταθούν ξένες νεότερες αλλαγές.
+            string expectedField = "expected_" + field.Key["price_".Length..];
+            if (!form.ContainsKey(expectedField) ||
+                !TrySingle(form, expectedField, out string originalText))
+            {
+                return Results.BadRequest();
+            }
+
+            decimal? expected = null;
+            if (!string.IsNullOrWhiteSpace(originalText))
+            {
+                if (!decimal.TryParse(originalText,
+                    NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
+                    CultureInfo.InvariantCulture, out decimal parsedExpected))
+                {
+                    return Results.BadRequest();
+                }
+
+                expected = parsedExpected;
+            }
+
             string amountText = field.Value.ToString();
             if (string.IsNullOrWhiteSpace(amountText))
             {
+                // Ένα κενό πεδίο δεν αφαιρεί ούτε αντικαθιστά αποθηκευμένη τιμή.
                 continue;
             }
+
             if (!decimal.TryParse(amountText,
                 NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
                 CultureInfo.InvariantCulture, out decimal price))
@@ -209,14 +275,19 @@ public static class PriceListManagementEndpoints
                     $"&page={page}&error=invalid");
             }
 
-            changes.Add(new(itemId, price));
+            if (expected == price)
+            {
+                continue;
+            }
+
+            changes.Add(new(itemId, price, expected, CheckExpected: true));
         }
 
         string destination = EditorUrl(tenant.Value, currentStore, id) +
             $"&page={page}" + (search.Length > 0 ? "&search=" + Uri.EscapeDataString(search) : "");
         if (changes.Count == 0)
         {
-            return Results.Redirect(destination + "&error=invalid");
+            return Results.Redirect(destination + "&unchanged=1");
         }
 
         PriceListResult result = await service.SetPricesAsync(
@@ -235,8 +306,66 @@ public static class PriceListManagementEndpoints
 
         context.Response.Headers.CacheControl = "no-store";
         return Results.Redirect(destination + (result.Status == PriceListStatus.Saved ?
-            "&saved=1" : result.Error == "pricelist.inactive" ?
-                "&error=inactive" : "&error=invalid"));
+            "&saved=1" : result.Status == PriceListStatus.Conflict ?
+                "&error=conflict" : result.Error == "pricelist.inactive" ?
+                    "&error=inactive" : "&error=invalid"));
+    }
+
+    /// <summary>Ρητή αφαίρεση μίας τιμής με Owner, CSRF και έλεγχο παρωχημένων δεδομένων.</summary>
+    private static async Task<IResult> RemovePriceAsync(HttpContext context,
+        IAntiforgery csrf, PriceListManagementService service,
+        TenantAuthorizationService authorization, ILoggerFactory loggerFactory)
+    {
+        if (!await VerifyRequestAsync(context, csrf) ||
+            !TryIdentity(context, out Guid userId))
+        {
+            return Results.BadRequest();
+        }
+
+        IFormCollection form = await context.Request.ReadFormAsync(context.RequestAborted);
+        if (!TryGuid(form, "tenantId", required: true, out Guid? tenant) ||
+            !TryGuid(form, "storeId", required: false, out Guid? currentStore) ||
+            !TryGuid(form, "id", required: true, out Guid? id) ||
+            !TryGuid(form, "catalogItemId", required: true, out Guid? itemId) ||
+            !TrySingle(form, "expectedPrice", out string priceText) ||
+            !decimal.TryParse(priceText,
+                NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
+                CultureInfo.InvariantCulture, out decimal expectedPrice) ||
+            !TrySingle(form, "search", out string search) ||
+            search.Length > 80 || search.Any(char.IsControl) ||
+            !TrySingle(form, "page", out string pageText) ||
+            !int.TryParse(pageText, NumberStyles.None, CultureInfo.InvariantCulture, out int page) ||
+            page is < 1 or > 100_000 || tenant is null || id is null || itemId is null)
+        {
+            return Results.BadRequest();
+        }
+
+        TenantAccessResult permission = await authorization.CheckAsync(userId,
+            tenant.Value, currentStore, TenantPermission.Manage, context.RequestAborted);
+        if (permission.Status != TenantAccessStatus.Granted)
+        {
+            return Results.Forbid();
+        }
+
+        PriceListResult result = await service.RemovePriceAsync(userId, tenant.Value,
+            id.Value, itemId.Value, expectedPrice, context.RequestAborted);
+        loggerFactory.CreateLogger(nameof(PriceListManagementEndpoints)).LogInformation(
+            "Price list price removal {Status} by {UserId} tenant {TenantId} list {PriceListId} item {CatalogItemId}",
+            result.Status, userId, tenant.Value, id.Value, itemId.Value);
+        if (result.Status == PriceListStatus.Denied)
+        {
+            return Results.Forbid();
+        }
+
+        string destination = EditorUrl(tenant.Value, currentStore, id) +
+            $"&page={page}" + (search.Length > 0 ? "&search=" + Uri.EscapeDataString(search) : "");
+        context.Response.Headers.CacheControl = "no-store";
+        return Results.Redirect(destination + (result.Status switch
+        {
+            PriceListStatus.Saved => "&removed=1",
+            PriceListStatus.Conflict or PriceListStatus.Missing => "&error=conflict",
+            _ => "&error=invalid"
+        }));
     }
 
     private static async Task<bool> VerifyRequestAsync(HttpContext context,

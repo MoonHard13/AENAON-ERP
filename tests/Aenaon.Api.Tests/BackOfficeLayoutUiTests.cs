@@ -68,6 +68,76 @@ public sealed class BackOfficeLayoutUiTests
     }
 
     [TestMethod]
+    [DataRow("products")]
+    [DataRow("services")]
+    [DataRow("categories")]
+    public async Task CatalogEditor_ReturnActionLivesInsideCardHeader(string view)
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/catalog/manage?view={view}&tenantId={Tenant:D}"));
+        int card = html.IndexOf("<section class=\"surface-card catalog-editor\"", StringComparison.Ordinal);
+        int header = html.IndexOf("class=\"catalog-editor__header\"", card, StringComparison.Ordinal);
+        int actions = html.IndexOf("class=\"catalog-editor__header-actions\"", header, StringComparison.Ordinal);
+        int back = html.IndexOf("Επιστροφή στον κατάλογο", actions, StringComparison.Ordinal);
+        int form = html.IndexOf("action=\"/ui/catalog/save\"", header, StringComparison.Ordinal);
+
+        Assert.IsTrue(card >= 0, "Η κάρτα του editor πρέπει να εμφανίζεται.");
+        Assert.IsTrue(header > card && actions > header, "Οι ενέργειες ανήκουν στην κεφαλίδα της κάρτας.");
+        Assert.IsTrue(back > actions && form > back, "Η επιστροφή είναι μέσα στην κεφαλίδα, πριν από τα πεδία.");
+        Assert.DoesNotContain("class=\"catalog-editor__toolbar\"", html);
+    }
+
+    [TestMethod]
+    public async Task ExistingProductEditor_ShowsStatusBesideHeading_NotAsNavigation()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/catalog/manage?view=products&id={SessionCatalogWriteFixture.ItemId:D}&tenantId={Tenant:D}"));
+        int card = html.IndexOf("<section class=\"surface-card catalog-editor\"", StringComparison.Ordinal);
+        int titleRow = html.IndexOf("class=\"catalog-editor__title-row\"", card, StringComparison.Ordinal);
+        int heading = html.IndexOf("Βασικά στοιχεία", titleRow, StringComparison.Ordinal);
+        int status = html.IndexOf("Κατάσταση καταχώρησης:", heading, StringComparison.Ordinal);
+        int actions = html.IndexOf("class=\"catalog-editor__header-actions\"", status, StringComparison.Ordinal);
+        int back = html.IndexOf("Επιστροφή στον κατάλογο", actions, StringComparison.Ordinal);
+
+        Assert.IsTrue(card >= 0 && titleRow > card && heading > titleRow);
+        Assert.IsTrue(status > heading && actions > status && back > actions,
+            "Η κατάσταση πρέπει να συνοδεύει τον τίτλο, όχι το κουμπί επιστροφής.");
+    }
+
+    [TestMethod]
+    public async Task SidebarToggle_IsInsideBottomSidebarFooterWithNoTopbarOverlap()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync("/dashboard"));
+        int sidebarHeader = html.IndexOf("class=\"sidebar__header\"", StringComparison.Ordinal);
+        int navigation = html.IndexOf("id=\"aenaon-primary-sidebar-nav\"", sidebarHeader, StringComparison.Ordinal);
+        int footer = html.IndexOf("class=\"sidebar__foot\"", navigation, StringComparison.Ordinal);
+        int toggle = html.IndexOf("data-sidebar-toggle", footer, StringComparison.Ordinal);
+        int status = html.IndexOf("class=\"sidebar__status-dot\"", toggle, StringComparison.Ordinal);
+        int sidebarEnd = html.IndexOf("</aside>", footer, StringComparison.Ordinal);
+        int topbar = html.IndexOf("class=\"topbar\"", sidebarEnd, StringComparison.Ordinal);
+
+        Assert.IsTrue(sidebarHeader >= 0 && navigation > sidebarHeader);
+        Assert.IsTrue(footer > navigation && toggle > footer && status > toggle);
+        Assert.IsTrue(sidebarEnd > status && topbar > sidebarEnd);
+        Assert.DoesNotContain("data-sidebar-toggle", html[topbar..]);
+        Assert.DoesNotContain("class=\"sidebar__toggle-label\"", html);
+        Assert.Contains("aria-label=\"Σύμπτυξη πλαϊνού μενού\"", html);
+        Assert.Contains("accesskey=\"x\"", html);
+    }
+
+    [TestMethod]
     public async Task Styles_PreserveResponsiveActionsAndVisibleFocus()
     {
         await using var factory = new SessionApiFactory();
@@ -82,6 +152,10 @@ public sealed class BackOfficeLayoutUiTests
         Assert.Contains(".dashboard-overview.dashboard__body", css);
         Assert.Contains(".dashboard-overview .workspace-selection__header h1", css);
         Assert.Contains("@media (max-width: 540px)", css);
+        Assert.Contains(".sidebar__foot .sidebar__collapse-toggle", css);
+        Assert.Contains("grid-column: 1 / -1", css);
+        Assert.Contains(":root[data-sidebar=\"collapsed\"] .sidebar__foot", css);
+        Assert.DoesNotContain(".topbar__sidebar-toggle", css);
     }
 
     private static async Task LoginAsync(HttpClient client)

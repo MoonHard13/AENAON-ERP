@@ -8,14 +8,18 @@ namespace Aenaon.Application.Catalog;
 /// <summary>Ενέργειες συντήρησης τιμοκαταλόγων χωρίς φορολογική επεξεργασία.</summary>
 public enum PriceListAction { Create, Update, Activate, Deactivate }
 
-public enum PriceListStatus { Saved, Denied, Missing, Invalid, Duplicate }
+public enum PriceListStatus { Saved, Denied, Missing, Invalid, Duplicate, Conflict }
 
 public sealed record PriceListChange(PriceListAction Action, Guid? Id = null,
     string? Code = null, string? Name = null, Guid? StoreId = null,
     PriceListChannel Channel = PriceListChannel.All, bool PricesIncludeVat = true,
-    DateOnly ValidFrom = default, DateOnly? ValidUntil = null);
+    DateOnly ValidFrom = default, DateOnly? ValidUntil = null,
+    bool EditCommercialProfile = false, bool ConfirmPolicyChange = false,
+    Guid? ExpectedStoreId = null, PriceListChannel? ExpectedChannel = null,
+    bool? ExpectedPricesIncludeVat = null);
 
-public sealed record PriceListPriceChange(Guid CatalogItemId, decimal UnitPrice);
+public sealed record PriceListPriceChange(Guid CatalogItemId, decimal UnitPrice,
+    decimal? ExpectedUnitPrice = null, bool CheckExpected = false);
 
 public sealed record PriceListResult(PriceListStatus Status, Guid? Id = null, string? Error = null);
 
@@ -43,6 +47,8 @@ public interface IPriceListManagementStore
     Task<PriceListResult> ApplyAsync(Guid tenantId, PriceListChange change, CancellationToken token);
     Task<PriceListResult> SetPricesAsync(Guid tenantId, Guid priceListId,
         IReadOnlyList<PriceListPriceChange> changes, CancellationToken token);
+    Task<PriceListResult> RemovePriceAsync(Guid tenantId, Guid priceListId,
+        Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token);
 }
 
 /// <summary>Ενιαίο application service για Blazor και CLI, με fail-closed δικαιώματα.</summary>
@@ -109,6 +115,10 @@ public sealed class PriceListManagementService(
             (change.Action != PriceListAction.Create &&
              (!change.Id.HasValue || change.Id == Guid.Empty)) ||
             change.StoreId == Guid.Empty ||
+            (change.Action == PriceListAction.Update && change.EditCommercialProfile &&
+             (!Enum.IsDefined(change.Channel) ||
+              !change.ExpectedChannel.HasValue ||
+              !change.ExpectedPricesIncludeVat.HasValue)) ||
             (change.Action is PriceListAction.Create or PriceListAction.Update &&
              string.IsNullOrWhiteSpace(change.Name)))
         {
@@ -152,7 +162,10 @@ public sealed class PriceListManagementService(
         if (listId == Guid.Empty || changes.Count is < 1 or > 50 ||
             changes.Any(x => x.CatalogItemId == Guid.Empty ||
                 x.UnitPrice < 0 || x.UnitPrice > PriceListItem.MaxUnitPrice ||
-                decimal.Round(x.UnitPrice, 4) != x.UnitPrice) ||
+                decimal.Round(x.UnitPrice, 4) != x.UnitPrice ||
+                (x.CheckExpected && x.ExpectedUnitPrice is { } expected &&
+                 (expected < 0 || expected > PriceListItem.MaxUnitPrice ||
+                  decimal.Round(expected, 4) != expected))) ||
             changes.Select(x => x.CatalogItemId).Distinct().Count() != changes.Count)
         {
             return new(PriceListStatus.Invalid);
@@ -160,6 +173,27 @@ public sealed class PriceListManagementService(
 
         PriceListResult result = await store.SetPricesAsync(tenantId, listId, changes, token);
         return result;
+    }
+
+    /// <summary>Αφαιρεί μόνο την τιμή ενός είδους από τον συγκεκριμένο τιμοκατάλογο.</summary>
+    public async Task<PriceListResult> RemovePriceAsync(Guid userId, Guid tenantId,
+        Guid priceListId, Guid catalogItemId, decimal expectedUnitPrice,
+        CancellationToken token = default)
+    {
+        if (!await AllowedAsync(userId, tenantId, TenantPermission.Manage, token))
+        {
+            return new(PriceListStatus.Denied);
+        }
+
+        if (priceListId == Guid.Empty || catalogItemId == Guid.Empty ||
+            expectedUnitPrice < 0 || expectedUnitPrice > PriceListItem.MaxUnitPrice ||
+            decimal.Round(expectedUnitPrice, 4) != expectedUnitPrice)
+        {
+            return new(PriceListStatus.Invalid);
+        }
+
+        return await store.RemovePriceAsync(tenantId, priceListId,
+            catalogItemId, expectedUnitPrice, token);
     }
 
     public async Task<bool> CanManageAsync(Guid userId, Guid tenantId,
