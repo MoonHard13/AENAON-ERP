@@ -419,11 +419,26 @@
     private bool _loading = true;
     private string? _error;
 
-    private IReadOnlyList<PriceListSelectOption> StorePickerOptions =>
-        [new("", "Όλα τα καταστήματα της επιχείρησης"),
-         .. (_workspace?.Stores ?? [])
-             .Select(store => new PriceListSelectOption(
-                 store.StoreId.ToString("D"), $"{store.Code} — {store.Name}"))];
+    private IReadOnlyList<PriceListSelectOption> StorePickerOptions
+    {
+        get
+        {
+            var available = (_workspace?.Stores ?? [])
+                .Select(store => new PriceListSelectOption(
+                    store.StoreId.ToString("D"), $"{store.Code} — {store.Name}"))
+                .ToList();
+
+            // Διατηρείται ο αρχικός συσχετισμός ακόμη και αν το κατάστημα είναι ανενεργό.
+            if (_list?.StoreId is { } original &&
+                !available.Any(option => option.Value == original.ToString("D")))
+            {
+                available.Add(new PriceListSelectOption(original.ToString("D"),
+                    $"Υφιστάμενο κατάστημα ({original:D})"));
+            }
+
+            return [new("", "Όλα τα καταστήματα της επιχείρησης"), .. available];
+        }
+    }
 
     private static readonly IReadOnlyList<PriceListSelectOption> ChannelPickerOptions =
     [
