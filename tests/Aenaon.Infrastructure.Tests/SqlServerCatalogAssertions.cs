@@ -23,8 +23,10 @@ internal static class SqlServerCatalogAssertions
             CatalogItemKind.Product, tracksStock: true);
         var service = firstCatalog.AddItem(firstCategory.Id, "SERV01", "Catering",
             CatalogItemKind.Service);
+        product.UpdateDetails("4006381333931", "Περιγραφή με δύο γραμμές.\nΔεύτερη γραμμή");
         var independentProduct = secondCatalog.AddItem(secondCategory.Id, "SKU01",
             "Δεύτερη επιχείρηση", CatalogItemKind.Product);
+        independentProduct.UpdateDetails("4006381333931", "Άλλο tenant");
 
         context.CatalogCategories.AddRange(firstCategory, secondCategory);
         context.CatalogItems.AddRange(product, service, independentProduct);
@@ -46,6 +48,8 @@ internal static class SqlServerCatalogAssertions
         Assert.IsTrue(firstProducts[1].TracksStock);
         Assert.AreEqual(CatalogUnitOfMeasure.Piece, firstProducts[1].UnitOfMeasure);
         Assert.AreEqual(CatalogAccountingType.Merchandise, firstProducts[1].AccountingType);
+        Assert.AreEqual("4006381333931", firstProducts[1].Barcode);
+        Assert.Contains("Δεύτερη γραμμή", firstProducts[1].LongDescription!);
         Assert.AreEqual(1, await context.CatalogItems.CountAsync(
             item => item.TenantId == secondTenantId, cancellationToken));
         Assert.AreEqual(2, await context.CatalogCategories.CountAsync(cancellationToken));
@@ -79,6 +83,11 @@ internal static class SqlServerCatalogAssertions
         Assert.HasCount(1, products.Rows);
         Assert.AreEqual("SKU01", products.Rows[0].Code);
         Assert.IsFalse(products.HasMore);
+        CatalogReadPage<CatalogItemSummary> barcodeSearch = await reader.ReadItemsAsync(
+            firstTenantId, new CatalogReadQuery(1, 25, Search: "400638",
+                Kind: CatalogItemKind.Product, SortBy: "barcode"), cancellationToken);
+        Assert.AreEqual("SKU01", Assert.ContainsSingle(barcodeSearch.Rows).Code);
+        Assert.AreEqual("4006381333931", barcodeSearch.Rows[0].Barcode);
 
         CatalogReadPage<CatalogItemSummary> otherTenant = await reader.ReadItemsAsync(
             secondTenantId, new CatalogReadQuery(1, 20, "SKU"), cancellationToken);
@@ -106,6 +115,15 @@ internal static class SqlServerCatalogAssertions
             () => InsertItemAsync(connection, firstTenantId, firstCategory.Id, "sku01", 1, false,
                 cancellationToken));
         Assert.IsTrue(duplicateItem.Number is 2601 or 2627);
+
+        SqlException duplicateBarcode = await Assert.ThrowsExactlyAsync<SqlException>(
+            () => InsertItemAsync(connection, firstTenantId, firstCategory.Id,
+                "SKU-BAR-OTHER", 1, false, cancellationToken, "4006381333931"));
+        Assert.IsTrue(duplicateBarcode.Number is 2601 or 2627);
+        SqlException invalidBarcode = await Assert.ThrowsExactlyAsync<SqlException>(
+            () => InsertItemAsync(connection, firstTenantId, firstCategory.Id,
+                "SKU-BAR-INVALID", 1, false, cancellationToken, "BAD BAR"));
+        Assert.AreEqual(547, invalidBarcode.Number);
 
         // Μια κατηγορία άλλης επιχείρησης απορρίπτεται από το σύνθετο foreign key.
         SqlException foreignCategory = await Assert.ThrowsExactlyAsync<SqlException>(
@@ -153,7 +171,8 @@ internal static class SqlServerCatalogAssertions
             new(CatalogManagedEntity.Product, CatalogChangeAction.Create,
                 Code: "COLA001", Name: "Αναψυκτικό", CategoryId: category.Id,
                 TracksStock: true, UnitOfMeasure: CatalogUnitOfMeasure.Liter,
-                AccountingType: CatalogAccountingType.Merchandise), token);
+                AccountingType: CatalogAccountingType.Merchandise,
+                Barcode: "INT-COLA", LongDescription: "Περιγραφή αναψυκτικού"), token);
         Assert.AreEqual(CatalogChangeStatus.Saved, item.Status);
         Assert.IsNotNull(item.Id);
 
@@ -162,6 +181,8 @@ internal static class SqlServerCatalogAssertions
         Assert.AreEqual("COLA001", details.Record?.Code);
         Assert.AreEqual(CatalogUnitOfMeasure.Liter, details.Record?.UnitOfMeasure);
         Assert.AreEqual(CatalogAccountingType.Merchandise, details.Record?.AccountingType);
+        Assert.AreEqual("INT-COLA", details.Record?.Barcode);
+        Assert.AreEqual("Περιγραφή αναψυκτικού", details.Record?.LongDescription);
         Assert.IsTrue(details.Categories.Any(x => x.Id == category.Id));
 
         CatalogChangeResult edited = await writer.ApplyAsync(tenantId,
@@ -174,6 +195,9 @@ internal static class SqlServerCatalogAssertions
             .SingleAsync(x => x.TenantId == tenantId && x.Id == item.Id, token);
         Assert.AreEqual(CatalogUnitOfMeasure.Milliliter, updatedCommercial.UnitOfMeasure);
         Assert.AreEqual(CatalogAccountingType.FinishedProduct, updatedCommercial.AccountingType);
+        // Παλαιά CLI/SSR φόρμα χωρίς νέα flags δεν διαγράφει προϋπάρχουσες λεπτομέρειες.
+        Assert.AreEqual("INT-COLA", updatedCommercial.Barcode);
+        Assert.AreEqual("Περιγραφή αναψυκτικού", updatedCommercial.LongDescription);
 
         // Η SQL πρέπει να απαγορεύει ασύμβατο προϊόν/υπηρεσία ακόμη και έξω από την εφαρμογή.
         await using (var checkConnection = new SqlConnection(context.Database.GetConnectionString()))
@@ -198,6 +222,25 @@ internal static class SqlServerCatalogAssertions
         CatalogItemSummary loadedCommercial = Assert.ContainsSingle(commercialRead.Rows);
         Assert.AreEqual(CatalogUnitOfMeasure.Milliliter, loadedCommercial.UnitOfMeasure);
         Assert.AreEqual(CatalogAccountingType.FinishedProduct, loadedCommercial.AccountingType);
+        Assert.AreEqual("INT-COLA", loadedCommercial.Barcode);
+
+        CatalogChangeResult duplicateThroughApp = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Create,
+                Code: "COLA-OTHER", Name: "Δεύτερο αναψυκτικό", CategoryId: category.Id,
+                Barcode: "INT-COLA"), token);
+        Assert.AreEqual(CatalogChangeStatus.Duplicate, duplicateThroughApp.Status);
+        Assert.AreEqual("catalog.item.barcode.duplicate", duplicateThroughApp.Error);
+
+        CatalogChangeResult clearDetails = await writer.ApplyAsync(tenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Update,
+                item.Id, "COLA002", "Αναψυκτικό 330ml", categoryId, false,
+                Barcode: null, LongDescription: "", SetBarcode: true,
+                SetLongDescription: true), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, clearDetails.Status);
+        CatalogItem afterClear = await context.CatalogItems.AsNoTracking()
+            .SingleAsync(x => x.TenantId == tenantId && x.Id == item.Id, token);
+        Assert.IsNull(afterClear.Barcode);
+        Assert.IsNull(afterClear.LongDescription);
 
 
         CatalogChangeResult disabled = await writer.ApplyAsync(tenantId,
@@ -415,13 +458,14 @@ internal static class SqlServerCatalogAssertions
     }
 
     private static async Task InsertItemAsync(SqlConnection connection, Guid tenantId, Guid categoryId,
-        string code, int kind, bool tracksStock, CancellationToken cancellationToken)
+        string code, int kind, bool tracksStock, CancellationToken cancellationToken,
+        string? barcode = null)
     {
         await using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO dbo.CatalogItems
-                (Id, TenantId, CategoryId, Code, Name, Kind, TracksStock, IsActive)
-            VALUES (@id, @tenantId, @categoryId, @code, @name, @kind, @tracksStock, 1);
+                (Id, TenantId, CategoryId, Code, Name, Kind, TracksStock, IsActive, Barcode)
+            VALUES (@id, @tenantId, @categoryId, @code, @name, @kind, @tracksStock, 1, @barcode);
             """;
         command.Parameters.Add("@id", SqlDbType.UniqueIdentifier).Value = Guid.NewGuid();
         command.Parameters.Add("@tenantId", SqlDbType.UniqueIdentifier).Value = tenantId;
@@ -430,6 +474,8 @@ internal static class SqlServerCatalogAssertions
         command.Parameters.Add("@name", SqlDbType.NVarChar, 200).Value = "Δοκιμαστικό είδος";
         command.Parameters.Add("@kind", SqlDbType.Int).Value = kind;
         command.Parameters.Add("@tracksStock", SqlDbType.Bit).Value = tracksStock;
+        command.Parameters.Add("@barcode", SqlDbType.NVarChar, 40).Value =
+            (object?)barcode ?? DBNull.Value;
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
 }
