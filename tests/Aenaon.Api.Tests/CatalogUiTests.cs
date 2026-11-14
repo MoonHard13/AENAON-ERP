@@ -13,6 +13,36 @@ public sealed class CatalogUiTests
     private static readonly Guid TenantId = Guid.Parse("9698df79-3c31-41c9-b292-b7240c7265fb");
 
     [TestMethod]
+    public async Task CatalogMobile_UsesReadableCardsAndNativeSortWithoutDuplicateFields()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string products = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/catalog?tenantId={TenantId:D}&view=products&sort=name&desc=true"));
+
+        Assert.Contains("mobile-items-table", products);
+        Assert.Contains("mobile-card-title", products);
+        Assert.Contains("data-label=\"Barcode\"", products);
+        Assert.Contains("data-label=\"Κατηγορία\"", products);
+        Assert.Contains("data-label=\"Ενέργειες\"", products);
+        Assert.Contains("id=\"catalog-mobile-sort\"", products);
+        Assert.Contains("id=\"catalog-mobile-direction\"", products);
+        Assert.Contains("value=\"name\" selected", products);
+        Assert.Contains("value=\"true\" selected", products);
+        Assert.DoesNotContain("desktop-sort-param", products);
+        Assert.AreEqual(1, Regex.Matches(products, "name=\"sort\"").Count);
+        Assert.AreEqual(1, Regex.Matches(products, "name=\"desc\"").Count);
+
+        string categories = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/catalog?tenantId={TenantId:D}&view=categories"));
+        Assert.Contains("mobile-category-table", categories);
+        Assert.Contains("data-label=\"Κατάσταση\"", categories);
+        Assert.DoesNotContain("option value=\"barcode\"", categories);
+    }
+
+    [TestMethod]
     public async Task AnonymousCatalog_RedirectsToLoginWithoutCatalogReads()
     {
         await using var factory = new SessionApiFactory();
