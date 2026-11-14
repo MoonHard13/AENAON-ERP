@@ -80,7 +80,7 @@ public sealed class PricePreviewUiTests
             "Η επιλογή είδους πρέπει να υποβάλει την τρέχουσα ημερομηνία και τα φίλτρα.");
         Assert.Contains("value=\"01/11/2026\"", html);
         Assert.Contains($"value=\"{SessionPriceResolutionFixture.ProductId:D}\"", html);
-        Assert.DoesNotContain("href=\"/price-lists/preview?", html[formOpen..formClose]);
+        Assert.Contains("type=\"submit\" class=\"catalog-edit-link price-preview-select\"", html);
 
         string css = await client.GetStringAsync("/css/aenaon-backoffice.css");
         Assert.Contains(".price-preview-search .catalog-search > input[type=\"search\"]", css);
