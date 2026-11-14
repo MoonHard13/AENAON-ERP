@@ -15,6 +15,13 @@
             <span><AppIcon Name="settings" /> Περισσότερες λειτουργίες υπό ανάπτυξη</span>
         </nav>
     </details>
+    @* Η σύμπτυξη βρίσκεται εντός του topbar, ποτέ πάνω στο breadcrumb ή έξω από το sidebar. *@
+    <button type="button" class="topbar__sidebar-toggle" data-sidebar-toggle
+            aria-controls="aenaon-primary-sidebar-nav" aria-pressed="false"
+            aria-label="Σύμπτυξη πλαϊνού μενού" title="Σύμπτυξη πλαϊνού μενού"
+            accesskey="x">
+        <AppIcon Name="panel-left-close" />
+    </button>
     <nav class="breadcrumb" aria-label="Διαδρομή πλοήγησης">
         @if (ActivePage == "dashboard")
         {
