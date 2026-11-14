@@ -68,6 +68,50 @@ public sealed class BackOfficeLayoutUiTests
     }
 
     [TestMethod]
+    [DataRow("products")]
+    [DataRow("services")]
+    [DataRow("categories")]
+    public async Task CatalogEditor_ReturnActionLivesInsideCardHeader(string view)
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/catalog/manage?view={view}&tenantId={Tenant:D}"));
+        int card = html.IndexOf("<section class=\"surface-card catalog-editor\"", StringComparison.Ordinal);
+        int header = html.IndexOf("class=\"catalog-editor__header\"", card, StringComparison.Ordinal);
+        int actions = html.IndexOf("class=\"catalog-editor__header-actions\"", header, StringComparison.Ordinal);
+        int back = html.IndexOf("Επιστροφή στον κατάλογο", actions, StringComparison.Ordinal);
+        int form = html.IndexOf("action=\"/ui/catalog/save\"", header, StringComparison.Ordinal);
+
+        Assert.IsTrue(card >= 0, "Η κάρτα του editor πρέπει να εμφανίζεται.");
+        Assert.IsTrue(header > card && actions > header, "Οι ενέργειες ανήκουν στην κεφαλίδα της κάρτας.");
+        Assert.IsTrue(back > actions && form > back, "Η επιστροφή είναι μέσα στην κεφαλίδα, πριν από τα πεδία.");
+        Assert.DoesNotContain("class=\"catalog-editor__toolbar\"", html);
+    }
+
+    [TestMethod]
+    public async Task SidebarToggle_IsIconOnlyInsideBrandHeader()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync("/dashboard"));
+        int sidebarHeader = html.IndexOf("class=\"sidebar__header\"", StringComparison.Ordinal);
+        int brand = html.IndexOf("class=\"sidebar__brand\"", sidebarHeader, StringComparison.Ordinal);
+        int toggle = html.IndexOf("data-sidebar-toggle", brand, StringComparison.Ordinal);
+        int nav = html.IndexOf("id=\"aenaon-primary-sidebar-nav\"", sidebarHeader, StringComparison.Ordinal);
+
+        Assert.IsTrue(sidebarHeader >= 0 && brand > sidebarHeader);
+        Assert.IsTrue(toggle > brand && nav > toggle);
+        Assert.DoesNotContain("class=\"sidebar__toggle-label\"", html);
+        Assert.Contains("aria-label=\"Σύμπτυξη πλαϊνού μενού\"", html);
+        Assert.Contains("accesskey=\"x\"", html);
+    }
+
+    [TestMethod]
     public async Task Styles_PreserveResponsiveActionsAndVisibleFocus()
     {
         await using var factory = new SessionApiFactory();
