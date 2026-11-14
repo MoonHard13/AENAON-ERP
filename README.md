@@ -146,18 +146,24 @@ Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες ε�
 
 Η προτεραιότητα είναι **9.5C.2–9.5C.5**, δηλαδή ολοκλήρωση του εμπορικού υποσυστήματος **πριν** από το 9.6A. Excel και γενικές μαζικές εργασίες παραμένουν αναβλημένα.
 
+## Βήμα 9.5C.2 — Catalog Core Completeness
+
+Το [Manual 52](docs/52-catalog-item-details.md) περιγράφει την προσθήκη **προαιρετικού barcode (GTIN/EAN ή εσωτερικού)** και **αναλυτικής περιγραφής** σε προϊόντα και υπηρεσίες. Υπάρχουν κοινοί κανόνες Domain/Application, tenant-scoped unique filtered SQL index, server-side αναζήτηση/sorting, Blazor και CLI με explicit clear flags και διατήρηση δεδομένων παλαιών callers. Η **9η additive EF Core migration** `20261114151000_CatalogItemDetails` προσθέτει δύο nullable στήλες. Απαιτείται ανεξάρτητο dry-run, έγκυρο backup και ρητό apply στην τοπική Development βάση· η κατάσταση εφαρμόσεώς της δεν τεκμαίρεται.
+
+Η αλλαγή δεν ενεργοποιεί ΦΠΑ, provider payload, POS ή έκδοση παραστατικών. **Επόμενο βήμα 9.5C.3 — Pricing Integrity & History**. Excel και γενικά bulk tasks παραμένουν αναβλημένα.
+
 ## Μελλοντικά θέματα
 
 Τα [περιβαλλοντικά τέλη](docs/47-environmental-fees-fiscal-design.md) παραμένουν design-only. Η [εισαγωγή Excel και οι μαζικές εργασίες](docs/48-bulk-actions-and-excel-import-plan.md) έχουν αναβληθεί κατόπιν απόφασης έως την ωρίμανση του μοντέλου.
 
-## Τρέχον στάδιο — 14/11/2026, μετά το PR #50 και τον σχεδιασμό 9.5C.1
+## Τρέχον στάδιο — 14/11/2026, υλοποίηση 9.5C.2
 
-**Τελευταίο ολοκληρωμένο feature: Step 9.5B.3B — Read-only Προεπισκόπηση Τιμών.** Το `main` έχει τα PR #48/#49. Το AENAON ERP υποστηρίζει σε **Development** HTTPS Login/Dashboard, tenant-scoped κατηγορίες/προϊόντα/υπηρεσίες, CRUD και sorting καταλόγου, εμπορικά πεδία, διαχείριση πολλαπλών τιμοκαταλόγων και read-only επίλυση/προεπισκόπηση τιμής.
+**Τελευταίο υλοποιημένο feature στον κώδικα: Step 9.5C.2 — Barcode και αναλυτική περιγραφή.** Μετά το review/merge του PR #52 προστίθεται στο `main`· build/SQL και browser acceptance απαιτούν πραγματική επαλήθευση. Η λειτουργία τιμών παραμένει read-only στο 9.5B.3B. Το AENAON ERP υποστηρίζει σε **Development** HTTPS Login/Dashboard, tenant-scoped κατηγορίες/προϊόντα/υπηρεσίες, CRUD και sorting καταλόγου, εμπορικά πεδία, διαχείριση πολλαπλών τιμοκαταλόγων και read-only επίλυση/προεπισκόπηση τιμής.
 
-- **Σχήμα:** Στον κώδικα υπάρχουν **8 EF Core migrations**, με τελευταία την `20261113150000_PriceListsFoundation`. Δεν τεκμαίρεται ότι όλες έχουν εφαρμοστεί στην τοπική `AenaonERP_Dev` — χρειάζεται `--migrate-database --dry-run`. Τα PR #48/#49 δεν προσθέτουν migration.
+- **Σχήμα:** Στον κώδικα υπάρχουν **9 EF Core migrations**, με τελευταία την `20261114151000_CatalogItemDetails`. Καμία migration δεν εφαρμόζεται αυτόματα. Δεν τεκμαίρεται ότι έχει εφαρμοστεί στην τοπική `AenaonERP_Dev` — χρειάζεται `--migrate-database --dry-run`, backup και ρητό apply.
 - **Δικαιώματα:** Owner/Manage για μεταβολές, Owner/Member με Read για προβολή, πάντα με Tenant/Store έλεγχο.
 - **Όχι ακόμη:** production POS, Android APK, offline συγχρονισμός, τιμολόγηση παραγγελιών, έκδοση/αποστολή παραστατικών, εγκεκριμένοι φορολογικοί κανόνες myDATA/IMPACT ή immutable price snapshots.
-- **Επόμενο προτεινόμενο βήμα:** 9.5C.2 — Catalog Core Completeness (barcode και αναλυτική περιγραφή)· ακολουθούν 9.5C.3–9.5C.5. Το **9.6A — Μενού εστίασης** έπεται της ολοκλήρωσης/αποδοχής του catalog & pricing. Excel / bulk παραμένουν αναβλημένα.
+- **Επόμενο προτεινόμενο βήμα:** 9.5C.3 — Pricing Integrity & History, έπειτα 9.5C.4–9.5C.5. Το **9.6A — Μενού εστίασης** έπεται της ολοκλήρωσης/αποδοχής του catalog & pricing. Excel / bulk παραμένουν αναβλημένα.
 
 Η πιο πρόσφατη σύνοψη και η διάκριση ιστορικών manuals: [Κατάσταση και χάρτης τεκμηρίωσης](docs/00-current-state-and-roadmap.md).
 
@@ -166,7 +172,7 @@ Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες ε�
 | `GET /health` | Διαθεσιμότητα API, όχι πλήρης έλεγχος SQL ή παρόχου |
 | `GET /api/info` | Στοιχεία εφαρμογής |
 | `GET /health/database` | Development SQL connectivity, όχι πιστοποίηση migrations |
-| `/catalog`, `/price-lists`, `/price-lists/preview` | Προστατευμένο Back Office σε Development |
+| `/catalog`, `/catalog/manage`, `/price-lists`, `/price-lists/preview` | Προστατευμένο Back Office σε Development |
 
 ## Γρήγορη εκκίνηση σε Windows / PowerShell
 
