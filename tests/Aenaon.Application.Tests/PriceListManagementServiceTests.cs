@@ -160,6 +160,30 @@ public sealed class PriceListManagementServiceTests
         Assert.AreEqual("Web", store.LastSource);
     }
 
+    [TestMethod]
+    public async Task ItemSortPassesValidatedSelectionAndRejectsUnknownSort()
+    {
+        var store = new FakeStore();
+        var service = Create(TenantMembershipRole.Member, store);
+        Guid listId = Guid.NewGuid();
+
+        PriceListItemsPage? rows = await service.ReadItemsAsync(
+            User, Tenant, listId, page: 2, sortBy: "price", descending: true);
+        Assert.IsNotNull(rows);
+        Assert.AreEqual("price", store.LastItemsSort);
+        Assert.IsTrue(store.LastItemsDescending);
+        Assert.AreEqual(1, store.ReadItemCalls);
+
+        await Assert.ThrowsExactlyAsync<Aenaon.Domain.Exceptions.DomainRuleException>(
+            async () => await service.ReadItemsAsync(
+                User, Tenant, listId, sortBy: "unsafe SQL ORDER BY"));
+        Assert.AreEqual(1, store.ReadItemCalls);
+
+        Assert.IsNull(await service.ReadItemsAsync(User, Guid.NewGuid(), listId,
+            sortBy: "name"));
+        Assert.AreEqual(1, store.ReadItemCalls);
+    }
+
     private static PriceListManagementService Create(TenantMembershipRole role, FakeStore store) =>
         new(new TenantAuthorizationService(new FakeAccess(role)), store);
 
@@ -169,6 +193,9 @@ public sealed class PriceListManagementServiceTests
         public int ApplyCalls;
         public int PriceCalls;
         public int RemoveCalls;
+        public int ReadItemCalls;
+        public string? LastItemsSort;
+        public bool LastItemsDescending;
         public int HistoryCalls;
         public Guid LastTenant;
         public Guid? LastActor;
@@ -186,8 +213,14 @@ public sealed class PriceListManagementServiceTests
             Task.FromResult<PriceListSummary?>(null);
 
         public Task<PriceListItemsPage?> ReadItemsAsync(Guid tenantId, Guid listId,
-            string? search, int page, int pageSize, CancellationToken token) =>
-            Task.FromResult<PriceListItemsPage?>(new([], page, false));
+            string? search, int page, int pageSize, CancellationToken token,
+            string sortBy = "code", bool descending = false)
+        {
+            ReadItemCalls++;
+            LastItemsSort = sortBy;
+            LastItemsDescending = descending;
+            return Task.FromResult<PriceListItemsPage?>(new([], page, false));
+        }
 
         public Task<PriceListHistoryPage?> ReadHistoryAsync(Guid tenantId, Guid priceListId,
             int page, int pageSize, CancellationToken token)
