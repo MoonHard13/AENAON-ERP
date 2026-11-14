@@ -1,6 +1,5 @@
 @* Κοινή πλοήγηση για όλες τις οθόνες του Back Office. *@
 <aside class="sidebar" aria-label="Πλαϊνό μενού">
-    @* Το εικονίδιο σύμπτυξης είναι μέρος του header και δεν καταλαμβάνει γραμμή πλοήγησης. *@
     <div class="sidebar__header">
         <a class="sidebar__brand" href="@DashboardHref" aria-label="Aenaon ERP — Επισκόπηση">
             <div class="sidebar__logo">
@@ -10,12 +9,6 @@
                 <strong>AENAON</strong><span>ERP · MOONHARD</span>
             </div>
         </a>
-        <button type="button" class="sidebar__collapse-toggle" data-sidebar-toggle
-                aria-controls="aenaon-primary-sidebar-nav" aria-pressed="false"
-                aria-label="Σύμπτυξη πλαϊνού μενού" title="Σύμπτυξη πλαϊνού μενού"
-                accesskey="x">
-            <AppIcon Name="panel-left-close" />
-        </button>
     </div>
     <div class="sidebar__section-title">ΠΛΟΗΓΗΣΗ</div>
     <nav id="aenaon-primary-sidebar-nav" class="sidebar__nav" aria-label="Κύρια πλοήγηση">
