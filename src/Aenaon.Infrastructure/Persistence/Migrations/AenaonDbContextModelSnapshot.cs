@@ -204,6 +204,7 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                 b.HasIndex("TenantId", "PriceListId", "OccurredUtc", "Id");
                 b.ToTable("PriceListAuditEntries", "dbo", t =>
                     {
+                        t.UseSqlOutputClause(false);
                         t.HasCheckConstraint("CK_PriceListAuditEntries_Action", "[Action] BETWEEN 1 AND 7");
                         t.HasCheckConstraint("CK_PriceListAuditEntries_Item", "([Action] BETWEEN 1 AND 4 AND [CatalogItemId] IS NULL) OR ([Action] BETWEEN 5 AND 7 AND [CatalogItemId] IS NOT NULL)");
                         t.HasCheckConstraint("CK_PriceListAuditEntries_Prices", "([BeforePrice] IS NULL OR [BeforePrice] >= 0) AND ([AfterPrice] IS NULL OR [AfterPrice] >= 0)");
