@@ -33,6 +33,15 @@ public sealed class PriceListUiTests
         Assert.Contains("name=\"includeVat\"", create);
         Assert.Contains("placeholder=\"ηη/μμ/εεεε\"", create);
         Assert.Contains("pattern=\"[0-9]{2}/[0-9]{2}/[0-9]{4}\"", create);
+        int card = create.IndexOf("<section class=\"surface-card catalog-editor\"", StringComparison.Ordinal);
+        int title = create.IndexOf("id=\"price-editor-title\"", card, StringComparison.Ordinal);
+        int actions = create.IndexOf("class=\"catalog-editor__header-actions\"", title, StringComparison.Ordinal);
+        int back = create.IndexOf("Επιστροφή στους τιμοκαταλόγους", actions, StringComparison.Ordinal);
+        int form = create.IndexOf("action=\"/ui/price-lists/save\"", back, StringComparison.Ordinal);
+        Assert.IsTrue(card >= 0 && title > card && actions > title);
+        Assert.IsTrue(back > actions && form > back,
+            "Η επιστροφή πρέπει να βρίσκεται μέσα στην κεφαλίδα της κάρτας.");
+        Assert.DoesNotContain("class=\"price-list-toolbar\"", create);
 
         string edit = await client.GetStringAsync(
             $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}");
