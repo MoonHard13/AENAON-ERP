@@ -34,8 +34,11 @@ public sealed class PriceListUiTests
         Assert.Contains("value=\"price\" selected", editor);
         Assert.Contains("value=\"true\" selected", editor);
         Assert.DoesNotContain("desktop-sort-param", editor);
-        Assert.AreEqual(1, Regex.Matches(editor, "name=\"sort\"").Count);
-        Assert.AreEqual(1, Regex.Matches(editor, "name=\"desc\"").Count);
+        Match filter = Regex.Match(editor,
+            "<form method=\"get\" action=\"/price-lists/manage\".*?</form>", RegexOptions.Singleline);
+        Assert.IsTrue(filter.Success);
+        Assert.AreEqual(1, Regex.Matches(filter.Value, "name=\"sort\"").Count);
+        Assert.AreEqual(1, Regex.Matches(filter.Value, "name=\"desc\"").Count);
         Assert.Contains("name=\"price_" + SessionPriceListFixture.ItemId.ToString("D") + "\"", editor);
         Assert.Contains("name=\"expected_" + SessionPriceListFixture.ItemId.ToString("D") + "\"", editor);
     }
