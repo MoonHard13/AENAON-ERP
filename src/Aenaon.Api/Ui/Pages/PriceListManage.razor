@@ -248,8 +248,9 @@
                         </div>
                         <div id="price-list-items-content" data-panel-content>
                         <form method="get" action="/price-lists/manage" class="catalog-filters" role="search" aria-label="Αναζήτηση ειδών για τιμολόγηση">
-                            <input type="hidden" name="sort" value="@CurrentSort" />
-                            <input type="hidden" name="desc" value="@(CurrentDescending ? "true" : "false")" />
+                            <input type="hidden" class="desktop-sort-param" name="sort" value="@CurrentSort" />
+                            <input type="hidden" class="desktop-sort-param" name="desc"
+                                   value="@(CurrentDescending ? "true" : "false")" />
                             <input type="hidden" name="id" value="@selected.Id" />
                             <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
                             @if (_workspace.Store is { } filterScopeStore)
@@ -263,6 +264,25 @@
                                     <input id="price-item-search" type="search" name="search" maxlength="80"
                                            accesskey="f" autocomplete="off" value="@Search"
                                            placeholder="Αναζήτηση προϊόντος ή υπηρεσίας…" />
+                                </div>
+                            </div>
+                            <div class="mobile-sort-controls" aria-label="Ταξινόμηση τιμών">
+                                <div class="catalog-field">
+                                    <label for="prices-mobile-sort">Ταξινόμηση</label>
+                                    <select id="prices-mobile-sort" name="sort">
+                                        <option value="code" selected="@(CurrentSort == "code")">Κωδικός</option>
+                                        <option value="name" selected="@(CurrentSort == "name")">Περιγραφή</option>
+                                        <option value="kind" selected="@(CurrentSort == "kind")">Είδος</option>
+                                        <option value="price" selected="@(CurrentSort == "price")">Τιμή μονάδας</option>
+                                        <option value="priced" selected="@(CurrentSort == "priced")">Με ή χωρίς τιμή</option>
+                                    </select>
+                                </div>
+                                <div class="catalog-field">
+                                    <label for="prices-mobile-direction">Σειρά</label>
+                                    <select id="prices-mobile-direction" name="desc">
+                                        <option value="false" selected="@(!CurrentDescending)">Αύξουσα ↑</option>
+                                        <option value="true" selected="@CurrentDescending">Φθίνουσα ↓</option>
+                                    </select>
                                 </div>
                             </div>
                             <button class="button button--primary catalog-filter-button" type="submit">
@@ -293,7 +313,7 @@
                                 <input type="hidden" name="desc" value="@(CurrentDescending ? "true" : "false")" />
                                 <div class="catalog-table-wrap" tabindex="0" role="region"
                                      aria-label="Τιμές ειδών με δυνατότητα ταξινόμησης και οριζόντια κύλιση">
-                                    <table class="catalog-table">
+                                    <table class="catalog-table mobile-card-table mobile-prices-table">
                                         <thead>
                                             <tr>
                                                 <CatalogSortHeader Label="Κωδικός" Href="@SortHref(selected.Id, "code")"
@@ -315,10 +335,10 @@
                                             @foreach (PriceListItemRow row in _items.Rows)
                                             {
                                                 <tr>
-                                                    <td><strong>@row.Code</strong></td>
-                                                    <td>@row.Name</td>
-                                                    <td>@(row.Kind == CatalogItemKind.Service ? "Υπηρεσία" : "Προϊόν")</td>
-                                                    <td>
+                                                    <td data-label="Κωδικός" class="mobile-card-primary"><strong>@row.Code</strong></td>
+                                                    <td data-label="Περιγραφή" class="mobile-card-title">@row.Name</td>
+                                                    <td data-label="Είδος">@(row.Kind == CatalogItemKind.Service ? "Υπηρεσία" : "Προϊόν")</td>
+                                                    <td data-label="Τιμή μονάδας (€)" class="mobile-price-field">
                                                         @if (CanManage && selected.IsActive)
                                                         {
                                                             <input type="hidden" name="@($"expected_{row.Id:D}")"
@@ -338,7 +358,7 @@
                                                     </td>
                                                     @if (CanManage && selected.IsActive)
                                                     {
-                                                        <td>
+                                                        <td data-label="Διαχείριση" class="mobile-price-actions">
                                                             @if (row.UnitPrice.HasValue)
                                                             {
                                                                 <details class="price-list-remove-confirm">
@@ -427,8 +447,8 @@
                         }
                         else
                         {
-                            <div class="catalog-table-wrap">
-                                <table class="catalog-table">
+                            <div class="catalog-table-wrap" tabindex="0" role="region" aria-label="Ιστορικό αλλαγών τιμών">
+                                <table class="catalog-table mobile-card-table mobile-history-table">
                                     <thead>
                                         <tr>
                                             <th scope="col">Ημερομηνία UTC</th>
@@ -442,10 +462,10 @@
                                         @foreach (PriceListAuditRow row in history.Rows)
                                         {
                                             <tr>
-                                                <td>@row.OccurredUtc.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture)</td>
-                                                <td>@AuditActionLabel(row.Action)</td>
-                                                <td>@(row.CatalogItemCode ?? (row.CatalogItemId?.ToString("D") ?? "—"))</td>
-                                                <td>
+                                                <td data-label="Ημερομηνία UTC" class="mobile-card-primary">@row.OccurredUtc.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture)</td>
+                                                <td data-label="Ενέργεια" class="mobile-card-title">@AuditActionLabel(row.Action)</td>
+                                                <td data-label="Είδος">@(row.CatalogItemCode ?? (row.CatalogItemId?.ToString("D") ?? "—"))</td>
+                                                <td data-label="Πριν / Μετά">
                                                     @if (row.CatalogItemId.HasValue)
                                                     {
                                                         <span>@(row.BeforePrice?.ToString("0.0000", CultureInfo.InvariantCulture) ?? "—") → @(row.AfterPrice?.ToString("0.0000", CultureInfo.InvariantCulture) ?? "—") €</span>
@@ -459,7 +479,7 @@
                                                         </details>
                                                     }
                                                 </td>
-                                                <td>
+                                                <td data-label="Προέλευση / Χρήστης">
                                                     @(row.Source == "CLI" ? "CLI" : row.Source == "Web" ? "Blazor" : "Σύστημα")
                                                     <small>@(row.ActorUserId?.ToString("D") ?? "Αυτόματη ενέργεια")</small>
                                                 </td>
