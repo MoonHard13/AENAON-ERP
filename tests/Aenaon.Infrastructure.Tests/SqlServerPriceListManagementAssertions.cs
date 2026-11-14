@@ -94,6 +94,16 @@ internal static class SqlServerPriceListManagementAssertions
         Assert.AreEqual(PriceListStatus.Saved, changed.Status);
         Assert.AreEqual("Νέα περιγραφή", (await store.GetAsync(tenant, created.Id.Value, token))?.Name);
 
+        // Απαρχαιωμένο όνομα/περίοδος δεν πρέπει να αντικαθιστούν νεότερα δεδομένα.
+        PriceListResult staleDetails = await store.ApplyAsync(tenant,
+            new PriceListChange(PriceListAction.Update, created.Id,
+                Name: "Παλιά φόρμα", ValidFrom: new DateOnly(2026, 11, 20),
+                ExpectedName: "Δοκιμαστικός", ExpectedValidFrom: new DateOnly(2026, 11, 13),
+                CheckExpectedDetails: true), token);
+        Assert.AreEqual(PriceListStatus.Conflict, staleDetails.Status);
+        Assert.AreEqual("Νέα περιγραφή",
+            (await store.GetAsync(tenant, created.Id.Value, token))?.Name);
+
         // Οι αλλαγές πολιτικής με υφιστάμενες τιμές απαιτούν ρητή επιβεβαίωση.
         PriceListChange policy = new(PriceListAction.Update, created.Id,
             Name: "Τιμοκατάλογος Dine In",
