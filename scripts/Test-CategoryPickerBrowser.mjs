@@ -494,6 +494,9 @@ try {
         document.documentElement.dataset.theme = "light";
         window.scrollTo(0, 0);
     })()`);
+    await waitFor(() => cdp.evaluate(
+        'document.querySelector(".welcome-card__brand .logo-for-light")?.naturalWidth > 0'),
+        "Δεν φορτώθηκε το πραγματικό λογότυπο της πρώτης οθόνης.");
     for (const [width, height] of [[320, 640], [375, 667], [390, 844],
                                     [430, 932], [650, 800], [1366, 768]]) {
         await cdp.command("Emulation.setDeviceMetricsOverride", {
