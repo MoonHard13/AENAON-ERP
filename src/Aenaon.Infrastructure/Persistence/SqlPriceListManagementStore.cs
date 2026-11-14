@@ -81,14 +81,45 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
         return new(rows, page, more);
     }
 
+    /// <summary>Επιστρέφει καταχωρημένο ιστορικό ανά τιμοκατάλογο, με ανθεκτική σειρά.</summary>
+    public async Task<PriceListHistoryPage?> ReadHistoryAsync(Guid tenantId, Guid priceListId,
+        int page, int pageSize, CancellationToken token)
+    {
+        bool exists = await context.PriceLists.AsNoTracking()
+            .AnyAsync(x => x.TenantId == tenantId && x.Id == priceListId, token);
+        if (!exists)
+        {
+            return null;
+        }
+
+        List<PriceListAuditRow> rows = await context.PriceListAuditEntries.AsNoTracking()
+            .Where(x => x.TenantId == tenantId && x.PriceListId == priceListId)
+            .OrderByDescending(x => x.OccurredUtc).ThenByDescending(x => x.Id)
+            .Skip((page - 1) * pageSize).Take(pageSize + 1)
+            .Select(x => new PriceListAuditRow(x.Id, x.OccurredUtc, x.Action,
+                x.CatalogItemId, context.CatalogItems.Where(y => y.TenantId == tenantId &&
+                    y.Id == x.CatalogItemId).Select(y => y.Code).FirstOrDefault(),
+                x.ActorUserId, x.Source, x.BeforePrice, x.AfterPrice,
+                x.BeforePolicy, x.AfterPolicy))
+            .ToListAsync(token);
+        bool more = rows.Count > pageSize;
+        if (more)
+        {
+            rows.RemoveAt(pageSize);
+        }
+        return new(rows, page, more);
+    }
+
     public async Task<PriceListResult> ApplyAsync(Guid tenantId, PriceListChange change,
-        CancellationToken token)
+        CancellationToken token, Guid? actorUserId = null, string source = "System")
     {
         try
         {
             await using IDbContextTransaction transaction =
                 await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
+            await AcquireTenantLockAsync(tenantId, token);
             PriceList list;
+            string? beforePolicy = null;
             if (change.Action == PriceListAction.Create)
             {
                 if (change.StoreId.HasValue &&
@@ -112,6 +143,14 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
                     return new(PriceListStatus.Missing);
                 }
                 list = existing;
+                beforePolicy = PolicySnapshot(existing);
+                if (change.CheckExpectedDetails &&
+                    (list.Name != change.ExpectedName ||
+                     list.ValidFrom != change.ExpectedValidFrom ||
+                     list.ValidUntil != change.ExpectedValidUntil))
+                {
+                    return new(PriceListStatus.Conflict, Error: "pricelist.profile.conflict");
+                }
 
                 if (change.Action == PriceListAction.Update)
                 {
@@ -163,6 +202,27 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
                 }
             }
 
+            // Ο έλεγχος γίνεται με τα ενεργά κοινά είδη της ίδιας κατάταξης.
+            if (list.IsActive && await HasOverlappingPricesAsync(list, null, token))
+            {
+                return new(PriceListStatus.Conflict, Error: "pricelist.overlap.conflict");
+            }
+
+            string afterPolicy = PolicySnapshot(list);
+            if (beforePolicy != afterPolicy)
+            {
+                PriceListAuditAction action = change.Action switch
+                {
+                    PriceListAction.Create => PriceListAuditAction.CreateList,
+                    PriceListAction.Activate => PriceListAuditAction.ActivateList,
+                    PriceListAction.Deactivate => PriceListAuditAction.DeactivateList,
+                    _ => PriceListAuditAction.UpdateList
+                };
+                context.PriceListAuditEntries.Add(PriceListAuditEntry.Create(
+                    tenantId, list.Id, null, actorUserId, source, action,
+                    beforePolicy: beforePolicy, afterPolicy: afterPolicy));
+            }
+
             await context.SaveChangesAsync(token);
             await transaction.CommitAsync(token);
             return new(PriceListStatus.Saved, list.Id);
@@ -182,12 +242,14 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
     }
 
     public async Task<PriceListResult> SetPricesAsync(Guid tenantId, Guid priceListId,
-        IReadOnlyList<PriceListPriceChange> changes, CancellationToken token)
+        IReadOnlyList<PriceListPriceChange> changes, CancellationToken token,
+        Guid? actorUserId = null, string source = "System")
     {
         try
         {
             await using IDbContextTransaction transaction =
                 await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
+            await AcquireTenantLockAsync(tenantId, token);
             PriceList? list = await context.PriceLists.AsNoTracking()
                 .SingleOrDefaultAsync(x => x.TenantId == tenantId &&
                     x.Id == priceListId, token);
@@ -224,16 +286,32 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
                 }
             }
 
+            if (await HasOverlappingPricesAsync(list, itemIds, token))
+            {
+                return new(PriceListStatus.Conflict, Error: "pricelist.overlap.conflict");
+            }
+
             foreach (PriceListPriceChange change in changes)
             {
                 if (existing.TryGetValue(change.CatalogItemId, out PriceListItem? stored))
                 {
+                    if (stored.UnitPrice == change.UnitPrice)
+                    {
+                        continue;
+                    }
+                    context.PriceListAuditEntries.Add(PriceListAuditEntry.Create(
+                        tenantId, priceListId, change.CatalogItemId, actorUserId, source,
+                        PriceListAuditAction.UpdatePrice, beforePrice: stored.UnitPrice,
+                        afterPrice: change.UnitPrice));
                     stored.ChangePrice(change.UnitPrice);
                 }
                 else
                 {
                     context.PriceListItems.Add(PriceListItem.Create(
                         tenantId, priceListId, change.CatalogItemId, change.UnitPrice));
+                    context.PriceListAuditEntries.Add(PriceListAuditEntry.Create(
+                        tenantId, priceListId, change.CatalogItemId, actorUserId, source,
+                        PriceListAuditAction.AddPrice, afterPrice: change.UnitPrice));
                 }
             }
 
@@ -253,12 +331,14 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
 
     /// <summary>Διαγράφει αποκλειστικά την εμπορική τιμή, ποτέ το προϊόν ή τον τιμοκατάλογο.</summary>
     public async Task<PriceListResult> RemovePriceAsync(Guid tenantId, Guid priceListId,
-        Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token)
+        Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token,
+        Guid? actorUserId = null, string source = "System")
     {
         try
         {
             await using IDbContextTransaction transaction =
                 await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, token);
+            await AcquireTenantLockAsync(tenantId, token);
             PriceList? list = await context.PriceLists.AsNoTracking()
                 .SingleOrDefaultAsync(x => x.TenantId == tenantId &&
                     x.Id == priceListId, token);
@@ -285,6 +365,9 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
 
             // Η διαγραφή περιορίζεται από σύνθετα FK στο ίδιο Tenant και τιμοκατάλογο.
             context.PriceListItems.Remove(existing);
+            context.PriceListAuditEntries.Add(PriceListAuditEntry.Create(
+                tenantId, priceListId, catalogItemId, actorUserId, source,
+                PriceListAuditAction.RemovePrice, beforePrice: existing.UnitPrice));
             await context.SaveChangesAsync(token);
             await transaction.CommitAsync(token);
             return new(PriceListStatus.Saved, priceListId);
@@ -298,6 +381,60 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
             context.ChangeTracker.Clear();
         }
     }
+
+    /// <summary>Κοινό αποκλειστικό transaction lock για αποφυγή ταυτόχρονων επικαλύψεων.</summary>
+    private async Task AcquireTenantLockAsync(Guid tenantId, CancellationToken token)
+    {
+        var result = new SqlParameter("@result", SqlDbType.Int) { Direction = ParameterDirection.Output };
+        var resource = new SqlParameter("@resource", SqlDbType.NVarChar, 255)
+        {
+            Value = $"AenaonPricePolicy:{tenantId:N}"
+        };
+        await context.Database.ExecuteSqlRawAsync(
+            "EXEC @result = sp_getapplock @Resource = @resource, @LockMode = 'Exclusive', " +
+            "@LockOwner = 'Transaction', @LockTimeout = 15000;",
+            [result, resource], token);
+        if (result.Value is not int status || status < 0)
+        {
+            throw new InvalidOperationException("Δεν κατέστη δυνατός ο συγχρονισμός τιμοκαταλόγων.");
+        }
+    }
+
+    /// <summary>Επικάλυψη υπάρχει μόνο για το ίδιο κατάστημα, κανάλι, είδος και περίοδο.</summary>
+    private async Task<bool> HasOverlappingPricesAsync(PriceList list,
+        Guid[]? candidateItemIds, CancellationToken token)
+    {
+        if (!list.IsActive || candidateItemIds is { Length: 0 })
+        {
+            return false;
+        }
+
+        DateOnly lastDay = list.ValidUntil ?? DateOnly.MaxValue;
+        IQueryable<PriceList> overlapping = context.PriceLists.AsNoTracking()
+            .Where(x => x.TenantId == list.TenantId && x.Id != list.Id &&
+                x.IsActive && x.StoreId == list.StoreId && x.Channel == list.Channel &&
+                x.ValidFrom <= lastDay &&
+                (!x.ValidUntil.HasValue || x.ValidUntil >= list.ValidFrom));
+        if (candidateItemIds is { Length: > 0 })
+        {
+            return await overlapping.AnyAsync(x =>
+                context.PriceListItems.Any(y => y.TenantId == list.TenantId &&
+                    y.PriceListId == x.Id && candidateItemIds.Contains(y.CatalogItemId)), token);
+        }
+
+        IQueryable<Guid> ownIds = context.PriceListItems.AsNoTracking()
+            .Where(x => x.TenantId == list.TenantId && x.PriceListId == list.Id)
+            .Select(x => x.CatalogItemId);
+        return await overlapping.AnyAsync(x =>
+            context.PriceListItems.Any(y => y.TenantId == list.TenantId &&
+                y.PriceListId == x.Id && ownIds.Contains(y.CatalogItemId)), token);
+    }
+
+    private static string PolicySnapshot(PriceList list) =>
+        $"Code={list.Code}; Name={list.Name}; Store={list.StoreId?.ToString("D") ?? "All"}; " +
+        $"Channel={list.Channel}; Currency={list.Currency}; IncludeVat={list.PricesIncludeVat}; " +
+        $"From={list.ValidFrom:yyyy-MM-dd}; Until={list.ValidUntil?.ToString("yyyy-MM-dd") ?? "Open"}; " +
+        $"Active={list.IsActive}";
 
     private static bool HasSql(DbUpdateException ex, params int[] numbers) =>
         ex.InnerException is SqlException sql &&

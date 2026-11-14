@@ -1,6 +1,6 @@
 # AENAON ERP — Κατάσταση και χάρτης τεκμηρίωσης
 
-**Αποτύπωση:** 14/11/2026 · **Βάση σχεδιασμού:** merged PR #51. **Νεότερο feature στον κώδικα:** 9.5C.2 — barcode/αναλυτική περιγραφή (PR #52, μετά το review/merge στο `main`). Το 9.5C.1 παραμένει documentation-only audit.
+**Αποτύπωση:** 14/11/2026 · **Κατάσταση:** το PR #52 έγινε merge και ο χειριστής αποδέχτηκε το 9.5C.2 (9/0 migrations, 7/7 λειτουργικοί έλεγχοι). Το 9.5C.3 — Pricing Integrity & History υλοποιείται σε ξεχωριστό feature branch με 10η additive migration, υπό CI/review. Το 9.5C.1 είναι ιστορικό documentation-only audit.
 
 {% hint style="info" %}
 Τα manuals ανά βήμα διατηρούνται **ως ιστορική τεκμηρίωση**. Για την τρέχουσα κατάσταση προτιμήστε το [root README](../README.md), αυτόν τον χάρτη και τον ίδιο τον κώδικα του `main`. Τα παλαιότερα «δεν υπάρχει ακόμη» αφορούν τη συγκεκριμένη έκδοση του βήματος.
@@ -18,11 +18,12 @@
 | Επίλυση τιμής | Read-only service και Blazor preview: [49](49-price-resolution-foundation.md)–[50](50-price-preview-blazor.md) |
 | Catalog & Pricing audit | [9.5C.1 — Catalog & Pricing Gap Analysis](51-catalog-pricing-gap-analysis.md): σχεδιασμός και κριτήρια, χωρίς SQL changes |
 | Πρόσθετα πεδία καταλόγου | [9.5C.2 — Barcode και αναλυτική περιγραφή](52-catalog-item-details.md): Domain, SQL, Blazor, CLI, tests και 9η migration (Development) | 
+| Ιστορικό/ακεραιότητα τιμών | [9.5C.3 — Pricing Integrity & History](53-pricing-integrity-history.md): durable audit, overlap guard, Blazor/CLI, 10η migration (υπό review) |
 | Μελλοντικά | [Περιβαλλοντικά τέλη — design](47-environmental-fees-fiscal-design.md), [Excel/bulk — αναβολή](48-bulk-actions-and-excel-import-plan.md) |
 
 ## Database / installation
 
-Στον κώδικα μετά το PR #52 υπάρχουν **9 EF Core migrations**, τελευταία `20261114151000_CatalogItemDetails`. Η εφαρμογή τους στην τοπική `AenaonERP_Dev` δεν επιβεβαιώνεται από το GitHub. Η νέα migration είναι additive με δύο nullable στήλες, check και filtered unique index. Πριν από apply απαιτούνται dry-run, SQL review και backup. **Η κατάσταση της τοπικής `AenaonERP_Dev` δεν επαληθεύεται από το GitHub.** Ελέγξτε με:
+Ο χειριστής επιβεβαίωσε **9 εφαρμοσμένες / 0 εκκρεμείς** migrations στην `AenaonERP_Dev` μετά το merged PR #52. Στον feature branch του 9.5C.3 προστίθεται **10η migration**, `20261114163000_PriceListAuditHistory`, με νέο audit table και SQL append-only trigger. **Δεν έχει εφαρμοστεί** στη Development βάση. Μετά το review/merge απαιτούνται dry-run (9/1 αναμενόμενο), SQL review, backup και ρητό apply. Ελέγξτε με:
 
 ```powershell
 git switch main
@@ -39,8 +40,8 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - POS, online/offline παραγγελιοληψία, Android waiter APK και παραγωγικό cloud deployment.
 - ΦΠΑ/φορολογικός υπολογισμός, έκδοση/διαβίβαση myDATA/IMPACT, εγκεκριμένοι φορολογικοί χαρακτηρισμοί. Τα 254 fiscal review observations καταγράφηκαν ως **Pending**, όχι ως approved.
 - Τιμή δεσμευμένη σε παραγγελία (immutable snapshot), εκπτώσεις και ιστορικό παραστατικών.
-- **9.5C.2 — Υλοποιήθηκε στον κώδικα**: προαιρετικό barcode και αναλυτική περιγραφή, [Manual 52](52-catalog-item-details.md). Τοπικό SQL apply και visual acceptance απαιτούν επιβεβαίωση.
-- **9.5C.3–9.5C.5 — Προηγούνται του 9.6A:** price audit/history, overlap integrity, commercial scopes και τελικό acceptance, σύμφωνα με το [Manual 51](51-catalog-pricing-gap-analysis.md).
+- **9.5C.2 — Αποδεκτό από χειριστή**: προαιρετικό barcode και αναλυτική περιγραφή, [Manual 52](52-catalog-item-details.md). Η τοπική 9η migration και το λειτουργικό acceptance ολοκληρώθηκαν.
+- **9.5C.3 — Υπό review/CI:** audit/history, overlap integrity και [Manual 53](53-pricing-integrity-history.md). **9.5C.4–9.5C.5:** commercial scopes/immutable snapshot contract και τελικό acceptance, σύμφωνα με το [Manual 51](51-catalog-pricing-gap-analysis.md).
 - Το **9.6A — Μενού εστίασης** αρχίζει μόνο μετά την ολοκλήρωση και αποδοχή των παραπάνω.
 - Excel imports και μαζικές εργασίες: **αναβλημένα**.
 - Οπτική αποδοχή της σελίδας preview σε Light/Dark, mobile και keyboard-only: **εκκρεμής**.

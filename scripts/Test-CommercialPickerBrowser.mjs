@@ -140,7 +140,7 @@ try {
         const response = await fetch("http://127.0.0.1:" + debugPort + "/json/list");
         const targets = await response.json();
         return targets.find(item => item.type === "page");
-    }, "Δεν ξεκίνησε το Chrome DevTools.");
+    }, "Δεν ξεκίνησε το Chrome DevTools.", 240);
 
     websocket = new WebSocket(page.webSocketDebuggerUrl);
     await new Promise((done, reject) => {

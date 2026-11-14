@@ -52,12 +52,12 @@ public static class PriceListManageCommand
         }
 
         string action = values.GetValueOrDefault("--action") ?? "";
-        bool readOnly = action is "list" or "items";
+        bool readOnly = action is "list" or "items" or "history";
         bool apply = flags.Contains("--apply");
         bool dryRun = flags.Contains("--dry-run");
         Guid tenantId = Guid.Empty;
         bool valid = !invalid && interactive && dryRun != apply && (readOnly ? dryRun : true) &&
-            action is "list" or "items" or "create" or "update" or "activate" or "deactivate" or "prices" or "remove-price" &&
+            action is "list" or "items" or "history" or "create" or "update" or "activate" or "deactivate" or "prices" or "remove-price" &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--username")) &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--confirm-database")) &&
             Guid.TryParse(values.GetValueOrDefault("--tenant-id"), out tenantId) &&
@@ -144,7 +144,7 @@ public static class PriceListManageCommand
             changes.Add(new(itemId, price));
         }
 
-        if ((action is "items" or "update" or "activate" or "deactivate" or "prices" or "remove-price" && !id.HasValue) ||
+        if ((action is "items" or "history" or "update" or "activate" or "deactivate" or "prices" or "remove-price" && !id.HasValue) ||
             (action == "create" && id.HasValue) ||
             (action == "prices" && (changes.Count == 0 || changes.Count > 50 ||
                 changes.Select(x => x.CatalogItemId).Distinct().Count() != changes.Count)) ||
@@ -227,7 +227,7 @@ public static class PriceListManageCommand
         {
             await error.WriteLineAsync(
                 "Χρήση: --manage-price-lists --username NAME --tenant-id GUID --confirm-database NAME " +
-                "--action list|items|create|update|activate|deactivate|prices|remove-price " +
+                "--action list|items|history|create|update|activate|deactivate|prices|remove-price " +
                 "[--id GUID] [--code CODE] [--name NAME] [--scope-store-id GUID|all] " +
                 "[--channel All|DineIn|Takeaway|Delivery|Retail|Online] [--include-vat true|false] " +
                 "[--valid-from yyyy-MM-dd] [--valid-until yyyy-MM-dd] " +
@@ -303,6 +303,35 @@ public static class PriceListManageCommand
                 return 0;
             }
 
+            if (action == "history")
+            {
+                PriceListHistoryPage? rows = await service.ReadHistoryAsync(userId, tenant,
+                    id!.Value, page, 25, token);
+                if (rows is null)
+                {
+                    await error.WriteLineAsync("Δεν επιτρέπεται η πρόσβαση ή δεν βρέθηκε ο τιμοκατάλογος.");
+                    return 4;
+                }
+
+                foreach (PriceListAuditRow row in rows.Rows)
+                {
+                    string reference = row.CatalogItemCode ?? row.CatalogItemId?.ToString("D") ?? "Πολιτική";
+                    await output.WriteLineAsync(
+                        $"{row.OccurredUtc:O} | {row.Action} | {reference} | " +
+                        $"{row.BeforePrice?.ToString("0.0000", CultureInfo.InvariantCulture) ?? "—"} → " +
+                        $"{row.AfterPrice?.ToString("0.0000", CultureInfo.InvariantCulture) ?? "—"} | " +
+                        $"{row.Source} | {row.ActorUserId?.ToString("D") ?? "System"}");
+                    if (row.BeforePolicy is not null || row.AfterPolicy is not null)
+                    {
+                        await output.WriteLineAsync($"  Πριν: {row.BeforePolicy ?? "—"}");
+                        await output.WriteLineAsync($"  Μετά: {row.AfterPolicy ?? "—"}");
+                    }
+                }
+
+                await output.WriteLineAsync($"Ιστορικό σελίδα {rows.Page}, επόμενη: {rows.HasMore}. Χωρίς εγγραφές SQL.");
+                return 0;
+            }
+
             if (!await service.CanManageAsync(userId, tenant, token))
             {
                 return await DeniedAsync();
@@ -352,10 +381,10 @@ public static class PriceListManageCommand
             }
 
             PriceListResult result = action == "prices"
-                ? await service.SetPricesAsync(userId, tenant, id!.Value, changes, token)
+                ? await service.SetPricesAsync(userId, tenant, id!.Value, changes, token, source: "CLI")
                 : action == "remove-price"
                     ? await service.RemovePriceAsync(userId, tenant, id!.Value,
-                        removeItemId!.Value, removeExpectedPrice!.Value, token)
+                        removeItemId!.Value, removeExpectedPrice!.Value, token, source: "CLI")
                     : await service.ApplyAsync(userId, tenant,
                     new PriceListChange(action switch
                     {
@@ -369,7 +398,11 @@ public static class PriceListManageCommand
                     ConfirmPolicyChange: flags.Contains("--confirm-policy-change"),
                     ExpectedStoreId: updateProfile ? current?.StoreId : null,
                     ExpectedChannel: updateProfile ? current?.Channel : null,
-                    ExpectedPricesIncludeVat: updateProfile ? current?.PricesIncludeVat : null), token);
+                    ExpectedPricesIncludeVat: updateProfile ? current?.PricesIncludeVat : null,
+                    ExpectedName: action == "update" ? current?.Name : null,
+                    ExpectedValidFrom: action == "update" ? current?.ValidFrom : null,
+                    ExpectedValidUntil: action == "update" ? current?.ValidUntil : null,
+                    CheckExpectedDetails: action == "update"), token, source: "CLI");
 
             if (result.Status != PriceListStatus.Saved)
             {

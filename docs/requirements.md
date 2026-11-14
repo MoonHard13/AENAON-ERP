@@ -295,3 +295,12 @@
 - **Παραγωγική εγκατάσταση:** δεν έχει εγκριθεί production hosting, SLAs ή πλήρης production security readiness.
 
 **Κανόνας διατήρησης documentation:** Κάθε merged feature επικαιροποιεί το `README.md` και τον [χάρτη](00-current-state-and-roadmap.md). Τα step-by-step manuals παραμένουν ιστορικά τεκμήρια. Τα GitBook starter templates δεν θεωρούνται τεκμηρίωση AENAON πριν από επιβεβαίωση του ενεργού site.
+
+## Step 9.5C.3 — Ασφάλεια τιμοκαταλόγων και ιχνηλασιμότητα
+
+- Κάθε πραγματική αλλαγή πολιτικής ή τιμής καταγράφεται με Tenant, αναγνωριστικό τιμοκαταλόγου/είδους, actor, UTC χρόνο, προέλευση και πριν/μετά στο ίδιο SQL transaction.
+- Το ιστορικό είναι append-only, με SQL trigger κατά UPDATE/DELETE, δικαιώματα Read ανά Tenant και πρόσβαση μέσω Blazor/CLI.
+- Ο έλεγχος ισόβαθμων επικαλύψεων απαιτεί κοινή ημερομηνία, scope, κανάλι και τιμολογημένο είδος. Πρέπει να προστατεύει από νέες ασάφειες χωρίς αλλαγή της πολιτικής επιλογής τιμής.
+- Οι υπάρχοντες έλεγχοι αναμενόμενης τιμής, ο συγχρονισμός παράλληλων writes, οι συναλλαγές και οι περιορισμοί SQL παραμένουν υποχρεωτικοί.
+- Το παραδοτέο απαιτεί automated tests, SQL Server migration verification και ελληνικό manual [53](53-pricing-integrity-history.md), πριν την αποδοχή.
+- Τα ιστορικά αποτελέσματα δεν είναι φορολογική πιστοποίηση ή snapshot παραγγελίας· επιβάλλεται το [myDATA/IMPACT gate](18-mydata-impact-compatibility.md).

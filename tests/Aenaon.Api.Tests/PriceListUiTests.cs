@@ -48,8 +48,32 @@ public sealed class PriceListUiTests
         Assert.Contains("action=\"/ui/price-lists/prices\"", edit);
         Assert.Contains($"price_{SessionPriceListFixture.ItemId:D}", edit);
         Assert.Contains("0.0001", edit);
-        Assert.DoesNotContain("Σελίδα 1", edit);
+        Assert.DoesNotContain("<nav class=\"catalog-pagination\"", edit);
         Assert.Contains("Αφαίρεση τιμής", edit);
+    }
+
+    [TestMethod]
+    public async Task HistoryIsDisplayedReadOnlyForOwnerAndMember()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string owner = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}"));
+        Assert.Contains("Ιστορικό αλλαγών τιμοκαταλόγου", owner);
+        Assert.Contains("SKU001", owner);
+        Assert.Contains("9.5000", owner);
+        Assert.Contains("12.5000", owner);
+        Assert.Contains("14/11/2026 16:30:00", owner);
+        Assert.Contains("Προέλευση / Χρήστης", owner);
+        Assert.DoesNotContain("action=\"/ui/price-lists/audit-delete\"", owner);
+
+        factory.Access.GrantedRole = TenantMembershipRole.Member;
+        string member = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}"));
+        Assert.Contains("Ιστορικό αλλαγών τιμοκαταλόγου", member);
+        Assert.DoesNotContain("Αποθήκευση τιμών σελίδας", member);
     }
 
     [TestMethod]
@@ -94,6 +118,9 @@ public sealed class PriceListUiTests
         Assert.Contains("name=\"expectedScopeStoreId\"", html);
         Assert.Contains("name=\"expectedChannel\"", html);
         Assert.Contains("name=\"expectedIncludeVat\"", html);
+        Assert.Contains("name=\"expectedName\"", html);
+        Assert.Contains("name=\"expectedValidFrom\"", html);
+        Assert.Contains("name=\"expectedValidUntil\"", html);
         Assert.Contains("name=\"confirmPolicyChange\"", html);
         Assert.Contains("name=\"scopeStoreId\"", html);
         Assert.Contains("name=\"channel\"", html);
@@ -124,6 +151,9 @@ public sealed class PriceListUiTests
             ["expectedChannel"] = "Retail",
             ["includeVat"] = "false",
             ["expectedIncludeVat"] = "true",
+            ["expectedName"] = "Βασική λιανική",
+            ["expectedValidFrom"] = "13/11/2026",
+            ["expectedValidUntil"] = "",
             ["confirmPolicyChange"] = "yes",
             ["validFrom"] = "13/11/2026",
             ["validUntil"] = ""
@@ -142,6 +172,16 @@ public sealed class PriceListUiTests
         Assert.AreEqual(Aenaon.Domain.Catalog.PriceListChannel.Retail,
             factory.PriceLists.LastChange.ExpectedChannel);
         Assert.IsTrue(factory.PriceLists.LastChange.ExpectedPricesIncludeVat);
+        Assert.IsTrue(factory.PriceLists.LastChange.CheckExpectedDetails);
+        Assert.AreEqual("Βασική λιανική", factory.PriceLists.LastChange.ExpectedName);
+        Assert.IsTrue(factory.PriceLists.LastChange.ExpectedValidFrom == new DateOnly(2026, 11, 13));
+
+        fields.Remove("expectedName");
+        using var missingSnapshot = await client.PostAsync("/ui/price-lists/save",
+            new FormUrlEncodedContent(fields));
+        Assert.AreEqual(HttpStatusCode.BadRequest, missingSnapshot.StatusCode);
+        Assert.AreEqual(1, factory.PriceLists.SaveCalls);
+        fields["expectedName"] = "Βασική λιανική";
 
         fields["channel"] = "INVALID";
         using var invalid = await client.PostAsync("/ui/price-lists/save",

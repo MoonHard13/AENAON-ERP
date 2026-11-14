@@ -129,6 +129,37 @@ public sealed class PriceListManagementServiceTests
         Assert.AreEqual(1, store.RemoveCalls);
     }
 
+    [TestMethod]
+    public async Task HistoryIsReadOnlyTenantScopedAndAvailableToMember()
+    {
+        var store = new FakeStore();
+        var member = Create(TenantMembershipRole.Member, store);
+        PriceListHistoryPage? history = await member.ReadHistoryAsync(User, Tenant, Guid.NewGuid());
+        Assert.IsNotNull(history);
+        Assert.AreEqual(1, store.HistoryCalls);
+        Assert.AreEqual(Tenant, store.LastTenant);
+        Assert.IsNull(await member.ReadHistoryAsync(User, Guid.NewGuid(), Guid.NewGuid()));
+        Assert.AreEqual(1, store.HistoryCalls);
+        await Assert.ThrowsExactlyAsync<Aenaon.Domain.Exceptions.DomainRuleException>(
+            async () => await member.ReadHistoryAsync(User, Tenant, Guid.NewGuid(), page: 0));
+    }
+
+    [TestMethod]
+    public async Task MutationForwardsAuthenticatedActorAndOrigin()
+    {
+        var store = new FakeStore();
+        var owner = Create(TenantMembershipRole.Owner, store);
+        await owner.SetPricesAsync(User, Tenant, Guid.NewGuid(),
+            [new(Guid.NewGuid(), 1.2500m)], source: "CLI");
+        Assert.AreEqual(User, store.LastActor);
+        Assert.AreEqual("CLI", store.LastSource);
+        await owner.ApplyAsync(User, Tenant,
+            new(PriceListAction.Create, Code: "A", Name: "A",
+                ValidFrom: new DateOnly(2026, 11, 13)));
+        Assert.AreEqual(User, store.LastActor);
+        Assert.AreEqual("Web", store.LastSource);
+    }
+
     private static PriceListManagementService Create(TenantMembershipRole role, FakeStore store) =>
         new(new TenantAuthorizationService(new FakeAccess(role)), store);
 
@@ -138,7 +169,10 @@ public sealed class PriceListManagementServiceTests
         public int ApplyCalls;
         public int PriceCalls;
         public int RemoveCalls;
+        public int HistoryCalls;
         public Guid LastTenant;
+        public Guid? LastActor;
+        public string? LastSource;
 
         public Task<PriceListPage> ListAsync(Guid tenantId, string? search,
             bool includeInactive, int page, int pageSize, CancellationToken token)
@@ -155,22 +189,34 @@ public sealed class PriceListManagementServiceTests
             string? search, int page, int pageSize, CancellationToken token) =>
             Task.FromResult<PriceListItemsPage?>(new([], page, false));
 
+        public Task<PriceListHistoryPage?> ReadHistoryAsync(Guid tenantId, Guid priceListId,
+            int page, int pageSize, CancellationToken token)
+        {
+            HistoryCalls++;
+            LastTenant = tenantId;
+            return Task.FromResult<PriceListHistoryPage?>(new PriceListHistoryPage([], page, false));
+        }
+
         public Task<PriceListResult> ApplyAsync(Guid tenantId, PriceListChange change,
-            CancellationToken token)
+            CancellationToken token, Guid? actorUserId = null, string source = "System")
         {
             ApplyCalls++;
+            LastActor = actorUserId;
+            LastSource = source;
             return Task.FromResult(new PriceListResult(PriceListStatus.Saved, Guid.NewGuid()));
         }
 
         public Task<PriceListResult> SetPricesAsync(Guid tenantId, Guid priceListId,
-            IReadOnlyList<PriceListPriceChange> changes, CancellationToken token)
+            IReadOnlyList<PriceListPriceChange> changes, CancellationToken token, Guid? actorUserId = null, string source = "System")
         {
             PriceCalls++;
+            LastActor = actorUserId;
+            LastSource = source;
             return Task.FromResult(new PriceListResult(PriceListStatus.Saved, priceListId));
         }
 
         public Task<PriceListResult> RemovePriceAsync(Guid tenantId, Guid priceListId,
-            Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token)
+            Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token, Guid? actorUserId = null, string source = "System")
         {
             RemoveCalls++;
             return Task.FromResult(new PriceListResult(PriceListStatus.Saved, priceListId));
