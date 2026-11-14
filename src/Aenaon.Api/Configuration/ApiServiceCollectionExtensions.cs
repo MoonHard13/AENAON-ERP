@@ -83,6 +83,8 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<CatalogWriteService>();
         services.AddScoped<IPriceListManagementStore, SqlPriceListManagementStore>();
         services.AddScoped<PriceListManagementService>();
+        services.AddScoped<IPriceResolutionStore, SqlPriceResolutionStore>();
+        services.AddScoped<PriceResolutionService>();
         services.AddScoped<TenantWorkspaceService>();
         services.AddScoped<TenantWorkspaceResolver>();
         services.AddScoped<ISessionIdentityService, IdentitySessionService>();
