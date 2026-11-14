@@ -220,10 +220,13 @@ public sealed class CatalogManagementUiTests
         using var response = await PostAsync(client, ExtractToken(form), new()
         {
             ["tenantId"] = Tenant.ToString("D"),
-            ["view"] = "products", ["action"] = "create",
-            ["code"] = "P-INVALID", ["name"] = "Προϊόν",
+            ["view"] = "products",
+            ["action"] = "create",
+            ["code"] = "P-INVALID",
+            ["name"] = "Προϊόν",
             ["categoryId"] = SessionCatalogWriteFixture.CategoryId.ToString("D"),
-            ["barcode"] = "4006381333932", ["longDescription"] = "Περιγραφή"
+            ["barcode"] = "4006381333932",
+            ["longDescription"] = "Περιγραφή"
         });
         Assert.AreEqual(HttpStatusCode.Redirect, response.StatusCode);
         Assert.AreEqual(0, factory.CatalogWriter.ApplyCalls);
