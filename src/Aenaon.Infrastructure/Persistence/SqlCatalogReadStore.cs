@@ -192,7 +192,7 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
                 x.Item.Id, x.Item.CategoryId, x.Item.Code, x.Item.Name,
                 x.Item.Kind, x.Item.TracksStock, x.Item.IsActive, x.Category.Name,
                 null, x.Item.UnitOfMeasure, x.Item.AccountingType,
-                x.Item.Barcode, x.Item.LongDescription))
+                x.Item.Barcode))
             .ToListAsync(cancellationToken);
         bool hasMore = rows.Count > validated.PageSize;
         if (hasMore)
