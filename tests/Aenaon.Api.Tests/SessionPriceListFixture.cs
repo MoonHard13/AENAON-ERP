@@ -35,7 +35,15 @@ internal sealed class SessionPriceListFixture : IPriceListManagementStore
 
     public Task<PriceListHistoryPage?> ReadHistoryAsync(Guid tenantId, Guid priceListId,
         int page, int pageSize, CancellationToken token) =>
-        Task.FromResult<PriceListHistoryPage?>(new PriceListHistoryPage([], page, false));
+        Task.FromResult<PriceListHistoryPage?>(tenantId == Tenant && priceListId == ListId
+            ? new PriceListHistoryPage(
+                page == 1
+                    ? [new PriceListAuditRow(Guid.NewGuid(),
+                        new DateTime(2026, 11, 14, 16, 30, 0, DateTimeKind.Utc),
+                        PriceListAuditAction.UpdatePrice, ItemId, "SKU001",
+                        Guid.NewGuid(), "Web", 9.5000m, 12.5000m, null, null)]
+                    : [], page, false)
+            : null);
 
     public Task<PriceListResult> ApplyAsync(Guid tenantId, PriceListChange command,
         CancellationToken token, Guid? actorUserId = null, string source = "System")
