@@ -43,7 +43,7 @@ public sealed record CatalogItemSummary(
     string? CategoryName = null, string? CategoryPath = null,
     CatalogUnitOfMeasure? UnitOfMeasure = null,
     CatalogAccountingType? AccountingType = null,
-    string? Barcode = null, string? LongDescription = null);
+    string? Barcode = null);
 
 /// <summary>Σελιδοποιημένη λίστα με περιορισμένο αριθμό αναγνώσεων.</summary>
 public sealed record CatalogReadPage<T>(
