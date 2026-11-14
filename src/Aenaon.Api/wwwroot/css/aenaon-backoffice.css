@@ -1173,3 +1173,36 @@ html {
     overflow: hidden; opacity: 0; right: 12px; top: 50%;
     border: 0; pointer-events: none;
 }
+
+
+/* Αναδιπλούμενες κάρτες, με το περιεχόμενο κρυφό μόνο μετά από πραγματική ενέργεια. */
+.price-list-panel-toggle {
+    border: 0; background: transparent; padding: 0;
+    display: inline-flex; align-items: center; gap: 10px;
+    font: inherit; line-height: inherit; letter-spacing: inherit; color: inherit;
+    text-align: left; cursor: pointer;
+}
+.price-list-panel-toggle:hover { color: var(--positive); }
+.price-list-panel-toggle:focus-visible {
+    border-radius: 5px; outline: 3px solid var(--positive); outline-offset: 3px;
+}
+.price-list-panel-toggle .app-icon {
+    width: 19px; height: 19px; flex: 0 0 19px;
+    transition: transform .15s ease;
+}
+.price-list-panel-toggle[aria-expanded="false"] .app-icon { transform: rotate(-90deg); }
+[data-panel-content][hidden] { display: none !important; }
+.price-list-policy-confirm {
+    display: flex; align-items: flex-start; gap: 10px; line-height: 1.55;
+    padding: 14px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface-alt); color: var(--muted-strong); font-size: 13px;
+}
+.price-list-policy-confirm input {
+    flex: 0 0 auto; margin-top: 3px; accent-color: var(--positive);
+}
+.price-list-policy-confirm:focus-within {
+    outline: 2px solid var(--positive); outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+    .price-list-panel-toggle .app-icon { transition: none; }
+}
