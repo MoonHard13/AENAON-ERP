@@ -52,6 +52,22 @@ internal static class SqlServerPriceListManagementAssertions
         Assert.IsNotNull(rows);
         Assert.IsTrue(rows.Rows.Any(x => x.Id == itemId && x.UnitPrice == 9.8765m));
 
+        // Ίδιο κατάστημα/κανάλι/ημέρα επιτρέπεται χωρίς κοινό είδος, όχι με κοινή τιμή.
+        PriceListResult secondList = await store.ApplyAsync(tenant,
+            new PriceListChange(PriceListAction.Create, Code: "PROMO-CI-2",
+                Name: "Δεύτερη προωθητική", StoreId: storeId,
+                Channel: PriceListChannel.Takeaway,
+                ValidFrom: new DateOnly(2026, 11, 13)), token);
+        Assert.AreEqual(PriceListStatus.Saved, secondList.Status);
+        PriceListResult overlappingItem = await store.SetPricesAsync(tenant, secondList.Id!.Value,
+            [new PriceListPriceChange(itemId, 8m)], token);
+        Assert.AreEqual(PriceListStatus.Conflict, overlappingItem.Status);
+        Assert.AreEqual("pricelist.overlap.conflict", overlappingItem.Error);
+        Assert.AreEqual(0, await context.PriceListItems.AsNoTracking()
+            .CountAsync(x => x.TenantId == tenant && x.PriceListId == secondList.Id.Value, token));
+        Assert.AreEqual(1, await context.PriceListAuditEntries.AsNoTracking()
+            .CountAsync(x => x.TenantId == tenant && x.PriceListId == secondList.Id.Value, token));
+
         PriceListResult modified = await store.SetPricesAsync(tenant, created.Id.Value,
             [new PriceListPriceChange(itemId, 12.5000m, 9.8765m, CheckExpected: true)], token);
         Assert.AreEqual(PriceListStatus.Saved, modified.Status);
