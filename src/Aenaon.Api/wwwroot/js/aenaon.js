@@ -31,6 +31,53 @@
         updateSidebarToggle();
     }
 
+    // Οι εμπορικές κάρτες αναδιπλώνονται ανεξάρτητα και διατηρούν την κατάστασή τους ανά τιμοκατάλογο.
+    function panelStorageKey(button) {
+        const documentId = new URLSearchParams(window.location.search).get("id") || "new";
+        return "aenaon-panel:" + window.location.pathname + ":" + documentId +
+            ":" + (button.dataset.panelKey || button.dataset.panelToggle);
+    }
+
+    function updatePanel(button, collapsed) {
+        const id = button.dataset.panelToggle;
+        const panel = id ? document.getElementById(id) : null;
+        if (!panel) {
+            return;
+        }
+
+        panel.hidden = collapsed;
+        button.setAttribute("aria-expanded", String(!collapsed));
+        button.title = collapsed ? "Ανάπτυξη ενότητας" : "Σύμπτυξη ενότητας";
+    }
+
+    function initializePanels() {
+        document.querySelectorAll("[data-panel-toggle]").forEach(button => {
+            let collapsed = false;
+            try {
+                collapsed = window.sessionStorage.getItem(panelStorageKey(button)) === "collapsed";
+            } catch {
+                // Η προεπιλεγμένη κατάσταση παραμένει ανοικτή χωρίς αποθήκευση συνεδρίας.
+            }
+            updatePanel(button, collapsed);
+        });
+    }
+
+    document.addEventListener("click", event => {
+        const button = event.target instanceof Element
+            ? event.target.closest("[data-panel-toggle]") : null;
+        if (!button) {
+            return;
+        }
+
+        const collapsed = button.getAttribute("aria-expanded") !== "false";
+        updatePanel(button, collapsed);
+        try {
+            window.sessionStorage.setItem(panelStorageKey(button), collapsed ? "collapsed" : "expanded");
+        } catch {
+            // Η αναδίπλωση εξακολουθεί να λειτουργεί στην ενεργή σελίδα.
+        }
+    });
+
     function saveTheme(value) {
         try {
             window.localStorage.setItem(storageKey, value);
@@ -97,12 +144,14 @@
         window.Blazor.addEventListener("enhancedload", () => {
             updateThemeLabels();
             updateSidebarToggle();
+            initializePanels();
         });
     }
 
     document.addEventListener("DOMContentLoaded", () => {
         updateThemeLabels();
         updateSidebarToggle();
+        initializePanels();
 
         // Οι δυναμικές αντικαταστάσεις του streaming SSR δεν απαιτούν επανασύνδεση listeners.
         // Η αρχικοποίηση του login form παραμένει τοπική στη στατική σελίδα.
