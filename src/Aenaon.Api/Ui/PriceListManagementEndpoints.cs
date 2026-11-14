@@ -187,6 +187,7 @@ public static class PriceListManagementEndpoints
         string error = result.Status switch
         {
             PriceListStatus.Duplicate => "duplicate",
+            _ when result.Error == "pricelist.overlap.conflict" => "overlap",
             PriceListStatus.Conflict => "conflict",
             _ when result.Error == "pricelist.policy.confirm_required" => "confirm-policy",
             _ => "invalid"
@@ -306,7 +307,8 @@ public static class PriceListManagementEndpoints
 
         context.Response.Headers.CacheControl = "no-store";
         return Results.Redirect(destination + (result.Status == PriceListStatus.Saved ?
-            "&saved=1" : result.Status == PriceListStatus.Conflict ?
+            "&saved=1" : result.Error == "pricelist.overlap.conflict" ?
+                "&error=overlap" : result.Status == PriceListStatus.Conflict ?
                 "&error=conflict" : result.Error == "pricelist.inactive" ?
                     "&error=inactive" : "&error=invalid"));
     }
