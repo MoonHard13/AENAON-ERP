@@ -118,9 +118,6 @@
                     <form class="catalog-filters" method="get" action="/catalog" role="search"
                           aria-label="Αναζήτηση και φίλτρα καταλόγου">
                         <input type="hidden" name="view" value="@SelectedView" />
-                        <input class="desktop-sort-param" type="hidden" name="sort" value="@CurrentSort" />
-                        <input class="desktop-sort-param" type="hidden" name="desc"
-                               value="@(CurrentDescending ? "true" : "false")" />
                         @if (TenantId.HasValue)
                         {
                             <input type="hidden" name="tenantId" value="@TenantId.Value" />
