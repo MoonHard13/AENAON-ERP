@@ -16,7 +16,9 @@ public sealed record PriceListChange(PriceListAction Action, Guid? Id = null,
     DateOnly ValidFrom = default, DateOnly? ValidUntil = null,
     bool EditCommercialProfile = false, bool ConfirmPolicyChange = false,
     Guid? ExpectedStoreId = null, PriceListChannel? ExpectedChannel = null,
-    bool? ExpectedPricesIncludeVat = null);
+    bool? ExpectedPricesIncludeVat = null, string? ExpectedName = null,
+    DateOnly? ExpectedValidFrom = null, DateOnly? ExpectedValidUntil = null,
+    bool CheckExpectedDetails = false);
 
 public sealed record PriceListPriceChange(Guid CatalogItemId, decimal UnitPrice,
     decimal? ExpectedUnitPrice = null, bool CheckExpected = false);
@@ -133,6 +135,8 @@ public sealed class PriceListManagementService(
              (!Enum.IsDefined(change.Channel) ||
               !change.ExpectedChannel.HasValue ||
               !change.ExpectedPricesIncludeVat.HasValue)) ||
+            (change.CheckExpectedDetails && (change.Action != PriceListAction.Update ||
+                change.ExpectedName is null || change.ExpectedValidFrom is null)) ||
             (change.Action is PriceListAction.Create or PriceListAction.Update &&
              string.IsNullOrWhiteSpace(change.Name)))
         {
