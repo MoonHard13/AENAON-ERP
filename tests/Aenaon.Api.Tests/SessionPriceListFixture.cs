@@ -33,8 +33,12 @@ internal sealed class SessionPriceListFixture : IPriceListManagementStore
             new([new PriceListItemRow(ItemId, "SKU001", "Δοκιμαστικό προϊόν",
                 CatalogItemKind.Product, 10m)], page, false) : null);
 
+    public Task<PriceListHistoryPage?> ReadHistoryAsync(Guid tenantId, Guid priceListId,
+        int page, int pageSize, CancellationToken token) =>
+        Task.FromResult<PriceListHistoryPage?>(new PriceListHistoryPage([], page, false));
+
     public Task<PriceListResult> ApplyAsync(Guid tenantId, PriceListChange command,
-        CancellationToken token)
+        CancellationToken token, Guid? actorUserId = null, string source = "System")
     {
         SaveCalls++;
         LastChange = command;
@@ -43,7 +47,7 @@ internal sealed class SessionPriceListFixture : IPriceListManagementStore
     }
 
     public Task<PriceListResult> SetPricesAsync(Guid tenantId, Guid listId,
-        IReadOnlyList<PriceListPriceChange> changes, CancellationToken token)
+        IReadOnlyList<PriceListPriceChange> changes, CancellationToken token, Guid? actorUserId = null, string source = "System")
     {
         PriceCalls++;
         LastPriceChanges = changes;
@@ -51,7 +55,7 @@ internal sealed class SessionPriceListFixture : IPriceListManagementStore
     }
 
     public Task<PriceListResult> RemovePriceAsync(Guid tenantId, Guid listId,
-        Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token)
+        Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token, Guid? actorUserId = null, string source = "System")
     {
         RemoveCalls++;
         return Task.FromResult(new PriceListResult(PriceListStatus.Saved, listId));
