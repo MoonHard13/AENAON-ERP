@@ -398,7 +398,11 @@ public static class PriceListManageCommand
                     ConfirmPolicyChange: flags.Contains("--confirm-policy-change"),
                     ExpectedStoreId: updateProfile ? current?.StoreId : null,
                     ExpectedChannel: updateProfile ? current?.Channel : null,
-                    ExpectedPricesIncludeVat: updateProfile ? current?.PricesIncludeVat : null), token, source: "CLI");
+                    ExpectedPricesIncludeVat: updateProfile ? current?.PricesIncludeVat : null,
+                    ExpectedName: action == "update" ? current?.Name : null,
+                    ExpectedValidFrom: action == "update" ? current?.ValidFrom : null,
+                    ExpectedValidUntil: action == "update" ? current?.ValidUntil : null,
+                    CheckExpectedDetails: action == "update"), token, source: "CLI");
 
             if (result.Status != PriceListStatus.Saved)
             {
