@@ -118,11 +118,9 @@
                     <form class="catalog-filters" method="get" action="/catalog" role="search"
                           aria-label="Αναζήτηση και φίλτρα καταλόγου">
                         <input type="hidden" name="view" value="@SelectedView" />
-                        <input type="hidden" name="sort" value="@CurrentSort" />
-                        @if (CurrentDescending)
-                        {
-                            <input type="hidden" name="desc" value="true" />
-                        }
+                        <input class="desktop-sort-param" type="hidden" name="sort" value="@CurrentSort" />
+                        <input class="desktop-sort-param" type="hidden" name="desc"
+                               value="@(CurrentDescending ? "true" : "false")" />
                         @if (TenantId.HasValue)
                         {
                             <input type="hidden" name="tenantId" value="@TenantId.Value" />
@@ -138,6 +136,32 @@
                                 <input id="catalog-search" name="search" type="search"
                                        value="@Search" maxlength="80" autocomplete="off"
                                        placeholder="Αναζήτηση με πρόθεμα…" />
+                            </div>
+                        </div>
+                        <div class="mobile-sort-controls" aria-label="Ταξινόμηση καταλόγου">
+                            <div class="catalog-field">
+                                <label for="catalog-mobile-sort">Ταξινόμηση</label>
+                                <select id="catalog-mobile-sort" name="sort">
+                                    <option value="code" selected="@(CurrentSort == "code")">Κωδικός</option>
+                                    <option value="name" selected="@(CurrentSort == "name")">Περιγραφή</option>
+                                    @if (SelectedView != "categories")
+                                    {
+                                        <option value="barcode" selected="@(CurrentSort == "barcode")">Barcode</option>
+                                        <option value="category" selected="@(CurrentSort == "category")">Κατηγορία</option>
+                                        <option value="kind" selected="@(CurrentSort == "kind")">Είδος</option>
+                                        <option value="unit" selected="@(CurrentSort == "unit")">Μονάδα</option>
+                                        <option value="accounting" selected="@(CurrentSort == "accounting")">Λογιστικός τύπος</option>
+                                        <option value="stock" selected="@(CurrentSort == "stock")">Απόθεμα</option>
+                                    }
+                                    <option value="status" selected="@(CurrentSort == "status")">Κατάσταση</option>
+                                </select>
+                            </div>
+                            <div class="catalog-field">
+                                <label for="catalog-mobile-direction">Σειρά</label>
+                                <select id="catalog-mobile-direction" name="desc">
+                                    <option value="false" selected="@(!CurrentDescending)">Αύξουσα ↑</option>
+                                    <option value="true" selected="@CurrentDescending">Φθίνουσα ↓</option>
+                                </select>
                             </div>
                         </div>
                         <div class="catalog-field catalog-field--size">
@@ -178,7 +202,7 @@
                     {
                         <div class="catalog-table-wrap" tabindex="0" role="region"
                              aria-label="Πίνακας κατηγοριών με οριζόντια κύλιση">
-                            <table class="catalog-table">
+                            <table class="catalog-table mobile-card-table mobile-category-table">
                                 <thead>
                                     <tr>
                                         <CatalogSortHeader Label="Κωδικός" Href="@SortHref("code")"
@@ -194,8 +218,8 @@
                                     @foreach (CatalogCategorySummary row in _categories.Rows)
                                     {
                                         <tr>
-                                            <td><span class="catalog-code">@row.Code</span></td>
-                                            <td class="catalog-table__name">
+                                            <td data-label="Κωδικός" class="mobile-card-primary"><span class="catalog-code">@row.Code</span></td>
+                                            <td data-label="Κατηγορία" class="catalog-table__name mobile-card-title">
                                                 @if (row.ParentCategoryId.HasValue)
                                                 {
                                                     <span class="catalog-tree-parent" aria-label="Υποκατηγορία">↳</span>
@@ -218,12 +242,12 @@
                                                          hidden aria-live="polite"></div>
                                                 }
                                             </td>
-                                            <td><span class="@StatusClass(row.IsActive)">
+                                            <td data-label="Κατάσταση"><span class="@StatusClass(row.IsActive)">
                                                 @(row.IsActive ? "Ενεργή" : "Ανενεργή")
                                             </span></td>
                                             @if (CanManage)
                                             {
-                                                <td>
+                                                <td data-label="Ενέργειες">
                                                     <div class="catalog-table-actions">
                                                         <a class="catalog-edit-link" href="@BuildManageUrl("categories", row.Id)"
                                                            aria-label="Επεξεργασία κατηγορίας @row.Code">Επεξεργασία</a>
@@ -237,7 +261,7 @@
                                             }
                                             else
                                             {
-                                                <td>
+                                                <td data-label="Ενέργειες">
                                                     @if (row.HasChildren)
                                                     {
                                                         <a class="catalog-edit-link"
@@ -255,7 +279,7 @@
                     {
                         <div class="catalog-table-wrap" tabindex="0" role="region"
                              aria-label="Πίνακας ειδών με οριζόντια κύλιση">
-                            <table class="catalog-table">
+                            <table class="catalog-table mobile-card-table mobile-items-table">
                                 <thead>
                                     <tr>
                                         <CatalogSortHeader Label="Κωδικός" Href="@SortHref("code")"
@@ -283,22 +307,22 @@
                                     @foreach (CatalogItemSummary row in _items.Rows)
                                     {
                                         <tr>
-                                            <td><span class="catalog-code">@row.Code</span></td>
-                                            <td class="catalog-table__name">@row.Name</td>
-                                            <td><span class="catalog-code">@(row.Barcode ?? "—")</span></td>
-                                            <td><span class="catalog-tree-path">@(row.CategoryPath ?? row.CategoryName ?? "—")</span></td>
-                                            <td>@(row.Kind == CatalogItemKind.Service ? "Υπηρεσία" : "Προϊόν")</td>
-                                            <td>@(row.UnitOfMeasure is { } unit
+                                            <td data-label="Κωδικός" class="mobile-card-primary"><span class="catalog-code">@row.Code</span></td>
+                                            <td data-label="Περιγραφή" class="catalog-table__name mobile-card-title">@row.Name</td>
+                                            <td data-label="Barcode"><span class="catalog-code">@(row.Barcode ?? "—")</span></td>
+                                            <td data-label="Κατηγορία"><span class="catalog-tree-path">@(row.CategoryPath ?? row.CategoryName ?? "—")</span></td>
+                                            <td data-label="Τύπος">@(row.Kind == CatalogItemKind.Service ? "Υπηρεσία" : "Προϊόν")</td>
+                                            <td data-label="Μονάδα">@(row.UnitOfMeasure is { } unit
                                                 ? CatalogCommercialOptions.UnitName(unit) : "—")</td>
-                                            <td>@(row.AccountingType is { } accounting
+                                            <td data-label="Λογιστικός τύπος">@(row.AccountingType is { } accounting
                                                 ? CatalogCommercialOptions.AccountingName(accounting) : "—")</td>
-                                            <td>@(row.TracksStock ? "Ναι" : "Όχι")</td>
-                                            <td><span class="@StatusClass(row.IsActive)">
+                                            <td data-label="Απόθεμα">@(row.TracksStock ? "Ναι" : "Όχι")</td>
+                                            <td data-label="Κατάσταση"><span class="@StatusClass(row.IsActive)">
                                                 @(row.IsActive ? "Ενεργό" : "Ανενεργό")
                                             </span></td>
                                             @if (CanManage)
                                             {
-                                                <td><a class="catalog-edit-link" href="@BuildManageUrl(SelectedView, row.Id)"
+                                                <td data-label="Ενέργειες"><a class="catalog-edit-link" href="@BuildManageUrl(SelectedView, row.Id)"
                                                        aria-label="Επεξεργασία είδους @row.Code">Επεξεργασία</a></td>
                                             }
                                         </tr>
