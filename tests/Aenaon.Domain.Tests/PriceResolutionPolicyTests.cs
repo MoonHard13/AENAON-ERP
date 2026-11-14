@@ -76,28 +76,19 @@ public sealed class PriceResolutionPolicyTests
     [TestMethod]
     public void Period_IsInclusiveAndInactiveOrInvalidOptionsAreExcluded()
     {
-        PriceResolutionCandidate valid = Candidate(null, PriceListChannel.All, 0m)
-            with
-            {
-                ValidFrom = Date,
-                ValidUntil = Date
-            };
-        PriceResolutionCandidate expired = Candidate(Store, PriceListChannel.DineIn, 6m)
-            with
-            {
-                ValidUntil = Date.AddDays(-1)
-            };
-        PriceResolutionCandidate inactive = Candidate(Store, PriceListChannel.DineIn, 4m)
-            with
-            {
-                IsActive = false
-            };
+        PriceResolutionCandidate valid = new(
+            Guid.NewGuid(), "VALID", null, PriceListChannel.All, true, "EUR",
+            Date, Date, true, 0m);
+        PriceResolutionCandidate expired = new(
+            Guid.NewGuid(), "EXPIRED", Store, PriceListChannel.DineIn, true, "EUR",
+            Date.AddDays(-1), Date.AddDays(-1), true, 6m);
+        PriceResolutionCandidate inactive = new(
+            Guid.NewGuid(), "INACTIVE", Store, PriceListChannel.DineIn, true, "EUR",
+            Date.AddDays(-1), null, false, 4m);
         PriceResolutionCandidate invalidPrice = Candidate(Store, PriceListChannel.DineIn, -2m);
-        PriceResolutionCandidate foreignCurrency = Candidate(Store, PriceListChannel.DineIn, 3m)
-            with
-            {
-                Currency = "USD"
-            };
+        PriceResolutionCandidate foreignCurrency = new(
+            Guid.NewGuid(), "USD", Store, PriceListChannel.DineIn, true, "USD",
+            Date.AddDays(-1), null, true, 3m);
 
         PriceSelectionResult result = PriceResolutionPolicy.Select(
             [expired, invalidPrice, inactive, foreignCurrency, valid],
