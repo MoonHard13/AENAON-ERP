@@ -1034,23 +1034,25 @@ html {
 }
 
 
-/* 9.5B.2 — Προσβάσιμη, μόνιμη σύμπτυξη του desktop sidebar. */
+/* Το εικονίδιο αιωρείται στο όριο της πλαϊνής μπάρας και δεν δημιουργεί δεύτερη σειρά. */
+.sidebar { position: relative; z-index: 2; }
 .sidebar__header {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 4px; min-width: 0; padding: 0 0 24px;
+    position: relative; min-width: 0; padding: 0 0 24px;
 }
 .sidebar__header .sidebar__brand {
-    flex: 1 1 auto; min-width: 0; padding: 0;
+    min-width: 0; padding: 0;
 }
 .sidebar__header .sidebar__brand-text { min-width: 0; overflow: hidden; }
 .sidebar__collapse-toggle {
-    display: inline-grid; place-items: center; flex: 0 0 34px;
-    width: 34px; height: 34px; padding: 6px; margin: 0;
-    border: 1px solid #386453; border-radius: 9px;
-    background: transparent; color: #c2dbd1;
+    position: absolute; top: 6px; right: -34px; z-index: 3;
+    display: inline-grid; place-items: center;
+    width: 30px; height: 30px; padding: 5px; margin: 0;
+    border: 1px solid #386453; border-radius: 999px;
+    background: #103d32; color: #def7ed;
+    box-shadow: 0 2px 7px #00000025;
     cursor: pointer; transition: background .16s ease, color .16s ease;
 }
-.sidebar__collapse-toggle:hover { background: #164737; color: #effff9; }
+.sidebar__collapse-toggle:hover { background: #195443; color: #effff9; }
 .sidebar__collapse-toggle:focus-visible,
 .sidebar__link:focus-visible { outline: 3px solid #50d9ac; outline-offset: 2px; }
 .sidebar__collapse-toggle .app-icon { width: 18px; height: 18px; }
@@ -1063,11 +1065,10 @@ html {
     }
     :root[data-sidebar="collapsed"] .sidebar { padding: 18px 10px; }
     :root[data-sidebar="collapsed"] .sidebar__header {
-        flex-direction: column; align-items: center; gap: 8px;
-        padding-bottom: 20px;
+        padding-bottom: 24px;
     }
     :root[data-sidebar="collapsed"] .sidebar__header .sidebar__brand {
-        flex: 0 0 auto; padding: 0; justify-content: center;
+        padding: 0; justify-content: center;
     }
     :root[data-sidebar="collapsed"] .sidebar__logo { flex: 0 0 42px; width: 42px; }
     :root[data-sidebar="collapsed"] .sidebar__logo img { width: 42px; height: 42px; }
@@ -1077,7 +1078,7 @@ html {
     :root[data-sidebar="collapsed"] .sidebar__upcoming,
     :root[data-sidebar="collapsed"] .sidebar__version { display: none; }
     :root[data-sidebar="collapsed"] .sidebar__collapse-toggle {
-        width: 34px; height: 34px; padding: 6px; margin: 0;
+        top: 5px; right: -24px; width: 30px; height: 30px; padding: 5px;
     }
     :root[data-sidebar="collapsed"] .sidebar__collapse-toggle .app-icon {
         transform: scaleX(-1);
@@ -1131,6 +1132,14 @@ html {
     margin-left: auto;
 }
 .catalog-editor__header-actions .button { white-space: nowrap; }
+.catalog-editor__heading { flex: 1 1 340px; min-width: 0; }
+.catalog-editor__title-row {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+    margin-bottom: 6px;
+}
+.catalog-editor__title-row h1 { margin: 0 !important; }
+.catalog-editor__title-row .catalog-status { flex: 0 0 auto; }
+.catalog-editor__heading > p { margin: 0; }
 .catalog-editor__header-actions .catalog-status { flex: 0 0 auto; }
 .catalog-manage-page .catalog-editor__header h1 {
     font-size: clamp(19px, 2vw, 22px);
