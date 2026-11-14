@@ -306,7 +306,7 @@
                                                                    Active="@(CurrentSort == "price")" Descending="@CurrentDescending" />
                                             @if (CanManage && selected.IsActive)
                                             {
-                                                <CatalogSortHeader Label="Αφαίρεση / Έχει τιμή" Href="@SortHref(selected.Id, "priced")"
+                                                <CatalogSortHeader Label="Διαχείριση" Href="@SortHref(selected.Id, "priced")"
                                                                    Active="@(CurrentSort == "priced")" Descending="@CurrentDescending" />
                                             }
                                             </tr>
@@ -364,7 +364,7 @@
                                 @if (CanManage && selected.IsActive)
                                 {
                                     <div class="price-list-batch-footer">
-                                        <span>Κενό πεδίο = χωρίς αλλαγή. Επιτρέπονται έως 4 δεκαδικά.</span>
+                                        <span>Κενό πεδίο = χωρίς αλλαγή. Επιτρέπονται έως 4 δεκαδικά. Η ταξινόμηση «Διαχείριση» ομαδοποιεί είδη με/χωρίς τιμή.</span>
                                         <button type="submit" class="button button--primary" accesskey="p"><AppIcon Name="check" /> Αποθήκευση τιμών σελίδας</button>
                                     </div>
                                 }
