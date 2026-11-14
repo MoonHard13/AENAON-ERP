@@ -36,6 +36,15 @@ public sealed record PriceListItemRow(Guid Id, string Code, string Name,
 public sealed record PriceListItemsPage(IReadOnlyList<PriceListItemRow> Rows,
     int Page, bool HasMore);
 
+/// <summary>Μία μόνιμη εγγραφή ιστορικού τιμής ή εμπορικής πολιτικής.</summary>
+public sealed record PriceListAuditRow(Guid Id, DateTime OccurredUtc,
+    PriceListAuditAction Action, Guid? CatalogItemId, string? CatalogItemCode,
+    Guid? ActorUserId, string Source, decimal? BeforePrice, decimal? AfterPrice,
+    string? BeforePolicy, string? AfterPolicy);
+
+public sealed record PriceListHistoryPage(IReadOnlyList<PriceListAuditRow> Rows,
+    int Page, bool HasMore);
+
 /// <summary>Η υποδομή επιβάλλει TenantId και επαληθεύει αναφορές στη βάση.</summary>
 public interface IPriceListManagementStore
 {
@@ -44,11 +53,16 @@ public interface IPriceListManagementStore
     Task<PriceListSummary?> GetAsync(Guid tenantId, Guid id, CancellationToken token);
     Task<PriceListItemsPage?> ReadItemsAsync(Guid tenantId, Guid listId,
         string? search, int page, int pageSize, CancellationToken token);
-    Task<PriceListResult> ApplyAsync(Guid tenantId, PriceListChange change, CancellationToken token);
+    Task<PriceListResult> ApplyAsync(Guid tenantId, PriceListChange change,
+        CancellationToken token, Guid? actorUserId = null, string source = "System");
     Task<PriceListResult> SetPricesAsync(Guid tenantId, Guid priceListId,
-        IReadOnlyList<PriceListPriceChange> changes, CancellationToken token);
+        IReadOnlyList<PriceListPriceChange> changes, CancellationToken token,
+        Guid? actorUserId = null, string source = "System");
     Task<PriceListResult> RemovePriceAsync(Guid tenantId, Guid priceListId,
-        Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token);
+        Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token,
+        Guid? actorUserId = null, string source = "System");
+    Task<PriceListHistoryPage?> ReadHistoryAsync(Guid tenantId, Guid priceListId,
+        int page, int pageSize, CancellationToken token);
 }
 
 /// <summary>Ενιαίο application service για Blazor και CLI, με fail-closed δικαιώματα.</summary>
@@ -103,7 +117,7 @@ public sealed class PriceListManagementService(
     }
 
     public async Task<PriceListResult> ApplyAsync(Guid userId, Guid tenantId,
-        PriceListChange change, CancellationToken token = default)
+        PriceListChange change, CancellationToken token = default, string source = "Web")
     {
         if (!await AllowedAsync(userId, tenantId, TenantPermission.Manage, token))
         {
@@ -141,7 +155,7 @@ public sealed class PriceListManagementService(
                 }
             }
 
-            PriceListResult result = await store.ApplyAsync(tenantId, change, token);
+            PriceListResult result = await store.ApplyAsync(tenantId, change, token, userId, source);
             return result;
         }
         catch (DomainRuleException ex)
@@ -152,7 +166,7 @@ public sealed class PriceListManagementService(
 
     public async Task<PriceListResult> SetPricesAsync(Guid userId, Guid tenantId,
         Guid listId, IReadOnlyList<PriceListPriceChange> changes,
-        CancellationToken token = default)
+        CancellationToken token = default, string source = "Web")
     {
         if (!await AllowedAsync(userId, tenantId, TenantPermission.Manage, token))
         {
@@ -171,14 +185,14 @@ public sealed class PriceListManagementService(
             return new(PriceListStatus.Invalid);
         }
 
-        PriceListResult result = await store.SetPricesAsync(tenantId, listId, changes, token);
+        PriceListResult result = await store.SetPricesAsync(tenantId, listId, changes, token, userId, source);
         return result;
     }
 
     /// <summary>Αφαιρεί μόνο την τιμή ενός είδους από τον συγκεκριμένο τιμοκατάλογο.</summary>
     public async Task<PriceListResult> RemovePriceAsync(Guid userId, Guid tenantId,
         Guid priceListId, Guid catalogItemId, decimal expectedUnitPrice,
-        CancellationToken token = default)
+        CancellationToken token = default, string source = "Web")
     {
         if (!await AllowedAsync(userId, tenantId, TenantPermission.Manage, token))
         {
@@ -193,7 +207,25 @@ public sealed class PriceListManagementService(
         }
 
         return await store.RemovePriceAsync(tenantId, priceListId,
-            catalogItemId, expectedUnitPrice, token);
+            catalogItemId, expectedUnitPrice, token, userId, source);
+    }
+
+    /// <summary>Προβάλλει μόνο τα συμβάντα της επιλεγμένης επιχείρησης, χωρίς δυνατότητα μεταβολής.</summary>
+    public async Task<PriceListHistoryPage?> ReadHistoryAsync(Guid userId, Guid tenantId,
+        Guid listId, int page = 1, int pageSize = 25, CancellationToken token = default)
+    {
+        if (listId == Guid.Empty ||
+            !await AllowedAsync(userId, tenantId, TenantPermission.Read, token))
+        {
+            return null;
+        }
+
+        if (page is < 1 or > 100_000 || pageSize is not (25 or 50))
+        {
+            throw new DomainRuleException("pricelist.query.invalid", "Μη έγκυρη σελίδα ιστορικού.");
+        }
+
+        return await store.ReadHistoryAsync(tenantId, listId, page, pageSize, token);
     }
 
     public async Task<bool> CanManageAsync(Guid userId, Guid tenantId,
