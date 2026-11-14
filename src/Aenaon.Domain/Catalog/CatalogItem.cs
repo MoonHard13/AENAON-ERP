@@ -18,7 +18,8 @@ public sealed class CatalogItem
     internal CatalogItem(Guid tenantId, Guid categoryId, string? code, string? name,
         CatalogItemKind kind, bool tracksStock,
         CatalogUnitOfMeasure? unitOfMeasure = null,
-        CatalogAccountingType? accountingType = null)
+        CatalogAccountingType? accountingType = null,
+        string? barcode = null, string? longDescription = null)
     {
         if (tenantId == Guid.Empty)
         {
@@ -51,6 +52,8 @@ public sealed class CatalogItem
         CatalogAccountingType selectedAccounting = accountingType ??
             (kind == CatalogItemKind.Service ? CatalogAccountingType.Service : CatalogAccountingType.Merchandise);
         ValidateCommercial(kind, selectedUnit, selectedAccounting);
+        string? normalizedBarcode = CatalogItemDetails.NormalizeBarcode(barcode);
+        string? normalizedDescription = CatalogItemDetails.NormalizeLongDescription(longDescription);
 
         Id = Guid.NewGuid();
         TenantId = tenantId;
@@ -61,6 +64,8 @@ public sealed class CatalogItem
         TracksStock = tracksStock;
         UnitOfMeasure = selectedUnit;
         AccountingType = selectedAccounting;
+        Barcode = normalizedBarcode;
+        LongDescription = normalizedDescription;
         IsActive = true;
     }
 
@@ -68,8 +73,10 @@ public sealed class CatalogItem
     public static CatalogItem Create(Guid tenantId, Guid categoryId,
         string? code, string? name, CatalogItemKind kind, bool tracksStock,
         CatalogUnitOfMeasure? unitOfMeasure = null,
-        CatalogAccountingType? accountingType = null) =>
-        new(tenantId, categoryId, code, name, kind, tracksStock, unitOfMeasure, accountingType);
+        CatalogAccountingType? accountingType = null,
+        string? barcode = null, string? longDescription = null) =>
+        new(tenantId, categoryId, code, name, kind, tracksStock,
+            unitOfMeasure, accountingType, barcode, longDescription);
 
     /// <summary>Ελέγχει όλα τα πεδία πριν τροποποιηθεί η καταχωρημένη οντότητα.</summary>
     public void Update(Guid categoryId, string? code, string? name, bool tracksStock,
@@ -104,6 +111,15 @@ public sealed class CatalogItem
         AccountingType = selectedAccounting;
     }
 
+    /// <summary>Ενημερώνει ατομικά τα δύο προαιρετικά πεδία, χωρίς αλλαγή κωδικού ή τύπου.</summary>
+    public void UpdateDetails(string? barcode, string? longDescription)
+    {
+        string? normalizedBarcode = CatalogItemDetails.NormalizeBarcode(barcode);
+        string? normalizedDescription = CatalogItemDetails.NormalizeLongDescription(longDescription);
+        Barcode = normalizedBarcode;
+        LongDescription = normalizedDescription;
+    }
+
     /// <summary>Αλλάζει μόνο την κατάσταση και ποτέ τον τύπο του είδους.</summary>
     public void ChangeActive(bool active) => SetActive(active);
 
@@ -116,6 +132,8 @@ public sealed class CatalogItem
     public bool TracksStock { get; private set; }
     public CatalogUnitOfMeasure UnitOfMeasure { get; private set; }
     public CatalogAccountingType AccountingType { get; private set; }
+    public string? Barcode { get; private set; }
+    public string? LongDescription { get; private set; }
     public bool IsActive { get; private set; }
 
     /// <summary>Επικυρώνει εμπορικές επιλογές χωρίς αυτόματες φορολογικές αντιστοιχίσεις.</summary>
