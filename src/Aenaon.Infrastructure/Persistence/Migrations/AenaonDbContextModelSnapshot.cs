@@ -133,7 +133,7 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     {
                         t.HasCheckConstraint("CK_CatalogItems_AccountingType", "[AccountingType] BETWEEN 1 AND 6");
 
-                        t.HasCheckConstraint("CK_CatalogItems_Barcode", "[Barcode] IS NULL OR (LEN([Barcode]) BETWEEN 1 AND 40 AND [Barcode] = LTRIM(RTRIM([Barcode])) AND PATINDEX('%[^0-9A-Z._-]%', [Barcode] COLLATE Latin1_General_100_BIN2) = 0)");
+                        t.HasCheckConstraint("CK_CatalogItems_Barcode", "[Barcode] IS NULL OR (LEN([Barcode]) BETWEEN 1 AND 40 AND DATALENGTH([Barcode]) = DATALENGTH(LTRIM(RTRIM([Barcode]))) AND PATINDEX('%[^0-9A-Z._-]%', [Barcode] COLLATE Latin1_General_100_BIN2) = 0)");
 
                         t.HasCheckConstraint("CK_CatalogItems_CategoryId", "[CategoryId] <> '00000000-0000-0000-0000-000000000000'");
 
