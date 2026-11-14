@@ -1035,17 +1035,25 @@ html {
 
 
 /* 9.5B.2 — Προσβάσιμη, μόνιμη σύμπτυξη του desktop sidebar. */
-.sidebar__collapse-toggle {
-    display: flex; align-items: center; gap: 10px; margin: -14px 6px 18px;
-    padding: 9px 11px; min-height: 42px; border: 1px solid #386453;
-    border-radius: 10px; background: #154536; color: #defff0;
-    cursor: pointer; font: inherit; font-size: 12px; font-weight: 650; text-align: left;
+.sidebar__header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 4px; min-width: 0; padding: 0 0 24px;
 }
-.sidebar__collapse-toggle:hover { background: #1c5a45; }
+.sidebar__header .sidebar__brand {
+    flex: 1 1 auto; min-width: 0; padding: 0;
+}
+.sidebar__header .sidebar__brand-text { min-width: 0; overflow: hidden; }
+.sidebar__collapse-toggle {
+    display: inline-grid; place-items: center; flex: 0 0 34px;
+    width: 34px; height: 34px; padding: 6px; margin: 0;
+    border: 1px solid #386453; border-radius: 9px;
+    background: transparent; color: #c2dbd1;
+    cursor: pointer; transition: background .16s ease, color .16s ease;
+}
+.sidebar__collapse-toggle:hover { background: #164737; color: #effff9; }
 .sidebar__collapse-toggle:focus-visible,
 .sidebar__link:focus-visible { outline: 3px solid #50d9ac; outline-offset: 2px; }
-.sidebar__collapse-toggle .app-icon { flex: 0 0 20px; width: 20px; height: 20px; }
-.sidebar__toggle-label { overflow: hidden; white-space: nowrap; }
+.sidebar__collapse-toggle .app-icon { width: 18px; height: 18px; }
 .sidebar__link-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 @media (min-width: 851px) {
@@ -1054,8 +1062,12 @@ html {
         grid-template-columns: 76px minmax(0, 1fr);
     }
     :root[data-sidebar="collapsed"] .sidebar { padding: 18px 10px; }
-    :root[data-sidebar="collapsed"] .sidebar__brand {
-        padding: 3px 0 19px; justify-content: center;
+    :root[data-sidebar="collapsed"] .sidebar__header {
+        flex-direction: column; align-items: center; gap: 8px;
+        padding-bottom: 20px;
+    }
+    :root[data-sidebar="collapsed"] .sidebar__header .sidebar__brand {
+        flex: 0 0 auto; padding: 0; justify-content: center;
     }
     :root[data-sidebar="collapsed"] .sidebar__logo { flex: 0 0 42px; width: 42px; }
     :root[data-sidebar="collapsed"] .sidebar__logo img { width: 42px; height: 42px; }
@@ -1063,10 +1075,9 @@ html {
     :root[data-sidebar="collapsed"] .sidebar__section-title,
     :root[data-sidebar="collapsed"] .sidebar__link-label,
     :root[data-sidebar="collapsed"] .sidebar__upcoming,
-    :root[data-sidebar="collapsed"] .sidebar__version,
-    :root[data-sidebar="collapsed"] .sidebar__toggle-label { display: none; }
+    :root[data-sidebar="collapsed"] .sidebar__version { display: none; }
     :root[data-sidebar="collapsed"] .sidebar__collapse-toggle {
-        justify-content: center; margin: 1px 0 18px; padding: 10px;
+        width: 34px; height: 34px; padding: 6px; margin: 0;
     }
     :root[data-sidebar="collapsed"] .sidebar__collapse-toggle .app-icon {
         transform: scaleX(-1);
@@ -1114,17 +1125,31 @@ html {
 
 
 /* Συμπαγείς φόρμες δημιουργίας/επεξεργασίας καταλόγου χωρίς επαναλαμβανόμενο τίτλο. */
-.catalog-editor__toolbar {
-    display: flex; justify-content: flex-end; align-items: center;
-    gap: 10px; margin-bottom: 14px;
+.catalog-editor__header-actions {
+    display: flex; flex: 0 1 auto; align-items: center;
+    justify-content: flex-end; flex-wrap: wrap; gap: 10px;
+    margin-left: auto;
 }
+.catalog-editor__header-actions .button { white-space: nowrap; }
+.catalog-editor__header-actions .catalog-status { flex: 0 0 auto; }
 .catalog-manage-page .catalog-editor__header h1 {
     font-size: clamp(19px, 2vw, 22px);
     line-height: 1.3; margin: 0 0 4px;
 }
 :root[data-sidebar="collapsed"] .sidebar__status-label { display: none; }
+@media (max-width: 700px) {
+    .catalog-editor__header {
+        align-items: flex-start; flex-direction: column;
+    }
+    .catalog-editor__header-actions {
+        align-self: stretch; justify-content: flex-end;
+        margin-left: 0;
+    }
+}
 @media (max-width: 540px) {
-    .catalog-editor__toolbar .button { width: 100%; justify-content: center; }
+    .catalog-editor__header-actions .button {
+        max-width: 100%; white-space: normal; text-align: center;
+    }
 }
 
 /* Ελληνική ορατή ημερομηνία με προαιρετικό native ημερολόγιο. */
