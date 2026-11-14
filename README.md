@@ -152,6 +152,10 @@ Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες ε�
 
 Η αλλαγή δεν ενεργοποιεί ΦΠΑ, provider payload, POS ή έκδοση παραστατικών. **Επόμενο βήμα 9.5C.3 — Pricing Integrity & History**. Excel και γενικά bulk tasks παραμένουν αναβλημένα.
 
+## Mobile Back Office — Responsive UX
+
+Το [Manual 55](docs/55-mobile-backoffice-responsive.md) καταγράφει την ανασχεδίαση mobile εμφάνισης Dashboard, Καταλόγου, Τιμοκαταλόγων και καρτέλας τιμών/ιστορικού: compact shell, responsive actions, προσβάσιμες κάρτες αντί για αποκομμένους desktop πίνακες και native mobile sorting. Περιλαμβάνει HTTP regression tests και Chromium/CDP checks σε πολλαπλά viewports. **Δεν προστίθεται EF migration ούτε επηρεάζονται οι τιμές, τα δικαιώματα ή οι ροές myDATA/IMPACT.**
+
 ## Μελλοντικά θέματα
 
 Τα [περιβαλλοντικά τέλη](docs/47-environmental-fees-fiscal-design.md) παραμένουν design-only. Η [εισαγωγή Excel και οι μαζικές εργασίες](docs/48-bulk-actions-and-excel-import-plan.md) έχουν αναβληθεί κατόπιν απόφασης έως την ωρίμανση του μοντέλου.
