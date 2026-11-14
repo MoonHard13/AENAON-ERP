@@ -11,6 +11,8 @@ internal sealed class PriceListAuditEntryConfiguration : IEntityTypeConfiguratio
     {
         builder.ToTable("PriceListAuditEntries", "dbo", table =>
         {
+            // Το SQL trigger απαιτεί να μην χρησιμοποιείται το OUTPUT χωρίς INTO.
+            table.UseSqlOutputClause(false);
             table.HasCheckConstraint("CK_PriceListAuditEntries_Action", "[Action] BETWEEN 1 AND 7");
             table.HasCheckConstraint("CK_PriceListAuditEntries_Source",
                 "[Source] IN ('Web', 'CLI', 'System')");
