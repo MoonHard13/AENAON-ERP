@@ -115,6 +115,11 @@
                                 <input type="hidden" name="expectedChannel" value="@storedPolicy.Channel" />
                                 <input type="hidden" name="expectedIncludeVat"
                                        value="@(storedPolicy.PricesIncludeVat ? "true" : "false")" />
+                                <input type="hidden" name="expectedName" value="@storedPolicy.Name" />
+                                <input type="hidden" name="expectedValidFrom"
+                                       value="@storedPolicy.ValidFrom.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)" />
+                                <input type="hidden" name="expectedValidUntil"
+                                       value="@storedPolicy.ValidUntil?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)" />
                             }
                             <div class="catalog-editor__grid">
                                 <div class="catalog-editor__field">
@@ -546,7 +551,7 @@
         "inactive" => "Ο ανενεργός τιμοκατάλογος δεν επιτρέπει αλλαγές τιμών.",
         "invalid" => "Ελέγξτε τα πεδία, τις ημερομηνίες, τους κωδικούς και τις τιμές.",
         "conflict" => "Η αποθήκευση συγκρούστηκε με νεότερες αλλαγές. Επαναφορτώστε τη σελίδα.",
-        "overlap" => "Βρέθηκε άλλο ενεργό τιμολόγιο με ίδιο κατάστημα, κανάλι, κοινό είδος και επικαλυπτόμενη περίοδο. Αλλάξτε την περίοδο ή το πλαίσιο τιμολόγησης.",
+        "overlap" => "Βρέθηκε άλλος ενεργός τιμοκατάλογος με ίδιο κατάστημα, κανάλι, κοινό είδος και επικαλυπτόμενη περίοδο. Αλλάξτε την περίοδο ή το πλαίσιο τιμολόγησης.",
         "confirm-policy" => "Για αλλαγή καταστήματος, καναλιού ή ερμηνείας τιμής σε ήδη τιμολογημένο κατάλογο απαιτείται ρητή επιβεβαίωση.",
         _ => "Η αλλαγή δεν ολοκληρώθηκε. Δοκιμάστε ξανά."
     };
