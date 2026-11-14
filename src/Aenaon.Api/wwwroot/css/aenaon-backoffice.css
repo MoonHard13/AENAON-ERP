@@ -1034,23 +1034,33 @@ html {
 }
 
 
-/* Η σύμπτυξη είναι σταθερά μέσα στο topbar και δεν επικαλύπτει το breadcrumb. */
+/* Ο χειρισμός σύμπτυξης ανήκει αποκλειστικά στο footer της πλαϊνής στήλης. */
 .sidebar__header { padding: 0 0 24px; }
 .sidebar__header .sidebar__brand { min-width: 0; padding: 0; }
 .sidebar__header .sidebar__brand-text { min-width: 0; overflow: hidden; }
 
-.topbar__sidebar-toggle {
-    flex: 0 0 34px; width: 34px; height: 34px;
+.sidebar__foot .sidebar__collapse-toggle {
+    grid-column: 1 / -1; justify-self: start;
     display: inline-grid; place-items: center;
-    padding: 5px; margin: 0;
-    border: 1px solid var(--border); border-radius: 9px;
-    background: var(--surface-alt); color: var(--muted-strong);
+    flex: 0 0 38px; width: 38px; height: 38px;
+    padding: 8px; margin: 0 0 10px;
+    border: 1px solid #386453; border-radius: 9px;
+    background: #164737; color: #def7ed;
     cursor: pointer; transition: background .16s ease;
 }
-.topbar__sidebar-toggle:hover { background: var(--positive-soft); color: var(--positive); }
-.topbar__sidebar-toggle:focus-visible { outline: 3px solid var(--positive); outline-offset: 2px; }
-.topbar__sidebar-toggle .app-icon { width: 18px; height: 18px; }
-:root[data-sidebar="collapsed"] .topbar__sidebar-toggle .app-icon { transform: scaleX(-1); }
+.sidebar__foot .sidebar__collapse-toggle:hover { background: #1e634f; color: #fff; }
+.sidebar__foot .sidebar__collapse-toggle:focus-visible {
+    outline: 3px solid #50d9ac; outline-offset: 2px;
+}
+.sidebar__foot .sidebar__collapse-toggle .app-icon {
+    display: block; width: 20px; height: 20px;
+}
+:root[data-sidebar="collapsed"] .sidebar__foot .sidebar__collapse-toggle {
+    align-self: center; margin: 0 0 10px;
+}
+:root[data-sidebar="collapsed"] .sidebar__foot .sidebar__collapse-toggle .app-icon {
+    transform: scaleX(-1);
+}
 .sidebar__link-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 @media (min-width: 851px) {
@@ -1079,11 +1089,13 @@ html {
         width: 20px; height: 20px; flex-basis: 20px;
     }
     :root[data-sidebar="collapsed"] .sidebar__foot {
-        display: flex; align-items: center; justify-content: center; padding: 18px 0 0;
+        display: flex; flex-direction: column; align-items: center;
+        justify-content: center; gap: 9px; padding: 18px 0 0;
     }
 }
 @media (max-width: 850px) {
-    .topbar__sidebar-toggle { display: none; }
+    /* Η μικρή οθόνη χρησιμοποιεί το υπάρχον mobile navigation. */
+    .sidebar__collapse-toggle { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
     .dashboard { transition: none; }
