@@ -50,7 +50,8 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
             .SingleOrDefaultAsync(token);
 
     public async Task<PriceListItemsPage?> ReadItemsAsync(Guid tenantId, Guid listId,
-        string? search, int page, int pageSize, CancellationToken token)
+        string? search, int page, int pageSize, CancellationToken token,
+        string sortBy = "code", bool descending = false)
     {
         bool exists = await context.PriceLists.AsNoTracking()
             .AnyAsync(x => x.TenantId == tenantId && x.Id == listId, token);
@@ -66,12 +67,56 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
             query = query.Where(x => x.Code.StartsWith(search) || x.Name.StartsWith(search));
         }
 
-        List<PriceListItemRow> rows = await query.OrderBy(x => x.Code).ThenBy(x => x.Id)
+        // Η ταξινόμηση προηγείται του Skip/Take και γίνεται εξ ολοκλήρου στη SQL.
+        // Ο αριθμητικός κωδικός ακολουθεί φυσική σειρά, όπως στον κύριο κατάλογο ειδών.
+        var joined = query.Select(item => new
+        {
+            Item = item,
+            IsTextCode = item.Code == "" || EF.Functions.Like(item.Code, "%[^0-9]%"),
+            UnitPrice = context.PriceListItems.Where(price =>
+                    price.TenantId == tenantId && price.PriceListId == listId &&
+                    price.CatalogItemId == item.Id)
+                .Select(price => (decimal?)price.UnitPrice).FirstOrDefault()
+        });
+
+        var ordered = (sortBy, descending) switch
+        {
+            ("name", false) => joined.OrderBy(x => x.Item.Name)
+                .ThenBy(x => x.Item.Id),
+            ("name", true) => joined.OrderByDescending(x => x.Item.Name)
+                .ThenBy(x => x.Item.Id),
+            ("kind", false) => joined.OrderBy(x => x.Item.Kind)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            ("kind", true) => joined.OrderByDescending(x => x.Item.Kind)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            // Οι τιμές που δεν έχουν οριστεί εμφανίζονται στο τέλος και στις δύο κατευθύνσεις.
+            ("price", false) => joined.OrderBy(x => x.UnitPrice == null)
+                .ThenBy(x => x.UnitPrice).ThenBy(x => x.Item.Id),
+            ("price", true) => joined.OrderBy(x => x.UnitPrice == null)
+                .ThenByDescending(x => x.UnitPrice).ThenBy(x => x.Item.Id),
+            // Η στήλη ενέργειας ισοδυναμεί με την παρουσία ή απουσία τιμής.
+            ("priced", false) => joined.OrderBy(x => x.UnitPrice != null)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            ("priced", true) => joined.OrderByDescending(x => x.UnitPrice != null)
+                .ThenBy(x => x.Item.Name).ThenBy(x => x.Item.Id),
+            (_, false) => joined.OrderBy(x => x.IsTextCode)
+                .ThenBy(x => x.IsTextCode ? 0L : x.Item.Code.Length > 18
+                    ? long.MaxValue : Convert.ToInt64(x.Item.Code))
+                .ThenBy(x => x.IsTextCode ? 0 : x.Item.Code.Length > 18
+                    ? x.Item.Code.Length : 0)
+                .ThenBy(x => x.Item.Code).ThenBy(x => x.Item.Id),
+            _ => joined.OrderBy(x => x.IsTextCode)
+                .ThenByDescending(x => x.IsTextCode ? 0L : x.Item.Code.Length > 18
+                    ? long.MaxValue : Convert.ToInt64(x.Item.Code))
+                .ThenByDescending(x => x.IsTextCode ? 0 : x.Item.Code.Length > 18
+                    ? x.Item.Code.Length : 0)
+                .ThenByDescending(x => x.Item.Code).ThenBy(x => x.Item.Id)
+        };
+
+        List<PriceListItemRow> rows = await ordered
             .Skip((page - 1) * pageSize).Take(pageSize + 1)
-            .Select(x => new PriceListItemRow(x.Id, x.Code, x.Name, x.Kind,
-                context.PriceListItems.Where(y => y.TenantId == tenantId &&
-                    y.PriceListId == listId && y.CatalogItemId == x.Id)
-                    .Select(y => (decimal?)y.UnitPrice).FirstOrDefault()))
+            .Select(x => new PriceListItemRow(x.Item.Id, x.Item.Code,
+                x.Item.Name, x.Item.Kind, x.UnitPrice))
             .ToListAsync(token);
         bool more = rows.Count > pageSize;
         if (more)
