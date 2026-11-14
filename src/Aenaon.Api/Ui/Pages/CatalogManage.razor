@@ -21,14 +21,6 @@
                           UserName="@_userName" Workspace="@_workspace"
                           CsrfToken="@_csrfToken" TenantId="@TenantId" StoreId="@StoreId" />
         <div class="dashboard__body catalog-page catalog-manage-page">
-            @* Η πλοήγηση και ο τίτλος του editor επαρκούν χωρίς επαναλαμβανόμενο heading. *@
-            <div class="catalog-editor__toolbar">
-                <a class="button button--outline" href="@EditorCancelUrl">
-                    <AppIcon Name="chevron" />
-                    @(_returnEditor is null ? "Επιστροφή στον κατάλογο" : "Πίσω στην καταχώρηση")
-                </a>
-            </div>
-
             @if (!string.IsNullOrWhiteSpace(SavedCode) && !_error && !_denied)
             {
                 <div class="catalog-success" role="status">
@@ -69,13 +61,19 @@
                             <h1>Βασικά στοιχεία</h1>
                             <p>Τα υποχρεωτικά πεδία σημειώνονται με *.</p>
                         </div>
-                        @if (_details.Record is { } record)
-                        {
-                            <span class="catalog-status @(record.IsActive
-                                ? "catalog-status--active" : "catalog-status--inactive")">
-                                @StatusLabel(record.IsActive)
-                            </span>
-                        }
+                        <div class="catalog-editor__header-actions">
+                            @if (_details.Record is { } record)
+                            {
+                                <span class="catalog-status @(record.IsActive
+                                    ? "catalog-status--active" : "catalog-status--inactive")">
+                                    @StatusLabel(record.IsActive)
+                                </span>
+                            }
+                            <a class="button button--outline" href="@EditorCancelUrl" accesskey="b">
+                                <AppIcon Name="chevron" />
+                                @(_returnEditor is null ? "Επιστροφή στον κατάλογο" : "Πίσω στην καταχώρηση")
+                            </a>
+                        </div>
                     </div>
 
                     @if (View is not "categories" && _details.Categories.Count == 0)
