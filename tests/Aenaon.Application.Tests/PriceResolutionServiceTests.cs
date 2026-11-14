@@ -85,7 +85,7 @@ public sealed class PriceResolutionServiceTests
 
         Assert.AreEqual(PriceResolutionStatus.Ambiguous, result.Status);
         Assert.IsNull(result.UnitPrice);
-        Assert.HasCount(2, result.ConflictingPriceListIds!);
+        Assert.AreEqual(2, result.ConflictingPriceListIds!.Count);
     }
 
     private static PriceResolutionCandidate Option(
