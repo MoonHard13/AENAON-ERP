@@ -53,6 +53,30 @@ public sealed class PriceListUiTests
     }
 
     [TestMethod]
+    public async Task HistoryIsDisplayedReadOnlyForOwnerAndMember()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string owner = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}"));
+        Assert.Contains("Ιστορικό αλλαγών τιμοκαταλόγου", owner);
+        Assert.Contains("SKU001", owner);
+        Assert.Contains("9.5000", owner);
+        Assert.Contains("12.5000", owner);
+        Assert.Contains("14/11/2026 16:30:00", owner);
+        Assert.Contains("Προέλευση / Χρήστης", owner);
+        Assert.DoesNotContain("action=\"/ui/price-lists/audit-delete\"", owner);
+
+        factory.Access.GrantedRole = TenantMembershipRole.Member;
+        string member = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}"));
+        Assert.Contains("Ιστορικό αλλαγών τιμοκαταλόγου", member);
+        Assert.DoesNotContain("Αποθήκευση τιμών σελίδας", member);
+    }
+
+    [TestMethod]
     public async Task PriceListEditor_UsesDineInLabelAndStatusBesideTitle()
     {
         await using var factory = new SessionApiFactory();
