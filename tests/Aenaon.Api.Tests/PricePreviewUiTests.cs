@@ -1,4 +1,5 @@
 using System.Net;
+using Aenaon.Application.Catalog;
 using Aenaon.Domain.Catalog;
 using Aenaon.Domain.Tenancy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -85,6 +86,42 @@ public sealed class PricePreviewUiTests
         string css = await client.GetStringAsync("/css/aenaon-backoffice.css");
         Assert.Contains(".price-preview-search .catalog-search > input[type=\"search\"]", css);
         Assert.Contains("padding-left: 46px", css);
+    }
+
+    [TestMethod]
+    public async Task SecondPage_ItemSelectionPreservesPageAndSearchStartsFromFirst()
+    {
+        await using var factory = new SessionApiFactory();
+        for (int index = 1; index <= 24; index++)
+        {
+            factory.Catalog.Items.Add(new CatalogItemSummary(
+                Guid.NewGuid(), Guid.NewGuid(), $"ZZZ{index:000}", $"Είδος {index:000}",
+                CatalogItemKind.Product, false, true));
+        }
+
+        Guid secondPageItem = factory.Catalog.Items[^1].Id;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string pageTwo = WebUtility.HtmlDecode(await client.GetStringAsync(
+            "/price-lists/preview?scope=all&channel=Retail&date=01%2F11%2F2026&page=2"));
+
+        Assert.Contains("ZZZ024", pageTwo);
+        Assert.Contains("name=\"page\" value=\"2\"", pageTwo);
+        Assert.Contains("name=\"requestedPage\" value=\"1\"", pageTwo);
+        Assert.Contains($"name=\"itemId\" value=\"{secondPageItem:D}\"", pageTwo);
+
+        string selected = WebUtility.HtmlDecode(await client.GetStringAsync(
+            "/price-lists/preview?scope=all&channel=Retail&date=01%2F11%2F2026" +
+            $"&page=2&itemId={secondPageItem:D}"));
+        Assert.Contains("ZZZ024 — Είδος 024", selected);
+        Assert.DoesNotContain("Επιλέξτε ενεργό είδος", selected);
+
+        string newSearch = WebUtility.HtmlDecode(await client.GetStringAsync(
+            "/price-lists/preview?scope=all&channel=Retail&date=01%2F11%2F2026" +
+            "&page=2&pageAction=search"));
+        Assert.Contains("name=\"page\" value=\"1\"", newSearch);
+        Assert.DoesNotContain("ZZZ024", newSearch);
     }
 
     [TestMethod]
