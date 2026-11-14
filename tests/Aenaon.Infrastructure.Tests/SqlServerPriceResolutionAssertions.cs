@@ -15,9 +15,13 @@ internal static class SqlServerPriceResolutionAssertions
         Guid storeId = await context.Stores.AsNoTracking()
             .Where(x => x.TenantId == tenantId)
             .Select(x => x.Id).FirstAsync(token);
-        Guid itemId = await context.CatalogItems.AsNoTracking()
-            .Where(x => x.TenantId == tenantId && x.IsActive)
-            .Select(x => x.Id).FirstAsync(token);
+        Guid itemId = await context.PriceListItems.AsNoTracking()
+            .Join(context.PriceLists.AsNoTracking(),
+                price => new { price.TenantId, Id = price.PriceListId },
+                list => new { list.TenantId, list.Id },
+                (price, list) => new { price, list })
+            .Where(x => x.price.TenantId == tenantId && x.list.Code == "RETAIL")
+            .Select(x => x.price.CatalogItemId).SingleAsync(token);
 
         Assert.IsTrue(await store.IsActiveCatalogItemAsync(tenantId, itemId, token));
         Assert.IsFalse(await store.IsActiveCatalogItemAsync(foreignTenantId, itemId, token));
