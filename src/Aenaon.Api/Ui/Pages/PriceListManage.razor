@@ -394,6 +394,80 @@
                         </div>
                     </section>
                 }
+                @if (_list is { } historyList && _history is { } history)
+                {
+                    <section class="surface-card catalog-surface" aria-labelledby="price-history-title">
+                        <div class="catalog-surface__header">
+                            <div class="catalog-surface__identity">
+                                <h2 id="price-history-title">Ιστορικό αλλαγών τιμοκαταλόγου</h2>
+                                <span class="count-pill">Σελίδα @history.Page</span>
+                            </div>
+                        </div>
+                        <p>Οι εγγραφές είναι μόνο για ανάγνωση, σε ώρα UTC. Το ιστορικό αρχίζει από την ενεργοποίηση αυτής της λειτουργίας.</p>
+                        @if (history.Rows.Count == 0)
+                        {
+                            <div class="price-list-empty">Δεν υπάρχουν καταχωρημένες μεταβολές.</div>
+                        }
+                        else
+                        {
+                            <div class="catalog-table-wrap">
+                                <table class="catalog-table">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Ημερομηνία UTC</th>
+                                            <th scope="col">Ενέργεια</th>
+                                            <th scope="col">Είδος</th>
+                                            <th scope="col">Πριν / Μετά</th>
+                                            <th scope="col">Προέλευση / Χρήστης</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (PriceListAuditRow row in history.Rows)
+                                        {
+                                            <tr>
+                                                <td>@row.OccurredUtc.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture)</td>
+                                                <td>@AuditActionLabel(row.Action)</td>
+                                                <td>@(row.CatalogItemCode ?? (row.CatalogItemId?.ToString("D") ?? "—"))</td>
+                                                <td>
+                                                    @if (row.CatalogItemId.HasValue)
+                                                    {
+                                                        <span>@(row.BeforePrice?.ToString("0.0000", CultureInfo.InvariantCulture) ?? "—") → @(row.AfterPrice?.ToString("0.0000", CultureInfo.InvariantCulture) ?? "—") €</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <details>
+                                                            <summary>Προβολή προηγούμενης και νέας πολιτικής</summary>
+                                                            <div><strong>Πριν:</strong> @(row.BeforePolicy ?? "—")</div>
+                                                            <div><strong>Μετά:</strong> @(row.AfterPolicy ?? "—")</div>
+                                                        </details>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @(row.Source == "CLI" ? "CLI" : row.Source == "Web" ? "Blazor" : "Σύστημα")
+                                                    <small>@(row.ActorUserId?.ToString("D") ?? "Αυτόματη ενέργεια")</small>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            @if (history.Page > 1 || history.HasMore)
+                            {
+                                <nav class="catalog-pagination" aria-label="Σελιδοποίηση ιστορικού">
+                                    @if (history.Page > 1)
+                                    {
+                                        <a rel="prev" href="@HistoryUrl(historyList.Id, history.Page - 1)">Προηγούμενη</a>
+                                    }
+                                    <span>Σελίδα @history.Page</span>
+                                    @if (history.HasMore)
+                                    {
+                                        <a rel="next" href="@HistoryUrl(historyList.Id, history.Page + 1)">Επόμενη</a>
+                                    }
+                                </nav>
+                            }
+                        }
+                    </section>
+                }
                 <p class="catalog-disclaimer">
                     Οι τιμές είναι εμπορικά δεδομένα. Οι μονάδες μέτρησης, ο ΦΠΑ και οι λογιστικοί τύποι δεν αντιστοιχίζονται αυτόματα σε myDATA ή IMPACT.
                 </p>
@@ -409,6 +483,7 @@
     [SupplyParameterFromQuery(Name = "id")] public Guid? Id { get; set; }
     [SupplyParameterFromQuery(Name = "search")] public string? Search { get; set; }
     [SupplyParameterFromQuery(Name = "page")] public int? Page { get; set; }
+    [SupplyParameterFromQuery(Name = "historyPage")] public int? HistoryPage { get; set; }
     [SupplyParameterFromQuery(Name = "saved")] public int? Saved { get; set; }
     [SupplyParameterFromQuery(Name = "unchanged")] public int? Unchanged { get; set; }
     [SupplyParameterFromQuery(Name = "removed")] public int? Removed { get; set; }
@@ -417,6 +492,7 @@
     private TenantWorkspaceSnapshot? _workspace;
     private PriceListSummary? _list;
     private PriceListItemsPage? _items;
+    private PriceListHistoryPage? _history;
     private string _userName = "Χρήστης";
     private string? _csrfToken;
     private bool _loading = true;
@@ -470,6 +546,7 @@
         "inactive" => "Ο ανενεργός τιμοκατάλογος δεν επιτρέπει αλλαγές τιμών.",
         "invalid" => "Ελέγξτε τα πεδία, τις ημερομηνίες, τους κωδικούς και τις τιμές.",
         "conflict" => "Η αποθήκευση συγκρούστηκε με νεότερες αλλαγές. Επαναφορτώστε τη σελίδα.",
+        "overlap" => "Βρέθηκε άλλο ενεργό τιμολόγιο με ίδιο κατάστημα, κανάλι, κοινό είδος και επικαλυπτόμενη περίοδο. Αλλάξτε την περίοδο ή το πλαίσιο τιμολόγησης.",
         "confirm-policy" => "Για αλλαγή καταστήματος, καναλιού ή ερμηνείας τιμής σε ήδη τιμολογημένο κατάλογο απαιτείται ρητή επιβεβαίωση.",
         _ => "Η αλλαγή δεν ολοκληρώθηκε. Δοκιμάστε ξανά."
     };
@@ -510,6 +587,26 @@
         return result + (result.Contains('?') ? "&" : "?") + $"id={id:D}";
     }
 
+    private static string AuditActionLabel(PriceListAuditAction action) => action switch
+    {
+        PriceListAuditAction.CreateList => "Δημιουργία τιμοκαταλόγου",
+        PriceListAuditAction.UpdateList => "Αλλαγή πολιτικής",
+        PriceListAuditAction.ActivateList => "Ενεργοποίηση",
+        PriceListAuditAction.DeactivateList => "Απενεργοποίηση",
+        PriceListAuditAction.AddPrice => "Νέα τιμή",
+        PriceListAuditAction.UpdatePrice => "Αλλαγή τιμής",
+        PriceListAuditAction.RemovePrice => "Αφαίρεση τιμής",
+        _ => "Άγνωστη ενέργεια"
+    };
+
+    private string HistoryUrl(Guid id, int historyPage)
+    {
+        string result = ManageUrl(id) + $"&historyPage={historyPage}";
+        if (Page is > 1) result += $"&page={Page}";
+        if (!string.IsNullOrWhiteSpace(Search)) result += $"&search={Uri.EscapeDataString(Search.Trim())}";
+        return result;
+    }
+
     private string ItemsUrl(Guid id, int page)
     {
         string result = ManageUrl(id) + $"&page={page}";
@@ -522,6 +619,7 @@
         _workspace = null;
         _list = null;
         _items = null;
+        _history = null;
         _error = null;
         _loading = true;
         HttpContext? context = HttpContextAccessor.HttpContext;
@@ -571,6 +669,8 @@
                 }
                 _items = await Manager.ReadItemsAsync(userId, _workspace.Tenant!.TenantId,
                     Id.Value, Search, Page ?? 1, 25, context.RequestAborted);
+                _history = await Manager.ReadHistoryAsync(userId, _workspace.Tenant!.TenantId,
+                    Id.Value, HistoryPage ?? 1, 25, context.RequestAborted);
             }
             else if (!await Manager.CanManageAsync(userId, _workspace.Tenant!.TenantId, context.RequestAborted))
             {
