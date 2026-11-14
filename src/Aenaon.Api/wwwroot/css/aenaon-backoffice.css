@@ -1034,28 +1034,23 @@ html {
 }
 
 
-/* Το εικονίδιο αιωρείται στο όριο της πλαϊνής μπάρας και δεν δημιουργεί δεύτερη σειρά. */
-.sidebar { position: relative; z-index: 2; }
-.sidebar__header {
-    position: relative; min-width: 0; padding: 0 0 24px;
-}
-.sidebar__header .sidebar__brand {
-    min-width: 0; padding: 0;
-}
+/* Η σύμπτυξη είναι σταθερά μέσα στο topbar και δεν επικαλύπτει το breadcrumb. */
+.sidebar__header { padding: 0 0 24px; }
+.sidebar__header .sidebar__brand { min-width: 0; padding: 0; }
 .sidebar__header .sidebar__brand-text { min-width: 0; overflow: hidden; }
-.sidebar__collapse-toggle {
-    position: absolute; top: 6px; right: -34px; z-index: 3;
+
+.topbar__sidebar-toggle {
+    flex: 0 0 34px; width: 34px; height: 34px;
     display: inline-grid; place-items: center;
-    width: 30px; height: 30px; padding: 5px; margin: 0;
-    border: 1px solid #386453; border-radius: 999px;
-    background: #103d32; color: #def7ed;
-    box-shadow: 0 2px 7px #00000025;
-    cursor: pointer; transition: background .16s ease, color .16s ease;
+    padding: 5px; margin: 0;
+    border: 1px solid var(--border); border-radius: 9px;
+    background: var(--surface-alt); color: var(--muted-strong);
+    cursor: pointer; transition: background .16s ease;
 }
-.sidebar__collapse-toggle:hover { background: #195443; color: #effff9; }
-.sidebar__collapse-toggle:focus-visible,
-.sidebar__link:focus-visible { outline: 3px solid #50d9ac; outline-offset: 2px; }
-.sidebar__collapse-toggle .app-icon { width: 18px; height: 18px; }
+.topbar__sidebar-toggle:hover { background: var(--positive-soft); color: var(--positive); }
+.topbar__sidebar-toggle:focus-visible { outline: 3px solid var(--positive); outline-offset: 2px; }
+.topbar__sidebar-toggle .app-icon { width: 18px; height: 18px; }
+:root[data-sidebar="collapsed"] .topbar__sidebar-toggle .app-icon { transform: scaleX(-1); }
 .sidebar__link-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 @media (min-width: 851px) {
@@ -1077,12 +1072,6 @@ html {
     :root[data-sidebar="collapsed"] .sidebar__link-label,
     :root[data-sidebar="collapsed"] .sidebar__upcoming,
     :root[data-sidebar="collapsed"] .sidebar__version { display: none; }
-    :root[data-sidebar="collapsed"] .sidebar__collapse-toggle {
-        top: 5px; right: -24px; width: 30px; height: 30px; padding: 5px;
-    }
-    :root[data-sidebar="collapsed"] .sidebar__collapse-toggle .app-icon {
-        transform: scaleX(-1);
-    }
     :root[data-sidebar="collapsed"] .sidebar__link {
         justify-content: center; padding-inline: 10px; gap: 0;
     }
@@ -1094,7 +1083,7 @@ html {
     }
 }
 @media (max-width: 850px) {
-    .sidebar__collapse-toggle { display: none; }
+    .topbar__sidebar-toggle { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
     .dashboard { transition: none; }
