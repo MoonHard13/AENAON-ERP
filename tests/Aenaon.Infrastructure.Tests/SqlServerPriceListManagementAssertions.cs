@@ -43,8 +43,10 @@ internal static class SqlServerPriceListManagementAssertions
             [new PriceListPriceChange(foreignItemId, 50m)], token);
         Assert.AreEqual(PriceListStatus.Invalid, foreign.Status);
 
+        Guid actor = Guid.NewGuid();
         PriceListResult priced = await store.SetPricesAsync(tenant, created.Id.Value,
-            [new PriceListPriceChange(itemId, 9.8765m, null, CheckExpected: true)], token);
+            [new PriceListPriceChange(itemId, 9.8765m, null, CheckExpected: true)],
+            token, actor, "CLI");
         Assert.AreEqual(PriceListStatus.Saved, priced.Status);
         PriceListItemsPage? rows = await store.ReadItemsAsync(tenant, created.Id.Value, null, 1, 25, token);
         Assert.IsNotNull(rows);
@@ -53,6 +55,9 @@ internal static class SqlServerPriceListManagementAssertions
         PriceListResult modified = await store.SetPricesAsync(tenant, created.Id.Value,
             [new PriceListPriceChange(itemId, 12.5000m, 9.8765m, CheckExpected: true)], token);
         Assert.AreEqual(PriceListStatus.Saved, modified.Status);
+        PriceListResult noOp = await store.SetPricesAsync(tenant, created.Id.Value,
+            [new PriceListPriceChange(itemId, 12.5000m, 12.5000m, CheckExpected: true)], token);
+        Assert.AreEqual(PriceListStatus.Saved, noOp.Status);
         Assert.AreEqual(12.5000m, await context.PriceListItems.AsNoTracking()
             .Where(x => x.TenantId == tenant && x.PriceListId == created.Id.Value &&
                 x.CatalogItemId == itemId)
@@ -120,6 +125,24 @@ internal static class SqlServerPriceListManagementAssertions
             }, token);
         Assert.AreEqual(PriceListStatus.Invalid, foreignStore.Status);
 
+        // Το ήδη τιμολογημένο RETAIL με κοινό είδος και ημέρα απαγορεύει αμφισημία.
+        PriceListResult overlap = await store.ApplyAsync(tenant,
+            policy with
+            {
+                Name = "Επικάλυψη RETAIL",
+                StoreId = storeId,
+                Channel = PriceListChannel.Takeaway,
+                PricesIncludeVat = true,
+                ExpectedStoreId = null,
+                ExpectedChannel = PriceListChannel.DineIn,
+                ExpectedPricesIncludeVat = false,
+                ConfirmPolicyChange = true
+            }, token);
+        Assert.AreEqual(PriceListStatus.Conflict, overlap.Status);
+        Assert.AreEqual("pricelist.overlap.conflict", overlap.Error);
+        Assert.AreEqual(PriceListChannel.DineIn,
+            (await store.GetAsync(tenant, created.Id.Value, token))?.Channel);
+
         PriceListResult restoredPolicy = await store.ApplyAsync(tenant,
             policy with
             {
@@ -168,6 +191,32 @@ internal static class SqlServerPriceListManagementAssertions
         Assert.AreEqual(0, await context.PriceListItems.AsNoTracking()
             .CountAsync(x => x.TenantId == tenant && x.PriceListId == created.Id.Value &&
                 x.CatalogItemId == itemId, token));
+
+        PriceListHistoryPage? history = await store.ReadHistoryAsync(
+            tenant, created.Id.Value, 1, 25, token);
+        Assert.IsNotNull(history);
+        Assert.AreEqual(9, history.Rows.Count);
+        Assert.IsTrue(history.Rows.Any(x => x.Action == PriceListAuditAction.AddPrice &&
+            x.Source == "CLI" && x.ActorUserId == actor &&
+            x.CatalogItemId == itemId && x.AfterPrice == 9.8765m));
+        Assert.IsTrue(history.Rows.Any(x => x.Action == PriceListAuditAction.RemovePrice &&
+            x.CatalogItemId == itemId && x.BeforePrice == 12.5000m &&
+            x.AfterPrice is null));
+        Assert.IsTrue(history.Rows.Any(x => x.Action == PriceListAuditAction.UpdateList &&
+            x.BeforePolicy is not null && x.AfterPolicy is not null));
+        Assert.IsNull(await store.ReadHistoryAsync(foreignTenant, created.Id.Value, 1, 25, token));
+
+        // Οι απορριφθείσες/αμετάβλητες εγγραφές δεν προσθέτουν ιστορικό.
+        Assert.AreEqual(9, await context.PriceListAuditEntries.AsNoTracking()
+            .CountAsync(x => x.TenantId == tenant && x.PriceListId == created.Id.Value, token));
+
+        // Αποτρέπεται UPDATE του ιστορικού ακόμη και όταν γίνεται απευθείας σε SQL.
+        Microsoft.Data.SqlClient.SqlException immutable =
+            await Assert.ThrowsExactlyAsync<Microsoft.Data.SqlClient.SqlException>(
+                async () => await context.Database.ExecuteSqlInterpolatedAsync(
+                    $"UPDATE dbo.PriceListAuditEntries SET Source = 'Web' WHERE TenantId = {tenant} AND PriceListId = {created.Id.Value}",
+                    token));
+        Assert.AreEqual(51010, immutable.Number);
 
         // Το είδος παραμένει στον Κατάλογο και δεν διαγράφεται από άλλη επιχειρησιακή ενότητα.
         Assert.IsTrue(await context.CatalogItems.AsNoTracking()
