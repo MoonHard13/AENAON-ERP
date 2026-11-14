@@ -116,7 +116,8 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
         if (validated.Search is { } term)
         {
             items = items.Where(item =>
-                item.Code.StartsWith(term) || item.Name.StartsWith(term));
+                item.Code.StartsWith(term) || item.Name.StartsWith(term) ||
+                (item.Barcode != null && item.Barcode.StartsWith(term)));
         }
 
         if (validated.Kind is { } kind)
@@ -139,6 +140,10 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
 
         var ordered = (validated.SortBy, validated.Descending) switch
         {
+            ("barcode", false) => joined.OrderBy(x => x.Item.Barcode)
+                .ThenBy(x => x.Item.Id),
+            ("barcode", true) => joined.OrderByDescending(x => x.Item.Barcode)
+                .ThenBy(x => x.Item.Id),
             ("name", false) => joined.OrderBy(x => x.Item.Name)
                 .ThenBy(x => x.Item.Id),
             ("name", true) => joined.OrderByDescending(x => x.Item.Name)
@@ -186,7 +191,8 @@ public sealed class SqlCatalogReadStore(AenaonDbContext context) : ICatalogReadS
             .Select(x => new CatalogItemSummary(
                 x.Item.Id, x.Item.CategoryId, x.Item.Code, x.Item.Name,
                 x.Item.Kind, x.Item.TracksStock, x.Item.IsActive, x.Category.Name,
-                null, x.Item.UnitOfMeasure, x.Item.AccountingType))
+                null, x.Item.UnitOfMeasure, x.Item.AccountingType,
+                x.Item.Barcode, x.Item.LongDescription))
             .ToListAsync(cancellationToken);
         bool hasMore = rows.Count > validated.PageSize;
         if (hasMore)
