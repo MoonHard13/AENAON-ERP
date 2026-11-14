@@ -9,7 +9,8 @@ public sealed record CatalogEditorDraft(
     string Code, string Name, Guid? CategoryId, Guid? ParentCategoryId,
     bool TracksStock, bool AutoCode, string ErrorCode, Guid? StoreId = null,
     CatalogUnitOfMeasure? UnitOfMeasure = null,
-    CatalogAccountingType? AccountingType = null);
+    CatalogAccountingType? AccountingType = null,
+    string? Barcode = null, string? LongDescription = null);
 
 public sealed class CatalogEditorDraftStore : IDisposable
 {
