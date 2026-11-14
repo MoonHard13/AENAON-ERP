@@ -1231,6 +1231,27 @@ html {
 .price-preview-filters .catalog-editor__field { min-width: 0; }
 .price-preview-filters .catalog-category-picker { min-width: 0; }
 .price-preview-filters .price-preview-search { grid-column: 1 / 3; }
+/* Το generic input του editor υπερκαλύπτει το padding του εικονιδίου αναζήτησης. */
+.price-preview-filters .price-preview-search .catalog-search > input[type="search"] {
+    padding-left: 46px; min-height: 46px; box-sizing: border-box;
+}
+.price-preview-filters .price-preview-search .catalog-search > .app-icon {
+    left: 15px; z-index: 1;
+}
+/* Οι επιλογές υποβάλλουν τα φίλτρα της ίδιας φόρμας — όχι παλιό href. */
+.price-preview-select {
+    font: inherit; cursor: pointer; background: var(--surface);
+}
+.price-preview-page-button {
+    font: inherit; cursor: pointer; color: var(--positive);
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface); padding: 8px 13px;
+}
+.price-preview-page-button:hover,
+.price-preview-page-button:focus-visible {
+    border-color: var(--positive); color: var(--positive);
+    background: var(--positive-soft);
+}
 .price-preview-filter-actions {
     display: flex; gap: 14px; flex-wrap: wrap;
     align-items: center; justify-content: flex-end; min-height: 42px;
