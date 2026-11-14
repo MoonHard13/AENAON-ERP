@@ -57,7 +57,7 @@ public static class CatalogCommercialOptions
     public static string AccountingName(CatalogAccountingType value) => value switch
     {
         CatalogAccountingType.Merchandise => "Εμπόρευμα",
-        CatalogAccountingType.FinishedProduct => "Προϊόν παραγωγής",
+        CatalogAccountingType.FinishedProduct => "Προϊόν",
         CatalogAccountingType.RawMaterial => "Πρώτη ύλη",
         CatalogAccountingType.Consumable => "Αναλώσιμο",
         CatalogAccountingType.Service => "Υπηρεσία",
