@@ -26,7 +26,7 @@ public static class CatalogItemDetails
 
         // Ακριβώς 8/12/13/14 αριθμητικά ψηφία αντιμετωπίζονται ως GTIN και ελέγχονται.
         bool numeric = normalized.All(c => c is >= '0' and <= '9');
-        if (numeric && normalized.Length is 8 or 12 or 13 or 14 &&
+        if (numeric && (normalized.Length is 8 or 12 or 13 or 14) &&
             !HasValidGtinCheckDigit(normalized))
         {
             throw new DomainRuleException("catalog.item.barcode.check_digit",
