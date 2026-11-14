@@ -73,6 +73,67 @@ internal static class SqlServerPriceListManagementAssertions
         Assert.AreEqual(PriceListStatus.Saved, changed.Status);
         Assert.AreEqual("Νέα περιγραφή", (await store.GetAsync(tenant, created.Id.Value, token))?.Name);
 
+        // Οι αλλαγές πολιτικής με υφιστάμενες τιμές απαιτούν ρητή επιβεβαίωση.
+        PriceListChange policy = new(PriceListAction.Update, created.Id,
+            Name: "Τιμοκατάλογος Dine In",
+            StoreId: null, Channel: PriceListChannel.DineIn,
+            PricesIncludeVat: false, ValidFrom: new DateOnly(2026, 11, 14),
+            EditCommercialProfile: true,
+            ExpectedStoreId: storeId,
+            ExpectedChannel: PriceListChannel.Takeaway,
+            ExpectedPricesIncludeVat: true);
+
+        PriceListResult unconfirmed = await store.ApplyAsync(tenant, policy, token);
+        Assert.AreEqual(PriceListStatus.Invalid, unconfirmed.Status);
+        Assert.AreEqual("pricelist.policy.confirm_required", unconfirmed.Error);
+        Assert.AreEqual(storeId, (await store.GetAsync(tenant, created.Id.Value, token))?.StoreId);
+
+        PriceListResult updatedPolicy = await store.ApplyAsync(tenant,
+            policy with { ConfirmPolicyChange = true }, token);
+        Assert.AreEqual(PriceListStatus.Saved, updatedPolicy.Status);
+        PriceListSummary? afterPolicy = await store.GetAsync(tenant, created.Id.Value, token);
+        Assert.IsNotNull(afterPolicy);
+        Assert.IsNull(afterPolicy.StoreId);
+        Assert.AreEqual(PriceListChannel.DineIn, afterPolicy.Channel);
+        Assert.IsFalse(afterPolicy.PricesIncludeVat);
+        Assert.AreEqual(12.5000m, await context.PriceListItems.AsNoTracking()
+            .Where(x => x.TenantId == tenant && x.PriceListId == created.Id.Value)
+            .Select(x => x.UnitPrice).SingleAsync(token));
+
+        // Η παλιά φόρμα δεν μπορεί να επαναφέρει εν αγνοία μας παλιά πεδία.
+        PriceListResult staleProfile = await store.ApplyAsync(tenant,
+            policy with { Name = "Απαρχαιωμένη φόρμα", ConfirmPolicyChange = true }, token);
+        Assert.AreEqual(PriceListStatus.Conflict, staleProfile.Status);
+
+        Guid foreignStoreId = await context.Stores.AsNoTracking()
+            .Where(x => x.TenantId == foreignTenant)
+            .Select(x => x.Id).FirstAsync(token);
+        PriceListResult foreignStore = await store.ApplyAsync(tenant,
+            policy with
+            {
+                Name = "Άλλης εταιρείας",
+                StoreId = foreignStoreId,
+                ExpectedStoreId = null,
+                ExpectedChannel = PriceListChannel.DineIn,
+                ExpectedPricesIncludeVat = false,
+                ConfirmPolicyChange = true
+            }, token);
+        Assert.AreEqual(PriceListStatus.Invalid, foreignStore.Status);
+
+        PriceListResult restoredPolicy = await store.ApplyAsync(tenant,
+            policy with
+            {
+                Name = "Επιστροφή",
+                StoreId = storeId,
+                Channel = PriceListChannel.Retail,
+                PricesIncludeVat = true,
+                ExpectedStoreId = null,
+                ExpectedChannel = PriceListChannel.DineIn,
+                ExpectedPricesIncludeVat = false,
+                ConfirmPolicyChange = true
+            }, token);
+        Assert.AreEqual(PriceListStatus.Saved, restoredPolicy.Status);
+
         PriceListResult deactivated = await store.ApplyAsync(tenant,
             new PriceListChange(PriceListAction.Deactivate, created.Id), token);
         Assert.AreEqual(PriceListStatus.Saved, deactivated.Status);
