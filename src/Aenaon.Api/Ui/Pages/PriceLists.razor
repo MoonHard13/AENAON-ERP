@@ -54,6 +54,10 @@
                             <span class="count-pill">@_page.Rows.Count εγγραφές στη σελίδα</span>
                         </div>
                         <div class="catalog-surface__actions">
+                            <a class="button button--outline" href="@PreviewUrl()" accesskey="p"
+                               title="Προεπισκόπηση εμπορικής τιμής (συντόμευση P)">
+                                <AppIcon Name="search" /> Προεπισκόπηση τιμής
+                            </a>
                             @if (CanManage)
                             {
                                 <a class="button button--primary catalog-create" href="@ManageUrl()" accesskey="n" title="Νέος τιμοκατάλογος (συντόμευση N)">
@@ -200,6 +204,9 @@
         }
         return result;
     }
+
+    private string PreviewUrl() =>
+        IndexUrl().Replace("/price-lists", "/price-lists/preview", StringComparison.Ordinal);
 
     private string ManageUrl(Guid? id = null) =>
         "/price-lists/manage" + IndexUrl().Replace("/price-lists", "") +

@@ -1,0 +1,439 @@
+@page "/price-lists/preview"
+@attribute [Authorize]
+@attribute [StreamRendering]
+@layout MainLayout
+@using System.Globalization
+@using Aenaon.Application.Catalog
+@using Aenaon.Domain.Catalog
+@using Aenaon.Domain.Tenancy
+@using Aenaon.Domain.Exceptions
+@inject IHttpContextAccessor HttpContextAccessor
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject TenantWorkspaceResolver WorkspaceResolver
+@inject WorkspacePreferenceService Preference
+@inject CatalogReadService CatalogReader
+@inject PriceResolutionService Resolver
+@inject ILogger<PricePreview> Logger
+
+<PageTitle>Προεπισκόπηση τιμής | Aenaon ERP</PageTitle>
+
+<main class="dashboard">
+    <BackOfficeSidebar ActivePage="price-lists" TenantId="@TenantId" StoreId="@StoreId" />
+    <div class="dashboard__content">
+        <BackOfficeTopbar ActivePage="price-lists" PageTitle="Προεπισκόπηση τιμής"
+                          UserName="@_userName" Workspace="@_workspace"
+                          CsrfToken="@_csrfToken" TenantId="@TenantId" StoreId="@StoreId" />
+        <div class="dashboard__body catalog-page price-preview-page">
+            @if (_loading)
+            {
+                <section class="surface-card catalog-loading" role="status" aria-busy="true">
+                    <span class="catalog-loading__indicator" aria-hidden="true"></span>
+                    <span>Έλεγχος εμπορικών τιμών…</span>
+                </section>
+            }
+            else if (_workspace is null || _error == "database")
+            {
+                <div class="form-alert" role="alert">Δεν ήταν δυνατή η φόρτωση των τιμών. Ελέγξτε τη σύνδεση με τη βάση.</div>
+            }
+            else if (_workspace.Status is not (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores) ||
+                     _items is { IsAuthorized: false } || _error == "access")
+            {
+                <div class="workspace-alert" role="alert">Δεν έχετε πρόσβαση στην επιλεγμένη επιχείρηση ή στο κατάστημα.</div>
+                <a class="button button--outline" href="/dashboard">Επιλογή επιχείρησης</a>
+            }
+            else
+            {
+                <section class="surface-card catalog-surface" aria-labelledby="price-preview-title">
+                    <div class="catalog-surface__header">
+                        <div class="catalog-surface__identity">
+                            <h1 id="price-preview-title">Προεπισκόπηση τιμής</h1>
+                            <span class="catalog-readonly"><AppIcon Name="shield" /> Μόνο ανάγνωση</span>
+                        </div>
+                        <div class="catalog-surface__actions">
+                            <a class="button button--outline" href="@BackUrl" accesskey="b">
+                                <AppIcon Name="chevron" /> Επιστροφή στους τιμοκαταλόγους
+                            </a>
+                        </div>
+                    </div>
+
+                    <form method="get" action="/price-lists/preview"
+                          class="price-preview-form" role="search"
+                          aria-label="Επιλογή εμπορικής τιμής">
+                        <div class="price-preview-filters">
+                        <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
+                        <input type="hidden" name="page" value="@_pageNumber" />
+                        @if (_workspace.Store is { } currentStore)
+                        {
+                            <input type="hidden" name="storeId" value="@currentStore.StoreId" />
+                        }
+
+                        <div class="catalog-editor__field">
+                            <PriceListSelectPicker Id="preview-store" FieldName="scope"
+                                Label="Κατάστημα τιμής" SelectedValue="@_scope"
+                                Required="true" Options="@StoreOptions"
+                                HelpText="Επιλέξτε κατάστημα ή γενικό τιμοκατάλογο." />
+                        </div>
+                        <div class="catalog-editor__field">
+                            <PriceListSelectPicker Id="preview-channel" FieldName="channel"
+                                Label="Κανάλι πώλησης" SelectedValue="@_channel.ToString()"
+                                Required="true" Options="@ChannelOptions"
+                                HelpText="Dine In, Takeaway, Delivery, Λιανική ή Online." />
+                        </div>
+                        <div class="catalog-editor__field">
+                            <label for="preview-date">Ημερομηνία πώλησης *</label>
+                            <div class="price-list-date-control">
+                                <input id="preview-date" type="text" name="date" required
+                                       inputmode="numeric" maxlength="10" autocomplete="off"
+                                       pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}"
+                                       placeholder="ηη/μμ/εεεε" value="@_dateText" accesskey="d"
+                                       aria-describedby="preview-date-help" />
+                                <button type="button" class="price-list-date-button"
+                                        data-date-calendar="preview-date" aria-label="Επιλογή ημερομηνίας">
+                                    <AppIcon Name="calendar" />
+                                </button>
+                                <input type="date" class="price-list-date-native" data-date-native
+                                       tabindex="-1" aria-hidden="true" />
+                            </div>
+                            <small id="preview-date-help">Απαιτείται συγκεκριμένη ημερομηνία (dd/MM/yyyy).</small>
+                        </div>
+                        <div class="catalog-editor__field price-preview-search">
+                            <label for="preview-search">Προϊόν ή υπηρεσία (αρχίζει από)</label>
+                            <div class="catalog-search">
+                                <AppIcon Name="search" />
+                                <input id="preview-search" name="search" type="search"
+                                       maxlength="80" autocomplete="off" accesskey="f"
+                                       value="@Search" placeholder="Κωδικός ή περιγραφή…" />
+                            </div>
+                        </div>
+                        <div class="price-preview-filter-actions">
+                            <button type="submit" formnovalidate class="button button--primary" name="pageAction" value="search">
+                                <AppIcon Name="search" /> Αναζήτηση ειδών
+                            </button>
+                            <a class="catalog-reset" href="@ResetUrl">Καθαρισμός</a>
+                        </div>
+                        </div>
+                    @* Ο πίνακας ανήκει στην ίδια GET φόρμα, ώστε η επιλογή είδους να
+                       αποστέλλει πάντοτε τις τρέχουσες τιμές ημερομηνίας/καναλιού/καταστήματος. *@
+
+                    @if (_error == "invalid")
+                    {
+                        <div class="form-alert" role="alert">
+                            Ελέγξτε τα φίλτρα, την ημερομηνία και την επιλογή καταστήματος.
+                        </div>
+                    }
+                    else if (_items?.Page is { } catalogPage)
+                    {
+                        <div class="price-preview-list">
+                            <div class="price-preview-list__heading">
+                                <strong>Επιλέξτε είδος</strong>
+                                <span class="price-list-hint">Προϊόντα και υπηρεσίες — έως 25 ανά σελίδα</span>
+                            </div>
+                            @if (catalogPage.Rows.Count == 0)
+                            {
+                                <div class="price-list-empty"><strong>Δεν βρέθηκαν είδη.</strong></div>
+                            }
+                            else
+                            {
+                                <div class="catalog-table-wrap">
+                                    <table class="catalog-table">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Κωδικός</th>
+                                                <th scope="col">Περιγραφή</th>
+                                                <th scope="col">Τύπος</th>
+                                                <th scope="col">Ενέργεια</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (CatalogItemSummary item in catalogPage.Rows)
+                                            {
+                                                <tr class="@(ItemId == item.Id ? "price-preview-selected" : null)">
+                                                    <td><strong>@item.Code</strong></td>
+                                                    <td>@item.Name</td>
+                                                    <td>@(item.Kind == CatalogItemKind.Product ? "Προϊόν" : "Υπηρεσία")</td>
+                                                    <td>
+                                                        <button type="submit" class="catalog-edit-link price-preview-select"
+                                                                name="itemId" value="@item.Id"
+                                                                aria-current="@(ItemId == item.Id ? "true" : null)">
+                                                            @(ItemId == item.Id ? "Επιλεγμένο" : "Έλεγχος τιμής")
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            @if (catalogPage.Page > 1 || catalogPage.HasMore)
+                            {
+                                <nav class="catalog-pagination" aria-label="Σελιδοποίηση ειδών">
+                                    @if (catalogPage.Page > 1)
+                                    {
+                                        <button type="submit" formnovalidate name="requestedPage" value="@(catalogPage.Page - 1)" class="price-preview-page-button">Προηγούμενη</button>
+                                    }
+                                    <span>Σελίδα @catalogPage.Page</span>
+                                    @if (catalogPage.HasMore)
+                                    {
+                                        <button type="submit" formnovalidate name="requestedPage" value="@(catalogPage.Page + 1)" class="price-preview-page-button">Επόμενη</button>
+                                    }
+                                </nav>
+                            }
+                        </div>
+                    }
+                    </form>
+                </section>
+
+                @if (ItemId.HasValue)
+                {
+                    <section class="surface-card price-preview-result" aria-labelledby="preview-result-title">
+                        <div class="price-preview-result__heading">
+                            <h2 id="preview-result-title">Αποτέλεσμα επιλογής τιμής</h2>
+                            @if (_selectedItem is { } chosenItem)
+                            {
+                                <span class="price-list-hint">@chosenItem.Code — @chosenItem.Name</span>
+                            }
+                        </div>
+                        @if (_error == "date" || _error == "item")
+                        {
+                            <div class="form-alert" role="alert">
+                                @(_error == "date"
+                                    ? "Πληκτρολογήστε έγκυρη ημερομηνία dd/MM/yyyy πριν επιλέξετε είδος."
+                                    : "Επιλέξτε ενεργό είδος από τη λίστα αποτελεσμάτων.")
+                            </div>
+                        }
+                        else if (_result is { } result)
+                        {
+                            @switch (result.Status)
+                            {
+                                case PriceResolutionStatus.Resolved:
+                                    <div class="price-preview-success" role="status">
+                                        <div>
+                                            <span>Εμπορική τιμή μονάδας</span>
+                                            <strong>@result.UnitPrice!.Value.ToString("N4", GreekCulture) €</strong>
+                                            <small>@(result.PricesIncludeVat == true ? "Τιμή με ΦΠΑ" : "Τιμή χωρίς ΦΠΑ")</small>
+                                        </div>
+                                        <div class="price-preview-success__meta">
+                                            <span>Τιμοκατάλογος: <strong>@result.PriceListCode</strong></span>
+                                            <span>Νόμισμα: @result.Currency</span>
+                                            <span>Προτεραιότητα: @PriorityLabel(result)</span>
+                                        </div>
+                                    </div>
+                                    break;
+                                case PriceResolutionStatus.Ambiguous:
+                                    <div class="form-alert" role="alert">
+                                        <strong>Αμφίσημη τιμή.</strong>
+                                        Υπάρχουν περισσότεροι από ένας ισόβαθμοι τιμοκατάλογοι. Δεν επιλέχθηκε αυθαίρετη τιμή.
+                                        <ul>
+                                            @foreach (Guid id in result.ConflictingPriceListIds ?? [])
+                                            {
+                                                <li><a href="@ManageUrl(id)">Τιμοκατάλογος @id</a></li>
+                                            }
+                                        </ul>
+                                    </div>
+                                    break;
+                                case PriceResolutionStatus.NotPriced:
+                                    <div class="price-preview-notice" role="status">
+                                        Δεν βρέθηκε τιμή για την ημερομηνία, το κατάστημα και το κανάλι. Δεν εφαρμόζεται μη εγκεκριμένο fallback.
+                                    </div>
+                                    break;
+                                case PriceResolutionStatus.ItemUnavailable:
+                                    <div class="price-preview-notice" role="status">Το είδος δεν είναι διαθέσιμο ή έχει απενεργοποιηθεί.</div>
+                                    break;
+                                default:
+                                    <div class="form-alert" role="alert">Δεν επιτρέπεται η συγκεκριμένη αναζήτηση.</div>
+                                    break;
+                            }
+                        }
+                    </section>
+                }
+
+                <p class="catalog-disclaimer">
+                    Η προεπισκόπηση διαβάζει αποκλειστικά εμπορικές τιμές. Δεν υπολογίζει ΦΠΑ,
+                    δεν εκδίδει παραστατικά και δεν διαβιβάζει δεδομένα σε myDATA ή IMPACT.
+                </p>
+            }
+        </div>
+        <footer class="dashboard__footer">© @DateTime.UtcNow.Year Aenaon ERP · by MoonHard <span>Built with .NET &amp; Blazor</span></footer>
+    </div>
+</main>
+
+@code {
+    [SupplyParameterFromQuery(Name = "tenantId")] public Guid? TenantId { get; set; }
+    [SupplyParameterFromQuery(Name = "storeId")] public Guid? StoreId { get; set; }
+    [SupplyParameterFromQuery(Name = "scope")] public string? Scope { get; set; }
+    [SupplyParameterFromQuery(Name = "channel")] public string? Channel { get; set; }
+    [SupplyParameterFromQuery(Name = "date")] public string? DateText { get; set; }
+    [SupplyParameterFromQuery(Name = "search")] public string? Search { get; set; }
+    [SupplyParameterFromQuery(Name = "page")] public int? Page { get; set; }
+    [SupplyParameterFromQuery(Name = "requestedPage")] public int? RequestedPage { get; set; }
+    [SupplyParameterFromQuery(Name = "pageAction")] public string? PageAction { get; set; }
+    [SupplyParameterFromQuery(Name = "itemId")] public Guid? ItemId { get; set; }
+
+    private static readonly CultureInfo GreekCulture = CultureInfo.GetCultureInfo("el-GR");
+    private static readonly IReadOnlyList<PriceListSelectOption> ChannelOptions =
+    [
+        new("All", "Όλα τα κανάλια"),
+        new("DineIn", "Dine In"),
+        new("Takeaway", "Takeaway"),
+        new("Delivery", "Delivery"),
+        new("Retail", "Λιανική"),
+        new("Online", "Online")
+    ];
+
+    private TenantWorkspaceSnapshot? _workspace;
+    private CatalogReadResult<CatalogItemSummary>? _items;
+    private CatalogItemSummary? _selectedItem;
+    private PriceResolutionResult? _result;
+    private string? _error;
+    private string? _csrfToken;
+    private string _userName = "Χρήστης";
+    private bool _loading = true;
+    private string _scope = "all";
+    private string _dateText = "";
+    private Guid? _priceStore;
+    private PriceListChannel _channel = PriceListChannel.All;
+    private int _pageNumber = 1;
+
+    private IReadOnlyList<PriceListSelectOption> StoreOptions =>
+        [new("all", "Όλα τα καταστήματα"),
+         .. (_workspace?.Stores ?? []).Select(store =>
+             new PriceListSelectOption(store.StoreId.ToString("D"),
+                 $"{store.Code} — {store.Name}"))];
+
+    private string BackUrl => BaseUrl("/price-lists");
+    private string ResetUrl => BaseUrl("/price-lists/preview");
+
+    private string BaseUrl(string path)
+    {
+        if (_workspace?.Tenant is not { } tenant)
+        {
+            return path;
+        }
+
+        string result = $"{path}?tenantId={tenant.TenantId:D}";
+        return _workspace.Store is { } store ? result + $"&storeId={store.StoreId:D}" : result;
+    }
+
+    private string ManageUrl(Guid id) =>
+        BaseUrl("/price-lists/manage") + $"&id={id:D}";
+
+    private string PriorityLabel(PriceResolutionResult result)
+    {
+        bool scoped = result.PriceListStoreId.HasValue;
+        bool exactChannel = _channel != PriceListChannel.All &&
+            result.PriceListChannel == _channel;
+        return (scoped, exactChannel) switch
+        {
+            (true, true) => "1 — Κατάστημα και κανάλι",
+            (true, false) => "2 — Κατάστημα και όλα τα κανάλια",
+            (false, true) => "3 — Όλα τα καταστήματα και κανάλι",
+            _ => "4 — Γενικός τιμοκατάλογος"
+        };
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _workspace = null;
+        _items = null;
+        _result = null;
+        _selectedItem = null;
+        _error = null;
+        _dateText = DateText?.Trim() ?? "";
+
+        HttpContext? context = HttpContextAccessor.HttpContext;
+        if (context?.Request.IsHttps != true ||
+            context.User.Identity?.IsAuthenticated != true ||
+            !Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid userId) ||
+            userId == Guid.Empty)
+        {
+            _error = "access";
+            _loading = false;
+            return;
+        }
+
+        _userName = context.User.Identity.Name ?? "Χρήστης";
+        _csrfToken = Antiforgery.GetAndStoreTokens(context).RequestToken;
+        context.Response.Headers.CacheControl = "no-store";
+
+        try
+        {
+            Guid? tenant = TenantId;
+            Guid? store = StoreId;
+            if (!tenant.HasValue && !store.HasValue &&
+                Preference.TryRead(context, userId, out Guid preferredTenant, out Guid? preferredStore))
+            {
+                tenant = preferredTenant;
+                store = preferredStore;
+            }
+
+            _workspace = await WorkspaceResolver.ResolveAsync(
+                userId, tenant, store, context.RequestAborted);
+            if (_workspace.Status is not (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores))
+            {
+                _error = "access";
+                return;
+            }
+
+            _scope = Scope ?? (_workspace.Store?.StoreId.ToString("D") ?? "all");
+            // Η αναζήτηση ξεκινά από την πρώτη σελίδα, ενώ επιλογή είδους
+            // διατηρεί την τρέχουσα σελίδα και η σελιδοποίηση ζητά ρητά νέα.
+            _pageNumber = RequestedPage ?? (PageAction == "search" ? 1 : Page ?? 1);
+            if (PageAction is not (null or "search") ||
+                !Enum.TryParse(Channel ?? "All", false, out _channel) ||
+                !Enum.IsDefined(_channel) ||
+                (_scope != "all" &&
+                 (!Guid.TryParse(_scope, out Guid parsedStore) || parsedStore == Guid.Empty ||
+                  !_workspace.Stores.Any(x => x.StoreId == parsedStore))) ||
+                Page is < 1 or > CatalogReadQuery.MaxPage ||
+                RequestedPage is < 1 or > CatalogReadQuery.MaxPage ||
+                _pageNumber is < 1 or > CatalogReadQuery.MaxPage ||
+                ItemId == Guid.Empty)
+            {
+                _error = "invalid";
+                return;
+            }
+
+            _priceStore = _scope == "all" ? null : Guid.Parse(_scope);
+            _items = await CatalogReader.ReadItemsAsync(userId, _workspace.Tenant!.TenantId,
+                new CatalogReadQuery(_pageNumber, 25, Search), context.RequestAborted);
+
+            if (ItemId.HasValue)
+            {
+                _selectedItem = _items.Page?.Rows.FirstOrDefault(x => x.Id == ItemId.Value);
+                if (_selectedItem is null)
+                {
+                    _error = "item";
+                }
+                else if (!DateOnly.TryParseExact(_dateText, "dd/MM/yyyy",
+                             CultureInfo.InvariantCulture, DateTimeStyles.None,
+                             out DateOnly businessDate))
+                {
+                    _error = "date";
+                }
+                else
+                {
+                    _result = await Resolver.ResolveAsync(userId, _workspace.Tenant.TenantId,
+                        ItemId.Value, _priceStore, _channel, businessDate, context.RequestAborted);
+                }
+            }
+        }
+        catch (DomainRuleException)
+        {
+            _error = "invalid";
+        }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Price preview load failed");
+            _error = "database";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

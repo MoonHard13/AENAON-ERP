@@ -85,6 +85,9 @@
                             <p>Μπορείτε να επεξεργαστείτε κατάστημα, κανάλι και ερμηνεία τιμής. Για ήδη τιμολογημένα είδη απαιτείται επιβεβαίωση αλλαγής πολιτικής.</p>
                         </div>
                         <div class="catalog-editor__header-actions">
+                            <a class="button button--outline" href="@PreviewPriceUrl" accesskey="p">
+                                <AppIcon Name="search" /> Προεπισκόπηση τιμής
+                            </a>
                             <a class="button button--outline" href="@BackUrl" accesskey="b">
                                 <AppIcon Name="chevron" /> Επιστροφή στους τιμοκαταλόγους
                             </a>
@@ -483,6 +486,9 @@
         PriceListChannel.Online => "Online",
         _ => "Όλα"
     };
+
+    private string PreviewPriceUrl =>
+        BackUrl.Replace("/price-lists", "/price-lists/preview", StringComparison.Ordinal);
 
     private string BackUrl
     {
