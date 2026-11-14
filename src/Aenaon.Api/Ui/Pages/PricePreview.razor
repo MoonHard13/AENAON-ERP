@@ -329,7 +329,8 @@
     private string PriorityLabel(PriceResolutionResult result)
     {
         bool scoped = result.PriceListStoreId.HasValue;
-        bool exactChannel = result.PriceListChannel == _channel;
+        bool exactChannel = _channel != PriceListChannel.All &&
+            result.PriceListChannel == _channel;
         return (scoped, exactChannel) switch
         {
             (true, true) => "1 — Κατάστημα και κανάλι",
