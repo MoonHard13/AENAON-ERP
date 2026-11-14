@@ -109,7 +109,8 @@
                             </button>
                             <a class="catalog-reset" href="@ResetUrl">Καθαρισμός</a>
                         </div>
-                    </form>
+                    @* Ο πίνακας ανήκει στην ίδια GET φόρμα, ώστε η επιλογή είδους να
+                       αποστέλλει πάντοτε τις τρέχουσες τιμές ημερομηνίας/καναλιού/καταστήματος. *@
 
                     @if (_error == "invalid")
                     {
@@ -148,10 +149,11 @@
                                                     <td>@item.Name</td>
                                                     <td>@(item.Kind == CatalogItemKind.Product ? "Προϊόν" : "Υπηρεσία")</td>
                                                     <td>
-                                                        <a class="catalog-edit-link" href="@PreviewUrl(item.Id, catalogPage.Page)"
-                                                           aria-current="@(ItemId == item.Id ? "true" : null)">
+                                                        <button type="submit" class="catalog-edit-link price-preview-select"
+                                                                name="itemId" value="@item.Id"
+                                                                aria-current="@(ItemId == item.Id ? "true" : null)">
                                                             @(ItemId == item.Id ? "Επιλεγμένο" : "Έλεγχος τιμής")
-                                                        </a>
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             }
@@ -164,17 +166,18 @@
                                 <nav class="catalog-pagination" aria-label="Σελιδοποίηση ειδών">
                                     @if (catalogPage.Page > 1)
                                     {
-                                        <a href="@PreviewUrl(null, catalogPage.Page - 1)" rel="prev">Προηγούμενη</a>
+                                        <button type="submit" name="page" value="@(catalogPage.Page - 1)" class="price-preview-page-button">Προηγούμενη</button>
                                     }
                                     <span>Σελίδα @catalogPage.Page</span>
                                     @if (catalogPage.HasMore)
                                     {
-                                        <a href="@PreviewUrl(null, catalogPage.Page + 1)" rel="next">Επόμενη</a>
+                                        <button type="submit" name="page" value="@(catalogPage.Page + 1)" class="price-preview-page-button">Επόμενη</button>
                                     }
                                 </nav>
                             }
                         </div>
                     }
+                    </form>
                 </section>
 
                 @if (ItemId.HasValue)
@@ -307,24 +310,6 @@
 
     private string ManageUrl(Guid id) =>
         BaseUrl("/price-lists/manage") + $"&id={id:D}";
-
-    private string PreviewUrl(Guid? id, int page)
-    {
-        string query = BaseUrl("/price-lists/preview") +
-            $"&scope={Uri.EscapeDataString(_scope)}&channel={_channel}" +
-            $"&date={Uri.EscapeDataString(_dateText)}&page={page}";
-        if (!string.IsNullOrWhiteSpace(Search))
-        {
-            query += $"&search={Uri.EscapeDataString(Search.Trim())}";
-        }
-
-        if (id.HasValue)
-        {
-            query += $"&itemId={id.Value:D}";
-        }
-
-        return query;
-    }
 
     private string PriorityLabel(PriceResolutionResult result)
     {
