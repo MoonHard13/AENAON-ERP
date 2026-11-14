@@ -103,7 +103,10 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
                 x.BeforePolicy, x.AfterPolicy))
             .ToListAsync(token);
         bool more = rows.Count > pageSize;
-        if (more) rows.RemoveAt(pageSize);
+        if (more)
+        {
+            rows.RemoveAt(pageSize);
+        }
         return new(rows, page, more);
     }
 
@@ -285,7 +288,10 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
             {
                 if (existing.TryGetValue(change.CatalogItemId, out PriceListItem? stored))
                 {
-                    if (stored.UnitPrice == change.UnitPrice) continue;
+                    if (stored.UnitPrice == change.UnitPrice)
+                    {
+                        continue;
+                    }
                     context.PriceListAuditEntries.Add(PriceListAuditEntry.Create(
                         tenantId, priceListId, change.CatalogItemId, actorUserId, source,
                         PriceListAuditAction.UpdatePrice, beforePrice: stored.UnitPrice,
@@ -391,7 +397,10 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
     private async Task<bool> HasOverlappingPricesAsync(PriceList list,
         Guid[]? candidateItemIds, CancellationToken token)
     {
-        if (!list.IsActive || candidateItemIds is { Length: 0 }) return false;
+        if (!list.IsActive || candidateItemIds is { Length: 0 })
+        {
+            return false;
+        }
 
         DateOnly lastDay = list.ValidUntil ?? DateOnly.MaxValue;
         IQueryable<PriceList> overlapping = context.PriceLists.AsNoTracking()
