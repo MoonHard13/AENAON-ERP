@@ -186,6 +186,28 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     });
             });
 
+        modelBuilder.Entity("Aenaon.Domain.Catalog.PriceListAuditEntry", b =>
+            {
+                b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
+                b.Property<int>("Action").HasColumnType("int");
+                b.Property<string>("AfterValue").HasMaxLength(800).HasColumnType("nvarchar(800)");
+                b.Property<Guid?>("ActorUserId").HasColumnType("uniqueidentifier");
+                b.Property<string>("BeforeValue").HasMaxLength(800).HasColumnType("nvarchar(800)");
+                b.Property<Guid?>("CatalogItemId").HasColumnType("uniqueidentifier");
+                b.Property<DateTimeOffset>("OccurredAtUtc").HasColumnType("datetimeoffset");
+                b.Property<Guid>("PriceListId").HasColumnType("uniqueidentifier");
+                b.Property<int>("Source").HasColumnType("int");
+                b.Property<Guid>("TenantId").HasColumnType("uniqueidentifier");
+                b.HasKey("Id");
+                b.HasIndex("TenantId", "PriceListId", "OccurredAtUtc", "Id");
+                b.ToTable("PriceListAuditEntries", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_PriceListAuditEntries_Action", "[Action] BETWEEN 0 AND 6");
+                        t.HasCheckConstraint("CK_PriceListAuditEntries_Actor", "[ActorUserId] IS NULL OR [ActorUserId] <> '00000000-0000-0000-0000-000000000000'");
+                        t.HasCheckConstraint("CK_PriceListAuditEntries_Source", "[Source] BETWEEN 0 AND 2");
+                    });
+            });
+
         modelBuilder.Entity("Aenaon.Domain.Catalog.PriceListItem", b =>
             {
                 b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
@@ -772,6 +794,16 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     .HasForeignKey("TenantId", "StoreId")
                     .HasPrincipalKey("TenantId", "Id")
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+        modelBuilder.Entity("Aenaon.Domain.Catalog.PriceListAuditEntry", b =>
+            {
+                b.HasOne("Aenaon.Domain.Catalog.PriceList", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "PriceListId")
+                    .HasPrincipalKey("TenantId", "Id")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
             });
 
         modelBuilder.Entity("Aenaon.Domain.Catalog.PriceListItem", b =>
