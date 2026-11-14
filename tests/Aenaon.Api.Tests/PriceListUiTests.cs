@@ -73,7 +73,7 @@ public sealed class PriceListUiTests
         Assert.AreEqual("price", factory.PriceLists.LastItemsSort);
         Assert.IsTrue(factory.PriceLists.LastItemsDescending);
         Assert.Contains("sort=price", sorted);
-        Assert.Contains("desc=true", sorted);
+        Assert.Contains("name=\"desc\" value=\"true\"", sorted);
         Assert.Contains("search=SKU", sorted);
 
         string token = Token(sorted);
