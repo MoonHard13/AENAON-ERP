@@ -113,7 +113,7 @@ public sealed class BackOfficeLayoutUiTests
     }
 
     [TestMethod]
-    public async Task SidebarToggle_IsIconOnlyInsideBrandHeader()
+    public async Task SidebarToggle_IsInTopbarAndDoesNotOverflowSideRail()
     {
         await using var factory = new SessionApiFactory();
         using var client = factory.CreateHttpsClient();
@@ -122,11 +122,14 @@ public sealed class BackOfficeLayoutUiTests
         string html = WebUtility.HtmlDecode(await client.GetStringAsync("/dashboard"));
         int sidebarHeader = html.IndexOf("class=\"sidebar__header\"", StringComparison.Ordinal);
         int brand = html.IndexOf("class=\"sidebar__brand\"", sidebarHeader, StringComparison.Ordinal);
-        int toggle = html.IndexOf("data-sidebar-toggle", brand, StringComparison.Ordinal);
-        int nav = html.IndexOf("id=\"aenaon-primary-sidebar-nav\"", sidebarHeader, StringComparison.Ordinal);
+        int sidebarEnd = html.IndexOf("</aside>", brand, StringComparison.Ordinal);
+        int topbar = html.IndexOf("class=\"topbar\"", sidebarEnd, StringComparison.Ordinal);
+        int toggle = html.IndexOf("data-sidebar-toggle", topbar, StringComparison.Ordinal);
+        int breadcrumb = html.IndexOf("class=\"breadcrumb\"", topbar, StringComparison.Ordinal);
 
-        Assert.IsTrue(sidebarHeader >= 0 && brand > sidebarHeader);
-        Assert.IsTrue(toggle > brand && nav > toggle);
+        Assert.IsTrue(sidebarHeader >= 0 && brand > sidebarHeader && sidebarEnd > brand);
+        Assert.IsTrue(topbar > sidebarEnd && toggle > topbar && breadcrumb > toggle);
+        Assert.DoesNotContain("data-sidebar-toggle", html[..sidebarEnd]);
         Assert.DoesNotContain("class=\"sidebar__toggle-label\"", html);
         Assert.Contains("aria-label=\"Σύμπτυξη πλαϊνού μενού\"", html);
         Assert.Contains("accesskey=\"x\"", html);
