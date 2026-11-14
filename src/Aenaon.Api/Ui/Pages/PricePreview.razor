@@ -106,7 +106,7 @@
                             </div>
                         </div>
                         <div class="price-preview-filter-actions">
-                            <button type="submit" class="button button--primary" name="pageAction" value="search">
+                            <button type="submit" formnovalidate class="button button--primary" name="pageAction" value="search">
                                 <AppIcon Name="search" /> Αναζήτηση ειδών
                             </button>
                             <a class="catalog-reset" href="@ResetUrl">Καθαρισμός</a>
@@ -169,12 +169,12 @@
                                 <nav class="catalog-pagination" aria-label="Σελιδοποίηση ειδών">
                                     @if (catalogPage.Page > 1)
                                     {
-                                        <button type="submit" name="requestedPage" value="@(catalogPage.Page - 1)" class="price-preview-page-button">Προηγούμενη</button>
+                                        <button type="submit" formnovalidate name="requestedPage" value="@(catalogPage.Page - 1)" class="price-preview-page-button">Προηγούμενη</button>
                                     }
                                     <span>Σελίδα @catalogPage.Page</span>
                                     @if (catalogPage.HasMore)
                                     {
-                                        <button type="submit" name="requestedPage" value="@(catalogPage.Page + 1)" class="price-preview-page-button">Επόμενη</button>
+                                        <button type="submit" formnovalidate name="requestedPage" value="@(catalogPage.Page + 1)" class="price-preview-page-button">Επόμενη</button>
                                     }
                                 </nav>
                             }
