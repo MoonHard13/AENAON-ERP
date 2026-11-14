@@ -20,6 +20,7 @@
 | Πρόσθετα πεδία καταλόγου | [9.5C.2 — Barcode και αναλυτική περιγραφή](52-catalog-item-details.md): Domain, SQL, Blazor, CLI, tests και 9η migration (Development) | 
 | Ιστορικό/ακεραιότητα τιμών | [9.5C.3 — Pricing Integrity & History](53-pricing-integrity-history.md): durable audit, overlap guard, Blazor/CLI, 10η migration (merged code· local apply pending) |
 | Sorting τιμοκαταλόγου | [Διόρθωση ταξινόμησης ειδών](54-price-list-item-sorting.md): φυσική σειρά κωδικών, όλες οι ορατές στήλες, SQL paging, CLI, χωρίς νέα migration |
+| Mobile Back Office | [Responsive UX](55-mobile-backoffice-responsive.md): dashboard, κατάλογος, τιμοκατάλογοι, καρτέλες/ιστορικό και native mobile sorting· frontend-only |
 | Μελλοντικά | [Περιβαλλοντικά τέλη — design](47-environmental-fees-fiscal-design.md), [Excel/bulk — αναβολή](48-bulk-actions-and-excel-import-plan.md) |
 
 ## Database / installation

@@ -12,6 +12,38 @@ public sealed class PriceListUiTests
     private static readonly Guid Tenant = Guid.Parse("9698df79-3c31-41c9-b292-b7240c7265fb");
 
     [TestMethod]
+    public async Task MobilePriceListsAndEditor_HaveCardLayoutsAndSingleNativeSortFields()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string lists = WebUtility.HtmlDecode(await client.GetStringAsync("/price-lists"));
+        Assert.Contains("mobile-price-lists-table", lists);
+        Assert.Contains("data-label=\"Ισχύς\"", lists);
+        Assert.Contains("data-label=\"Ενέργειες\"", lists);
+
+        string editor = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}&sort=price&desc=true"));
+        Assert.Contains("mobile-prices-table", editor);
+        Assert.Contains("mobile-history-table", editor);
+        Assert.Contains("id=\"prices-mobile-sort\"", editor);
+        Assert.Contains("id=\"prices-mobile-direction\"", editor);
+        Assert.Contains("data-label=\"Τιμή μονάδας (€)\"", editor);
+        Assert.Contains("data-label=\"Πριν / Μετά\"", editor);
+        Assert.Contains("value=\"price\" selected", editor);
+        Assert.Contains("value=\"true\" selected", editor);
+        Assert.DoesNotContain("desktop-sort-param", editor);
+        Match filter = Regex.Match(editor,
+            "<form method=\"get\" action=\"/price-lists/manage\".*?</form>", RegexOptions.Singleline);
+        Assert.IsTrue(filter.Success);
+        Assert.AreEqual(1, Regex.Matches(filter.Value, "name=\"sort\"").Count);
+        Assert.AreEqual(1, Regex.Matches(filter.Value, "name=\"desc\"").Count);
+        Assert.Contains("name=\"price_" + SessionPriceListFixture.ItemId.ToString("D") + "\"", editor);
+        Assert.Contains("name=\"expected_" + SessionPriceListFixture.ItemId.ToString("D") + "\"", editor);
+    }
+
+    [TestMethod]
     public async Task Owner_CanBrowseCreateEditAndSeeBatchPriceTable()
     {
         await using var factory = new SessionApiFactory();
