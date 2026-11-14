@@ -48,7 +48,7 @@ public sealed class PriceListUiTests
         Assert.Contains("action=\"/ui/price-lists/prices\"", edit);
         Assert.Contains($"price_{SessionPriceListFixture.ItemId:D}", edit);
         Assert.Contains("0.0001", edit);
-        Assert.DoesNotContain("Σελίδα 1", edit);
+        Assert.DoesNotContain("<nav class=\"catalog-pagination\"", edit);
         Assert.Contains("Αφαίρεση τιμής", edit);
     }
 
