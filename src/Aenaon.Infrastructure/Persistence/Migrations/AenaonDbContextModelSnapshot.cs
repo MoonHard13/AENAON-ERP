@@ -190,46 +190,24 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
             {
                 b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
                 b.Property<int>("Action").HasColumnType("int");
-                b.Property<string>("AfterValue").HasMaxLength(800).HasColumnType("nvarchar(800)");
-                b.Property<Guid?>("ActorUserId").HasColumnType("uniqueidentifier");
-                b.Property<string>("BeforeValue").HasMaxLength(800).HasColumnType("nvarchar(800)");
-                b.Property<Guid?>("CatalogItemId").HasColumnType("uniqueidentifier");
-                b.Property<DateTimeOffset>("OccurredAtUtc").HasColumnType("datetimeoffset");
-                b.Property<Guid>("PriceListId").HasColumnType("uniqueidentifier");
-                b.Property<int>("Source").HasColumnType("int");
-                b.Property<Guid>("TenantId").HasColumnType("uniqueidentifier");
-                b.HasKey("Id");
-                b.HasIndex("TenantId", "PriceListId", "OccurredAtUtc", "Id");
-                b.ToTable("PriceListAuditEntries", "dbo", t =>
-                    {
-                        t.HasCheckConstraint("CK_PriceListAuditEntries_Action", "[Action] BETWEEN 0 AND 6");
-                        t.HasCheckConstraint("CK_PriceListAuditEntries_Actor", "[ActorUserId] IS NULL OR [ActorUserId] <> '00000000-0000-0000-0000-000000000000'");
-                        t.HasCheckConstraint("CK_PriceListAuditEntries_Source", "[Source] BETWEEN 0 AND 2");
-                    });
-            });
-
-        modelBuilder.Entity("Aenaon.Domain.Catalog.PriceListAuditEntry", b =>
-            {
-                b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
-                b.Property<Guid>("TenantId").HasColumnType("uniqueidentifier");
-                b.Property<Guid>("PriceListId").HasColumnType("uniqueidentifier");
-                b.Property<Guid?>("CatalogItemId").HasColumnType("uniqueidentifier");
-                b.Property<Guid?>("ActorUserId").HasColumnType("uniqueidentifier");
-                b.Property<string>("Source").IsRequired().HasMaxLength(16).HasColumnType("nvarchar(16)");
-                b.Property<int>("Action").HasColumnType("int");
-                b.Property<DateTime>("OccurredUtc").HasColumnType("datetime2");
-                b.Property<decimal?>("BeforePrice").HasPrecision(18, 4).HasColumnType("decimal(18,4)");
                 b.Property<decimal?>("AfterPrice").HasPrecision(18, 4).HasColumnType("decimal(18,4)");
-                b.Property<string>("BeforePolicy").HasMaxLength(1024).HasColumnType("nvarchar(1024)");
                 b.Property<string>("AfterPolicy").HasMaxLength(1024).HasColumnType("nvarchar(1024)");
+                b.Property<Guid?>("ActorUserId").HasColumnType("uniqueidentifier");
+                b.Property<decimal?>("BeforePrice").HasPrecision(18, 4).HasColumnType("decimal(18,4)");
+                b.Property<string>("BeforePolicy").HasMaxLength(1024).HasColumnType("nvarchar(1024)");
+                b.Property<Guid?>("CatalogItemId").HasColumnType("uniqueidentifier");
+                b.Property<DateTime>("OccurredUtc").HasColumnType("datetime2");
+                b.Property<Guid>("PriceListId").HasColumnType("uniqueidentifier");
+                b.Property<string>("Source").IsRequired().HasMaxLength(16).HasColumnType("nvarchar(16)");
+                b.Property<Guid>("TenantId").HasColumnType("uniqueidentifier");
                 b.HasKey("Id");
                 b.HasIndex("TenantId", "PriceListId", "OccurredUtc", "Id");
                 b.ToTable("PriceListAuditEntries", "dbo", t =>
                     {
                         t.HasCheckConstraint("CK_PriceListAuditEntries_Action", "[Action] BETWEEN 1 AND 7");
-                        t.HasCheckConstraint("CK_PriceListAuditEntries_Source", "[Source] IN ('Web', 'CLI', 'System')");
                         t.HasCheckConstraint("CK_PriceListAuditEntries_Item", "([Action] BETWEEN 1 AND 4 AND [CatalogItemId] IS NULL) OR ([Action] BETWEEN 5 AND 7 AND [CatalogItemId] IS NOT NULL)");
                         t.HasCheckConstraint("CK_PriceListAuditEntries_Prices", "([BeforePrice] IS NULL OR [BeforePrice] >= 0) AND ([AfterPrice] IS NULL OR [AfterPrice] >= 0)");
+                        t.HasCheckConstraint("CK_PriceListAuditEntries_Source", "[Source] IN ('Web', 'CLI', 'System')");
                     });
             });
 
@@ -819,16 +797,6 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     .HasForeignKey("TenantId", "StoreId")
                     .HasPrincipalKey("TenantId", "Id")
                     .OnDelete(DeleteBehavior.Restrict);
-            });
-
-        modelBuilder.Entity("Aenaon.Domain.Catalog.PriceListAuditEntry", b =>
-            {
-                b.HasOne("Aenaon.Domain.Catalog.PriceList", null)
-                    .WithMany()
-                    .HasForeignKey("TenantId", "PriceListId")
-                    .HasPrincipalKey("TenantId", "Id")
-                    .OnDelete(DeleteBehavior.Restrict)
-                    .IsRequired();
             });
 
         modelBuilder.Entity("Aenaon.Domain.Catalog.PriceListAuditEntry", b =>
