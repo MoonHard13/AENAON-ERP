@@ -1,0 +1,163 @@
+using System.Net;
+using Aenaon.Domain.Catalog;
+using Aenaon.Domain.Tenancy;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace Aenaon.Api.Tests;
+
+/// <summary>Πραγματικοί HTTP έλεγχοι SSR προεπισκόπησης με απομονωμένα δεδομένα.</summary>
+[TestClass]
+public sealed class PricePreviewUiTests
+{
+    private static readonly Guid Tenant =
+        Guid.Parse("9698df79-3c31-41c9-b292-b7240c7265fb");
+    private static readonly Guid Store =
+        Guid.Parse("c697b9c3-e221-4156-b533-f54dee27d979");
+
+    [TestMethod]
+    public async Task Anonymous_CannotSeePricePreview()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+
+        using var response = await client.GetAsync("/price-lists/preview");
+        Assert.AreNotEqual(HttpStatusCode.OK, response.StatusCode);
+        Assert.AreEqual(0, factory.PriceResolution.CandidateReads);
+    }
+
+    [TestMethod]
+    public async Task Owner_CanSearchAndResolveRetailPriceWithoutWrites()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string list = WebUtility.HtmlDecode(await client.GetStringAsync("/price-lists"));
+        Assert.Contains("/price-lists/preview", list);
+
+        string page = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/preview?tenantId={Tenant:D}&scope=all&channel=Retail" +
+            "&date=14%2F11%2F2026&search=SKU&itemId=" +
+            SessionPriceResolutionFixture.ProductId.ToString("D")));
+
+        Assert.Contains("Προεπισκόπηση τιμής", page);
+        Assert.Contains("SKU001", page);
+        Assert.Contains("10,5000", page);
+        Assert.Contains("RETAIL", page);
+        Assert.Contains("Τιμή με ΦΠΑ", page);
+        Assert.Contains("3 — Όλα τα καταστήματα και κανάλι", page);
+        Assert.Contains("Δεν υπολογίζει ΦΠΑ", page);
+        Assert.AreEqual(1, factory.PriceResolution.CandidateReads);
+        Assert.AreEqual(Tenant, factory.PriceResolution.LastTenantId);
+
+        string editor = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}"));
+        Assert.Contains("/price-lists/preview", editor);
+    }
+
+    [TestMethod]
+    public async Task Member_CanReadPreviewWithoutManageRights()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.Access.GrantedRole = TenantMembershipRole.Member;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string page = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/preview?tenantId={Tenant:D}&scope=all&channel=Retail" +
+            "&date=14%2F11%2F2026&itemId=" +
+            SessionPriceResolutionFixture.ProductId.ToString("D")));
+
+        Assert.Contains("Μόνο ανάγνωση", page);
+        Assert.Contains("10,5000", page);
+        Assert.AreEqual(1, factory.PriceResolution.CandidateReads);
+    }
+
+    [TestMethod]
+    public async Task AmbiguousPricing_IsExplicitAndNeverReturnsArbitraryAmount()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.PriceResolution.Candidates.Add(new PriceResolutionCandidate(
+            Guid.NewGuid(), "RETAIL-SECOND", null, PriceListChannel.Retail,
+            true, "EUR", new DateOnly(2026, 11, 1), null, true, 99m));
+
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string page = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/preview?scope=all&channel=Retail&date=14%2F11%2F2026" +
+            "&itemId=" + SessionPriceResolutionFixture.ProductId.ToString("D")));
+
+        Assert.Contains("Αμφίσημη τιμή", page);
+        Assert.Contains("Δεν επιλέχθηκε αυθαίρετη τιμή", page);
+        Assert.Contains("Τιμοκατάλογος", page);
+        Assert.DoesNotContain("99,0000 €", page);
+    }
+
+    [TestMethod]
+    public async Task InvalidDateOrForeignStore_DoNotCallPriceResolution()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string invalidDate = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/preview?tenantId={Tenant:D}&scope=all&channel=Retail" +
+            "&date=31%2F02%2F2026&itemId=" +
+            SessionPriceResolutionFixture.ProductId.ToString("D")));
+        Assert.Contains("Πληκτρολογήστε έγκυρη ημερομηνία", invalidDate);
+        Assert.AreEqual(0, factory.PriceResolution.CandidateReads);
+
+        string invalidStore = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/preview?tenantId={Tenant:D}&scope={Guid.NewGuid():D}" +
+            "&channel=Retail&date=14%2F11%2F2026&itemId=" +
+            SessionPriceResolutionFixture.ProductId.ToString("D")));
+        Assert.Contains("Ελέγξτε τα φίλτρα", invalidStore);
+        Assert.AreEqual(0, factory.PriceResolution.CandidateReads);
+    }
+
+    [TestMethod]
+    public async Task InactiveItemOrUnpricedChannel_DoNotInventPrices()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+        factory.PriceResolution.ItemActive = false;
+
+        string unavailable = WebUtility.HtmlDecode(await client.GetStringAsync(
+            "/price-lists/preview?scope=all&channel=Retail&date=14%2F11%2F2026" +
+            "&itemId=" + SessionPriceResolutionFixture.ProductId.ToString("D")));
+        Assert.Contains("Το είδος δεν είναι διαθέσιμο", unavailable);
+
+        factory.PriceResolution.ItemActive = true;
+        string unpriced = WebUtility.HtmlDecode(await client.GetStringAsync(
+            "/price-lists/preview?scope=all&channel=Takeaway&date=14%2F11%2F2026" +
+            "&itemId=" + SessionPriceResolutionFixture.ProductId.ToString("D")));
+        Assert.Contains("Δεν βρέθηκε τιμή", unpriced);
+    }
+
+    private static async Task LoginAsync(HttpClient client)
+    {
+        string loginPage = await client.GetStringAsync("/login");
+        string csrfToken = ExtractToken(loginPage);
+        using var response = await client.PostAsync("/ui/session/login",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["username"] = "admin",
+                ["password"] = "Fixture-only-Secret!17",
+                ["__RequestVerificationToken"] = csrfToken
+            }));
+        Assert.AreEqual(HttpStatusCode.Redirect, response.StatusCode);
+    }
+
+    private static string ExtractToken(string html)
+    {
+        System.Text.RegularExpressions.Match match =
+            System.Text.RegularExpressions.Regex.Match(html,
+                "name=\\\"__RequestVerificationToken\\\"[^>]*value=\\\"([^\\\"]+)\\\"",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant,
+                TimeSpan.FromSeconds(1));
+        Assert.IsTrue(match.Success);
+        return WebUtility.HtmlDecode(match.Groups[1].Value);
+    }
+}
