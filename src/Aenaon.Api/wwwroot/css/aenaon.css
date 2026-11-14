@@ -607,3 +607,84 @@ h1[tabindex="-1"]:focus-visible {
     outline: 3px solid var(--positive);
     outline-offset: 2px;
 }
+
+
+/* Mobile landing: συμπαγής πρώτη οθόνη χωρίς τεράστιο κενό ή οριζόντιο overflow. */
+@media (max-width: 650px) {
+    .welcome-shell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        width: 100%;
+        min-width: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: clamp(12px, 3.5vw, 22px) 12px calc(20px + env(safe-area-inset-bottom, 0px));
+        background: radial-gradient(
+            ellipse 90% 260px at 50% 0,
+            rgb(24 78 58 / 17%) 0,
+            transparent 100%
+        ), var(--bg);
+    }
+
+    .welcome-card {
+        width: min(100%, 420px);
+        max-width: 420px;
+        min-width: 0;
+        margin: 0 auto;
+        padding: 23px 20px 27px;
+        border-radius: 22px;
+    }
+
+    .welcome-card__brand {
+        width: clamp(116px, 34vw, 152px);
+        max-width: 100%;
+        margin: 0 auto 6px;
+    }
+
+    .welcome-card__brand img {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+    }
+
+    /* Το λογότυπο γράφει ήδη ERP by MoonHard: αποφεύγεται η διπλή επωνυμία. */
+    .welcome-card > .eyebrow { display: none; }
+
+    .welcome-card h1 {
+        margin: 9px 0 12px;
+        font-size: clamp(25px, 7.4vw, 32px);
+        line-height: 1.22;
+        text-wrap: balance;
+    }
+
+    .welcome-card p:not(.eyebrow) {
+        margin: 11px 0 22px;
+        font-size: 15px;
+        line-height: 1.55;
+        text-wrap: pretty;
+    }
+
+    .welcome-card .button {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+        min-height: 48px;
+        justify-content: center;
+        padding: 12px 10px;
+        font-size: 14px;
+        line-height: 1.4;
+        white-space: normal;
+        text-align: center;
+        overflow-wrap: anywhere;
+    }
+}
+
+@media (max-width: 360px), (max-height: 690px) and (max-width: 650px) {
+    .welcome-shell { padding-top: 10px; }
+    .welcome-card { padding: 17px 15px 22px; }
+    .welcome-card__brand { width: 112px; }
+    .welcome-card h1 { font-size: 25px; margin-block: 6px 10px; }
+    .welcome-card p:not(.eyebrow) { margin-block: 9px 17px; font-size: 14px; }
+}

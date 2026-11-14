@@ -9,6 +9,7 @@ import { join, resolve } from "node:path";
 const root = process.cwd();
 const scripts = resolve(root, "src/Aenaon.Api/wwwroot/js");
 const css = resolve(root, "src/Aenaon.Api/wwwroot/css");
+const images = resolve(root, "src/Aenaon.Api/wwwroot/images");
 const received = [];
 
 const fixture = `<!doctype html>
@@ -107,6 +108,23 @@ const fixture = `<!doctype html>
  </div>
 </main>
 </section>
+<!-- Η πραγματική δομή της Welcome.razor για μέτρηση της mobile κάρτας. -->
+<section class="welcome-fixture" style="display:none">
+<main class="welcome-shell">
+ <div class="welcome-card">
+  <div class="welcome-card__brand">
+   <img class="logo-for-light" src="/images/aenaon-logo-light.webp"
+        alt="Aenaon ERP by MoonHard" width="200" height="200">
+   <img class="logo-for-dark" src="/images/aenaon-logo-dark.webp"
+        alt="Aenaon ERP by MoonHard" width="200" height="200">
+  </div>
+  <p class="eyebrow">AENAON ERP · BY MOONHARD</p>
+  <h1>Ένας χώρος για κάθε επιχείρηση.</h1>
+  <p>Ασφαλής πρόσβαση στα δεδομένα και τα καταστήματά σας, από ένα σύγχρονο περιβάλλον ERP.</p>
+  <a class="button button--primary" href="/login">Σύνδεση στην εφαρμογή <span aria-hidden="true">→</span></a>
+ </div>
+</main>
+</section>
 <script src="/js/aenaon.js" defer></script>\n<script src="/js/aenaon-category-picker.js" defer></script>
 </body></html>`;
 
@@ -123,6 +141,16 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/") {
         response.setHeader("Content-Type", "text/html; charset=utf-8");
         response.end(fixture);
+        return;
+    }
+    if (url.pathname.startsWith("/images/")) {
+        const name = url.pathname.slice("/images/".length);
+        if (!/^aenaon-logo-(?:light|dark)\.webp$/.test(name)) {
+            response.writeHead(404).end();
+            return;
+        }
+        response.setHeader("Content-Type", "image/webp");
+        response.end(await readFile(join(images, name)));
         return;
     }
     if (url.pathname.startsWith("/js/") || url.pathname.startsWith("/css/")) {
@@ -458,6 +486,73 @@ try {
         }
         process.stdout.write("Back Office responsive " + width + "px: no overflow, visible actions and cards OK\\n");
     }
+
+    // Η πρώτη οθόνη πρέπει να ξεκινά ψηλά, χωρίς κομμένο CTA και με πραγματικά λογότυπα.
+    await cdp.evaluate(`(() => {
+        document.querySelector(".mobile-fixture").style.display = "none";
+        document.querySelector(".welcome-fixture").style.display = "block";
+        document.documentElement.dataset.theme = "light";
+        window.scrollTo(0, 0);
+    })()`);
+    await waitFor(() => cdp.evaluate(
+        'document.querySelector(".welcome-card__brand .logo-for-light")?.naturalWidth > 0'),
+        "Δεν φορτώθηκε το πραγματικό λογότυπο της πρώτης οθόνης.");
+    for (const [width, height] of [[320, 640], [375, 667], [390, 844],
+                                    [430, 932], [650, 800], [1366, 768]]) {
+        await cdp.command("Emulation.setDeviceMetricsOverride", {
+            width, height, deviceScaleFactor: 1, mobile: width < 600
+        });
+        const info = await cdp.evaluate(`(() => {
+            const rect = selector => {
+                const box = document.querySelector(selector).getBoundingClientRect();
+                return { left: box.left, top: box.top, right: box.right,
+                    bottom: box.bottom, width: box.width, height: box.height };
+            };
+            const logo = document.querySelector(".welcome-card__brand .logo-for-light");
+            const card = document.querySelector(".welcome-card");
+            return {
+                viewport: innerWidth,
+                documentWidth: document.documentElement.scrollWidth,
+                shellDisplay: getComputedStyle(document.querySelector(".welcome-shell")).display,
+                card: rect(".welcome-card"), cta: rect(".welcome-card .button"),
+                logoLoaded: logo.complete && logo.naturalWidth > 0,
+                duplicateLabelHidden: getComputedStyle(card.querySelector(".eyebrow")).display === "none"
+            };
+        })()`);
+        assert.ok(info.documentWidth <= width + 2,
+            "Οριζόντια μετακίνηση Welcome: " + JSON.stringify(info));
+        assert.ok(info.cta.left >= -1 && info.cta.right <= width + 1 &&
+            info.cta.height >= 44, "Κομμένο κουμπί σύνδεσης: " + JSON.stringify(info));
+        assert.ok(info.logoLoaded, "Δεν φορτώθηκε το πραγματικό λογότυπο.");
+        if (width <= 650) {
+            assert.equal(info.shellDisplay, "flex");
+            assert.ok(info.card.top <= 28, "Υπερβολικό κενό επάνω από την Welcome: " +
+                JSON.stringify(info));
+            assert.ok(info.card.left >= 6 && info.card.right <= width - 6,
+                "Η κάρτα υπερβαίνει το viewport: " + JSON.stringify(info));
+            assert.ok(info.duplicateLabelHidden, "Διπλό λογότυπο στην Welcome.");
+        } else {
+            assert.equal(info.shellDisplay, "grid");
+            assert.ok(info.card.top >= 30, "Άλλαξε απρόσμενα το desktop κεντράρισμα.");
+            assert.ok(!info.duplicateLabelHidden, "Η desktop επωνυμία πρέπει να διατηρηθεί.");
+        }
+        process.stdout.write("Welcome responsive " + width + "×" + height +
+            ": card, CTA, logo and overflow OK\\n");
+    }
+    await cdp.evaluate('document.documentElement.dataset.theme = "dark"');
+    const darkAppearance = await cdp.evaluate(`(() => {
+        const card = document.querySelector(".welcome-card");
+        const light = card.querySelector(".logo-for-light");
+        const dark = card.querySelector(".logo-for-dark");
+        return {
+            lightHidden: getComputedStyle(light).display === "none",
+            darkVisible: getComputedStyle(dark).display !== "none",
+            background: getComputedStyle(card).backgroundColor
+        };
+    })()`);
+    assert.ok(darkAppearance.lightHidden && darkAppearance.darkVisible,
+        "Δεν διατηρήθηκε η επιλογή λογοτύπου στο dark theme.");
+    process.stdout.write("Welcome dark theme: matching logo and card colors OK\\n");
 
     process.stdout.write("Category Picker Chromium smoke: 4 viewports, focus, keyboard, popup and inline clicks + 2 POSTs OK\\n");
 } finally {
