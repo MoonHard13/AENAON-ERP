@@ -56,6 +56,38 @@ public sealed class PricePreviewUiTests
     }
 
     [TestMethod]
+    public async Task PriceSelection_SubmitsCurrentDateAndScopeWithinSameGetForm()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/preview?tenantId={Tenant:D}&scope=all&channel=Retail" +
+            "&date=01%2F11%2F2026"));
+
+        int formOpen = html.IndexOf("method=\"get\" action=\"/price-lists/preview\"", StringComparison.Ordinal);
+        int dateField = html.IndexOf("name=\"date\"", formOpen, StringComparison.Ordinal);
+        int scopeField = html.IndexOf("name=\"scope\"", formOpen, StringComparison.Ordinal);
+        int channelField = html.IndexOf("name=\"channel\"", formOpen, StringComparison.Ordinal);
+        int itemButton = html.IndexOf("name=\"itemId\"", formOpen, StringComparison.Ordinal);
+        int formClose = html.IndexOf("</form>", formOpen, StringComparison.Ordinal);
+
+        Assert.IsTrue(formOpen >= 0 && dateField > formOpen && dateField < formClose);
+        Assert.IsTrue(scopeField > formOpen && scopeField < formClose);
+        Assert.IsTrue(channelField > formOpen && channelField < formClose);
+        Assert.IsTrue(itemButton > dateField && itemButton < formClose,
+            "Η επιλογή είδους πρέπει να υποβάλει την τρέχουσα ημερομηνία και τα φίλτρα.");
+        Assert.Contains("value=\"01/11/2026\"", html);
+        Assert.Contains($"value=\"{SessionPriceResolutionFixture.ProductId:D}\"", html);
+        Assert.DoesNotContain("href=\"/price-lists/preview?", html[formOpen..formClose]);
+
+        string css = await client.GetStringAsync("/css/aenaon-backoffice.css");
+        Assert.Contains(".price-preview-search .catalog-search > input[type=\"search\"]", css);
+        Assert.Contains("padding-left: 46px", css);
+    }
+
+    [TestMethod]
     public async Task Member_CanReadPreviewWithoutManageRights()
     {
         await using var factory = new SessionApiFactory();
