@@ -53,6 +53,31 @@ public sealed class PriceListUiTests
     }
 
     [TestMethod]
+    public async Task PriceListEditor_UsesDineInLabelAndStatusBesideTitle()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string create = WebUtility.HtmlDecode(await client.GetStringAsync("/price-lists/manage"));
+        Assert.Contains("Dine In", create);
+        Assert.DoesNotContain("Σάλα", create);
+
+        string edit = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}"));
+        int card = edit.IndexOf("<section class=\"surface-card catalog-editor\"", StringComparison.Ordinal);
+        int titleRow = edit.IndexOf("class=\"catalog-editor__title-row\"", card, StringComparison.Ordinal);
+        int title = edit.IndexOf("id=\"price-editor-title\"", titleRow, StringComparison.Ordinal);
+        int status = edit.IndexOf("Κατάσταση τιμοκαταλόγου:", title, StringComparison.Ordinal);
+        int actions = edit.IndexOf("class=\"catalog-editor__header-actions\"", status, StringComparison.Ordinal);
+        int back = edit.IndexOf("Επιστροφή στους τιμοκαταλόγους", actions, StringComparison.Ordinal);
+
+        Assert.IsTrue(card >= 0 && titleRow > card && title > titleRow);
+        Assert.IsTrue(status > title && actions > status && back > actions,
+            "Η κατάσταση τιμοκαταλόγου πρέπει να εμφανίζεται δίπλα στον τίτλο.");
+    }
+
+    [TestMethod]
     public async Task MemberCanViewButCannotSave()
     {
         await using var factory = new SessionApiFactory();
