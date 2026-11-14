@@ -24,7 +24,7 @@ public static class PriceListManageCommand
         for (int i = 0; i < args.Length && !invalid;)
         {
             string key = args[i++];
-            if (key is "--dry-run" or "--apply" or "--inactive")
+            if (key is "--dry-run" or "--apply" or "--inactive" or "--confirm-policy-change")
             {
                 invalid = !flags.Add(key);
                 continue;
@@ -79,7 +79,11 @@ public static class PriceListManageCommand
         }
         if (values.TryGetValue("--scope-store-id", out string? storeText))
         {
-            if (Guid.TryParse(storeText, out Guid parsed) && parsed != Guid.Empty)
+            if (string.Equals(storeText, "all", StringComparison.OrdinalIgnoreCase))
+            {
+                scopeStore = null;
+            }
+            else if (Guid.TryParse(storeText, out Guid parsed) && parsed != Guid.Empty)
             {
                 scopeStore = parsed;
             }
@@ -189,16 +193,32 @@ public static class PriceListManageCommand
                     valid = false;
                 }
             }
-            else if (values.ContainsKey("--code") || scopeStore.HasValue ||
-                values.ContainsKey("--channel") || values.ContainsKey("--include-vat"))
+            else
             {
-                valid = false;
+                if (values.ContainsKey("--code"))
+                {
+                    valid = false;
+                }
+                if (values.TryGetValue("--channel", out string? updateChannel) &&
+                    (!Enum.TryParse(updateChannel, false, out channel) || !Enum.IsDefined(channel)))
+                {
+                    valid = false;
+                }
+                if (values.TryGetValue("--include-vat", out string? updateVat) &&
+                    !bool.TryParse(updateVat, out includeVat))
+                {
+                    valid = false;
+                }
             }
         }
-        else if (scopeStore.HasValue || values.ContainsKey("--code") ||
+        else if (values.ContainsKey("--scope-store-id") || values.ContainsKey("--code") ||
             values.ContainsKey("--name") || values.ContainsKey("--channel") ||
             values.ContainsKey("--include-vat") || values.ContainsKey("--valid-from") ||
             values.ContainsKey("--valid-until"))
+        {
+            valid = false;
+        }
+        if (flags.Contains("--confirm-policy-change") && action != "update")
         {
             valid = false;
         }
@@ -208,11 +228,11 @@ public static class PriceListManageCommand
             await error.WriteLineAsync(
                 "Χρήση: --manage-price-lists --username NAME --tenant-id GUID --confirm-database NAME " +
                 "--action list|items|create|update|activate|deactivate|prices|remove-price " +
-                "[--id GUID] [--code CODE] [--name NAME] [--scope-store-id GUID] " +
+                "[--id GUID] [--code CODE] [--name NAME] [--scope-store-id GUID|all] " +
                 "[--channel All|DineIn|Takeaway|Delivery|Retail|Online] [--include-vat true|false] " +
                 "[--valid-from yyyy-MM-dd] [--valid-until yyyy-MM-dd] " +
                 "[--price ITEM_GUID=AMOUNT]... [--item-id GUID] [--expected-price AMOUNT] " +
-                "[--search PREFIX] [--page N] [--inactive] " +
+                "[--search PREFIX] [--page N] [--inactive] [--confirm-policy-change] " +
                 "(--dry-run | --apply). Απαιτείται διαδραστικό τερματικό.");
             return 2;
         }
@@ -288,10 +308,31 @@ public static class PriceListManageCommand
                 return await DeniedAsync();
             }
 
-            if (id.HasValue && await service.GetAsync(userId, tenant, id.Value, token) is null)
+            PriceListSummary? current = id.HasValue
+                ? await service.GetAsync(userId, tenant, id.Value, token) : null;
+            if (id.HasValue && current is null)
             {
                 await error.WriteLineAsync("Ο τιμοκατάλογος δεν βρέθηκε.");
                 return 4;
+            }
+
+            bool updateProfile = action == "update" &&
+                (values.ContainsKey("--scope-store-id") ||
+                 values.ContainsKey("--channel") || values.ContainsKey("--include-vat"));
+            if (updateProfile && current is not null)
+            {
+                if (!values.ContainsKey("--scope-store-id"))
+                {
+                    scopeStore = current.StoreId;
+                }
+                if (!values.ContainsKey("--channel"))
+                {
+                    channel = current.Channel;
+                }
+                if (!values.ContainsKey("--include-vat"))
+                {
+                    includeVat = current.PricesIncludeVat;
+                }
             }
 
             if (action == "create")
@@ -323,7 +364,12 @@ public static class PriceListManageCommand
                         "activate" => PriceListAction.Activate,
                         _ => PriceListAction.Deactivate
                     }, id, values.GetValueOrDefault("--code"), values.GetValueOrDefault("--name"),
-                    scopeStore, channel, includeVat, from, until), token);
+                    scopeStore, channel, includeVat, from, until,
+                    EditCommercialProfile: updateProfile,
+                    ConfirmPolicyChange: flags.Contains("--confirm-policy-change"),
+                    ExpectedStoreId: updateProfile ? current?.StoreId : null,
+                    ExpectedChannel: updateProfile ? current?.Channel : null,
+                    ExpectedPricesIncludeVat: updateProfile ? current?.PricesIncludeVat : null), token);
 
             if (result.Status != PriceListStatus.Saved)
             {
