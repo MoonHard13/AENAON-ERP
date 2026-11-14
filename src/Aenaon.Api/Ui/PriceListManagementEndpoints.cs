@@ -83,6 +83,10 @@ public static class PriceListManagementEndpoints
         DateOnly? until = null;
         PriceListChannel channel = PriceListChannel.All;
         bool includeVat = true;
+        Guid? expectedStore = null;
+        PriceListChannel? expectedChannel = null;
+        bool? expectedIncludeVat = null;
+        bool confirmPolicyChange = false;
         if (action is PriceListAction.Create or PriceListAction.Update)
         {
             if (!TrySingle(form, "name", out string nameValue) ||
@@ -106,31 +110,60 @@ public static class PriceListManagementEndpoints
                 until = end;
             }
 
+            if (!TrySingle(form, "channel", out string channelText) ||
+                !Enum.TryParse(channelText, false, out channel) || !Enum.IsDefined(channel) ||
+                !TrySingle(form, "includeVat", out string includeText) ||
+                !bool.TryParse(includeText, out includeVat))
+            {
+                return Results.BadRequest();
+            }
+
             if (action == PriceListAction.Create)
             {
                 if (!TrySingle(form, "code", out string codeValue) ||
-                    codeValue.Length > PriceList.MaxCodeLength + 8 ||
-                    !TrySingle(form, "channel", out string channelText) ||
-                    !Enum.TryParse(channelText, false, out channel) || !Enum.IsDefined(channel) ||
-                    !TrySingle(form, "includeVat", out string includeText) ||
-                    !bool.TryParse(includeText, out includeVat))
+                    codeValue.Length > PriceList.MaxCodeLength + 8)
                 {
                     return Results.BadRequest();
                 }
 
                 code = codeValue;
             }
-            else if (scopeStore.HasValue)
+            else
             {
-                // Η επιχείρηση/κατάστημα δεν μπορούν να μεταβληθούν μέσω update.
-                return Results.BadRequest();
+                if (!TryGuid(form, "expectedScopeStoreId", required: false, out expectedStore) ||
+                    !TrySingle(form, "expectedChannel", out string previousChannel) ||
+                    !Enum.TryParse(previousChannel, false, out PriceListChannel parsedChannel) ||
+                    !Enum.IsDefined(parsedChannel) ||
+                    !TrySingle(form, "expectedIncludeVat", out string previousBasis) ||
+                    !bool.TryParse(previousBasis, out bool parsedBasis))
+                {
+                    return Results.BadRequest();
+                }
+
+                expectedChannel = parsedChannel;
+                expectedIncludeVat = parsedBasis;
+                if (form.ContainsKey("confirmPolicyChange"))
+                {
+                    if (!TrySingle(form, "confirmPolicyChange", out string confirmText) ||
+                        confirmText != "yes")
+                    {
+                        return Results.BadRequest();
+                    }
+
+                    confirmPolicyChange = true;
+                }
             }
         }
 
         PriceListResult result = await service.ApplyAsync(userId, tenant.Value,
             new PriceListChange(action, id, code, name,
-                action == PriceListAction.Create ? scopeStore : null,
-                channel, includeVat, from, until), context.RequestAborted);
+                action is PriceListAction.Create or PriceListAction.Update ? scopeStore : null,
+                channel, includeVat, from, until,
+                EditCommercialProfile: action == PriceListAction.Update,
+                ConfirmPolicyChange: confirmPolicyChange,
+                ExpectedStoreId: expectedStore,
+                ExpectedChannel: expectedChannel,
+                ExpectedPricesIncludeVat: expectedIncludeVat), context.RequestAborted);
         loggerFactory.CreateLogger(nameof(PriceListManagementEndpoints)).LogInformation(
             "Price list SSR action {Action} {Status} user {UserId} tenant {TenantId} list {ListId}",
             action, result.Status, userId, tenant.Value, result.Id ?? id);
@@ -150,7 +183,13 @@ public static class PriceListManagementEndpoints
             return Results.Redirect(url + "&saved=1");
         }
 
-        string error = result.Status == PriceListStatus.Duplicate ? "duplicate" : "invalid";
+        string error = result.Status switch
+        {
+            PriceListStatus.Duplicate => "duplicate",
+            PriceListStatus.Conflict => "conflict",
+            _ when result.Error == "pricelist.policy.confirm_required" => "confirm-policy",
+            _ => "invalid"
+        };
         return Results.Redirect(url + "&error=" + error);
     }
 
