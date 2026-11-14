@@ -42,10 +42,6 @@
             }
             else
             {
-                <div class="price-list-toolbar">
-                    <a class="button button--outline" href="@BackUrl" accesskey="b"><AppIcon Name="chevron" /> Επιστροφή στους τιμοκαταλόγους</a>
-                    @if (!CanManage) { <span class="catalog-readonly">Μόνο ανάγνωση</span> }
-                </div>
                 @if (Saved == 1)
                 {
                     <div class="catalog-success" role="status"><AppIcon Name="check" /> Οι αλλαγές αποθηκεύτηκαν επιτυχώς.</div>
@@ -68,12 +64,21 @@
                             <h1 id="price-editor-title">@Heading</h1>
                             <p>Κωδικός, κατάστημα, κανάλι και καθεστώς ΦΠΑ δεν μεταβάλλονται μετά τη δημιουργία.</p>
                         </div>
-                        @if (_list is { } existing)
-                        {
-                            <span class="@(existing.IsActive ? "catalog-status catalog-status--active" : "catalog-status catalog-status--inactive")">
-                                @(existing.IsActive ? "Ενεργός" : "Ανενεργός")
-                            </span>
-                        }
+                        <div class="catalog-editor__header-actions">
+                            @if (!CanManage)
+                            {
+                                <span class="catalog-readonly">Μόνο ανάγνωση</span>
+                            }
+                            @if (_list is { } existing)
+                            {
+                                <span class="@(existing.IsActive ? "catalog-status catalog-status--active" : "catalog-status catalog-status--inactive")">
+                                    @(existing.IsActive ? "Ενεργός" : "Ανενεργός")
+                                </span>
+                            }
+                            <a class="button button--outline" href="@BackUrl" accesskey="b">
+                                <AppIcon Name="chevron" /> Επιστροφή στους τιμοκαταλόγους
+                            </a>
+                        </div>
                     </div>
                     @if (CanManage)
                     {
