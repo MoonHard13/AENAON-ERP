@@ -60,21 +60,24 @@
                 }
                 <section class="surface-card catalog-editor" aria-labelledby="price-editor-title">
                     <div class="catalog-editor__header">
-                        <div>
-                            <h1 id="price-editor-title">@Heading</h1>
+                        <div class="catalog-editor__heading">
+                            <div class="catalog-editor__title-row">
+                                <h1 id="price-editor-title">@Heading</h1>
+                                @if (_list is { } existing)
+                                {
+                                    <span class="@(existing.IsActive ? "catalog-status catalog-status--active" : "catalog-status catalog-status--inactive")"
+                                          aria-label="Κατάσταση τιμοκαταλόγου: @(existing.IsActive ? "Ενεργός" : "Ανενεργός")">
+                                        @(existing.IsActive ? "Ενεργός" : "Ανενεργός")
+                                    </span>
+                                }
+                                @if (!CanManage)
+                                {
+                                    <span class="catalog-readonly">Μόνο ανάγνωση</span>
+                                }
+                            </div>
                             <p>Κωδικός, κατάστημα, κανάλι και καθεστώς ΦΠΑ δεν μεταβάλλονται μετά τη δημιουργία.</p>
                         </div>
                         <div class="catalog-editor__header-actions">
-                            @if (!CanManage)
-                            {
-                                <span class="catalog-readonly">Μόνο ανάγνωση</span>
-                            }
-                            @if (_list is { } existing)
-                            {
-                                <span class="@(existing.IsActive ? "catalog-status catalog-status--active" : "catalog-status catalog-status--inactive")">
-                                    @(existing.IsActive ? "Ενεργός" : "Ανενεργός")
-                                </span>
-                            }
                             <a class="button button--outline" href="@BackUrl" accesskey="b">
                                 <AppIcon Name="chevron" /> Επιστροφή στους τιμοκαταλόγους
                             </a>
@@ -405,7 +408,7 @@
     private static readonly IReadOnlyList<PriceListSelectOption> ChannelPickerOptions =
     [
         new("All", "Όλα τα κανάλια"),
-        new("DineIn", "Σάλα"),
+        new("DineIn", "Dine In"),
         new("Takeaway", "Takeaway"),
         new("Delivery", "Delivery"),
         new("Retail", "Λιανική"),
@@ -437,7 +440,7 @@
 
     private static string ChannelLabel(PriceListChannel channel) => channel switch
     {
-        PriceListChannel.DineIn => "Σάλα",
+        PriceListChannel.DineIn => "Dine In",
         PriceListChannel.Takeaway => "Takeaway",
         PriceListChannel.Delivery => "Delivery",
         PriceListChannel.Retail => "Λιανική",
