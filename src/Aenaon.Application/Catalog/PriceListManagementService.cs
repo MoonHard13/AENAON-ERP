@@ -38,6 +38,13 @@ public sealed record PriceListItemRow(Guid Id, string Code, string Name,
 public sealed record PriceListItemsPage(IReadOnlyList<PriceListItemRow> Rows,
     int Page, bool HasMore);
 
+/// <summary>Επιτρεπόμενα κριτήρια ταξινόμησης ειδών τιμοκαταλόγου, χωρίς δυναμικά SQL strings.</summary>
+public static class PriceListItemSort
+{
+    public static bool IsValid(string? sortBy) =>
+        sortBy is "code" or "name" or "kind" or "price" or "priced";
+}
+
 /// <summary>Μία μόνιμη εγγραφή ιστορικού τιμής ή εμπορικής πολιτικής.</summary>
 public sealed record PriceListAuditRow(Guid Id, DateTime OccurredUtc,
     PriceListAuditAction Action, Guid? CatalogItemId, string? CatalogItemCode,
@@ -54,7 +61,8 @@ public interface IPriceListManagementStore
         bool includeInactive, int page, int pageSize, CancellationToken token);
     Task<PriceListSummary?> GetAsync(Guid tenantId, Guid id, CancellationToken token);
     Task<PriceListItemsPage?> ReadItemsAsync(Guid tenantId, Guid listId,
-        string? search, int page, int pageSize, CancellationToken token);
+        string? search, int page, int pageSize, CancellationToken token,
+        string sortBy = "code", bool descending = false);
     Task<PriceListResult> ApplyAsync(Guid tenantId, PriceListChange change,
         CancellationToken token, Guid? actorUserId = null, string source = "System");
     Task<PriceListResult> SetPricesAsync(Guid tenantId, Guid priceListId,
@@ -102,7 +110,7 @@ public sealed class PriceListManagementService(
 
     public async Task<PriceListItemsPage?> ReadItemsAsync(Guid userId, Guid tenantId,
         Guid listId, string? search = null, int page = 1, int pageSize = 25,
-        CancellationToken token = default)
+        CancellationToken token = default, string sortBy = "code", bool descending = false)
     {
         if (listId == Guid.Empty ||
             !await AllowedAsync(userId, tenantId, TenantPermission.Read, token))
@@ -110,12 +118,14 @@ public sealed class PriceListManagementService(
             return null;
         }
 
-        if (!ValidQuery(search, page, pageSize))
+        if (!ValidQuery(search, page, pageSize) || !PriceListItemSort.IsValid(sortBy))
         {
-            throw new DomainRuleException("pricelist.query.invalid", "Μη έγκυρη αναζήτηση ή σελίδα.");
+            throw new DomainRuleException("pricelist.query.invalid",
+                "Μη έγκυρη αναζήτηση, ταξινόμηση ή σελίδα.");
         }
 
-        return await store.ReadItemsAsync(tenantId, listId, search?.Trim(), page, pageSize, token);
+        return await store.ReadItemsAsync(tenantId, listId, search?.Trim(), page, pageSize,
+            token, sortBy, descending);
     }
 
     public async Task<PriceListResult> ApplyAsync(Guid userId, Guid tenantId,

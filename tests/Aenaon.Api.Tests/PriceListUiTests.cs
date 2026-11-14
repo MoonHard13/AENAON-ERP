@@ -53,6 +53,74 @@ public sealed class PriceListUiTests
     }
 
     [TestMethod]
+    public async Task PriceListItems_SortHeadersAndPostRedirectsPreserveSelection()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+        string url = $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}";
+
+        string initial = WebUtility.HtmlDecode(await client.GetStringAsync(url));
+        Assert.Contains("Κωδικός: ταξινόμηση φθίνουσα", initial);
+        Assert.Contains("sort=code&desc=true", initial);
+        Assert.Contains("sort=price&desc=false", initial);
+        Assert.Contains("sort=kind&desc=false", initial);
+        Assert.Contains("sort=priced&desc=false", initial);
+
+        string sorted = WebUtility.HtmlDecode(await client.GetStringAsync(
+            url + "&sort=price&desc=true&search=SKU"));
+        Assert.Contains("aria-sort=\"descending\"", sorted);
+        Assert.AreEqual("price", factory.PriceLists.LastItemsSort);
+        Assert.IsTrue(factory.PriceLists.LastItemsDescending);
+        Assert.Contains("sort=price", sorted);
+        Assert.Contains("name=\"desc\" value=\"true\"", sorted);
+        Assert.Contains("search=SKU", sorted);
+
+        string token = Token(sorted);
+        var form = new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["tenantId"] = Tenant.ToString("D"),
+            ["id"] = SessionPriceListFixture.ListId.ToString("D"),
+            ["page"] = "1",
+            ["search"] = "SKU",
+            ["sort"] = "price",
+            ["desc"] = "true",
+            [$"expected_{SessionPriceListFixture.ItemId:D}"] = "10.0000",
+            [$"price_{SessionPriceListFixture.ItemId:D}"] = "11.5000"
+        };
+
+        using var saved = await client.PostAsync("/ui/price-lists/prices",
+            new FormUrlEncodedContent(form));
+        Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
+        Assert.Contains("sort=price&desc=true", saved.Headers.Location?.OriginalString ?? "");
+        Assert.Contains("search=SKU", saved.Headers.Location?.OriginalString ?? "");
+
+        form["sort"] = "invalid";
+        using var invalid = await client.PostAsync("/ui/price-lists/prices",
+            new FormUrlEncodedContent(form));
+        Assert.AreEqual(HttpStatusCode.BadRequest, invalid.StatusCode);
+        Assert.AreEqual(1, factory.PriceLists.PriceCalls);
+
+        var removal = new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["tenantId"] = Tenant.ToString("D"),
+            ["id"] = SessionPriceListFixture.ListId.ToString("D"),
+            ["catalogItemId"] = SessionPriceListFixture.ItemId.ToString("D"),
+            ["expectedPrice"] = "10.0000",
+            ["page"] = "1",
+            ["search"] = "SKU",
+            ["sort"] = "name",
+            ["desc"] = "true"
+        };
+        using var removed = await client.PostAsync("/ui/price-lists/remove-price",
+            new FormUrlEncodedContent(removal));
+        Assert.AreEqual(HttpStatusCode.Redirect, removed.StatusCode);
+        Assert.Contains("sort=name&desc=true", removed.Headers.Location?.OriginalString ?? "");
+    }
+
+    [TestMethod]
     public async Task HistoryIsDisplayedReadOnlyForOwnerAndMember()
     {
         await using var factory = new SessionApiFactory();

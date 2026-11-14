@@ -248,6 +248,8 @@
                         </div>
                         <div id="price-list-items-content" data-panel-content>
                         <form method="get" action="/price-lists/manage" class="catalog-filters" role="search" aria-label="Αναζήτηση ειδών για τιμολόγηση">
+                            <input type="hidden" name="sort" value="@CurrentSort" />
+                            <input type="hidden" name="desc" value="@(CurrentDescending ? "true" : "false")" />
                             <input type="hidden" name="id" value="@selected.Id" />
                             <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
                             @if (_workspace.Store is { } filterScopeStore)
@@ -287,17 +289,25 @@
                                 <input type="hidden" name="id" value="@selected.Id" />
                                 <input type="hidden" name="search" value="@Search" />
                                 <input type="hidden" name="page" value="@(_items.Page)" />
-                                <div class="catalog-table-wrap">
+                                <input type="hidden" name="sort" value="@CurrentSort" />
+                                <input type="hidden" name="desc" value="@(CurrentDescending ? "true" : "false")" />
+                                <div class="catalog-table-wrap" tabindex="0" role="region"
+                                     aria-label="Τιμές ειδών με δυνατότητα ταξινόμησης και οριζόντια κύλιση">
                                     <table class="catalog-table">
                                         <thead>
                                             <tr>
-                                                <th scope="col">Κωδικός</th>
-                                                <th scope="col">Περιγραφή</th>
-                                                <th scope="col">Είδος</th>
-                                                <th scope="col">Τιμή μονάδας (€)</th>
+                                                <CatalogSortHeader Label="Κωδικός" Href="@SortHref(selected.Id, "code")"
+                                                                   Active="@(CurrentSort == "code")" Descending="@CurrentDescending" />
+                                                <CatalogSortHeader Label="Περιγραφή" Href="@SortHref(selected.Id, "name")"
+                                                                   Active="@(CurrentSort == "name")" Descending="@CurrentDescending" />
+                                                <CatalogSortHeader Label="Είδος" Href="@SortHref(selected.Id, "kind")"
+                                                                   Active="@(CurrentSort == "kind")" Descending="@CurrentDescending" />
+                                                <CatalogSortHeader Label="Τιμή μονάδας (€)" Href="@SortHref(selected.Id, "price")"
+                                                                   Active="@(CurrentSort == "price")" Descending="@CurrentDescending" />
                                             @if (CanManage && selected.IsActive)
                                             {
-                                                <th scope="col">Αφαίρεση</th>
+                                                <CatalogSortHeader Label="Διαχείριση" Href="@SortHref(selected.Id, "priced")"
+                                                                   Active="@(CurrentSort == "priced")" Descending="@CurrentDescending" />
                                             }
                                             </tr>
                                         </thead>
@@ -354,7 +364,7 @@
                                 @if (CanManage && selected.IsActive)
                                 {
                                     <div class="price-list-batch-footer">
-                                        <span>Κενό πεδίο = χωρίς αλλαγή. Επιτρέπονται έως 4 δεκαδικά.</span>
+                                        <span>Κενό πεδίο = χωρίς αλλαγή. Επιτρέπονται έως 4 δεκαδικά. Η ταξινόμηση «Διαχείριση» ομαδοποιεί είδη με/χωρίς τιμή.</span>
                                         <button type="submit" class="button button--primary" accesskey="p"><AppIcon Name="check" /> Αποθήκευση τιμών σελίδας</button>
                                     </div>
                                 }
@@ -378,6 +388,8 @@
                                                value="@(row.UnitPrice!.Value.ToString("0.0000", CultureInfo.InvariantCulture))" />
                                         <input type="hidden" name="search" value="@Search" />
                                         <input type="hidden" name="page" value="@_items.Page" />
+                                        <input type="hidden" name="sort" value="@CurrentSort" />
+                                        <input type="hidden" name="desc" value="@(CurrentDescending ? "true" : "false")" />
                                     </form>
                                 }
                             }
@@ -386,12 +398,12 @@
                                 <nav class="catalog-pagination" aria-label="Σελιδοποίηση ειδών">
                                     @if (_items.Page > 1)
                                     {
-                                        <a rel="prev" href="@ItemsUrl(selected.Id, _items.Page - 1)">Προηγούμενη</a>
+                                        <a rel="prev" href="@PagedItemsUrl(selected.Id, _items.Page - 1)">Προηγούμενη</a>
                                     }
                                     <span>Σελίδα @_items.Page</span>
                                     @if (_items.HasMore)
                                     {
-                                        <a rel="next" href="@ItemsUrl(selected.Id, _items.Page + 1)">Επόμενη</a>
+                                        <a rel="next" href="@PagedItemsUrl(selected.Id, _items.Page + 1)">Επόμενη</a>
                                     }
                                 </nav>
                             }
@@ -488,6 +500,8 @@
     [SupplyParameterFromQuery(Name = "id")] public Guid? Id { get; set; }
     [SupplyParameterFromQuery(Name = "search")] public string? Search { get; set; }
     [SupplyParameterFromQuery(Name = "page")] public int? Page { get; set; }
+    [SupplyParameterFromQuery(Name = "sort")] public string? SortBy { get; set; }
+    [SupplyParameterFromQuery(Name = "desc")] public bool? Descending { get; set; }
     [SupplyParameterFromQuery(Name = "historyPage")] public int? HistoryPage { get; set; }
     [SupplyParameterFromQuery(Name = "saved")] public int? Saved { get; set; }
     [SupplyParameterFromQuery(Name = "unchanged")] public int? Unchanged { get; set; }
@@ -541,6 +555,8 @@
     ];
 
     private string Heading => _list?.Name ?? (Id.HasValue ? "Τιμοκατάλογος" : "Νέος τιμοκατάλογος");
+    private string CurrentSort => PriceListItemSort.IsValid(SortBy) ? SortBy! : "code";
+    private bool CurrentDescending => Descending == true;
     private bool CanManage => _workspace?.Tenant?.Role == TenantMembershipRole.Owner &&
         _workspace.Status is (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores);
 
@@ -604,18 +620,32 @@
         _ => "Άγνωστη ενέργεια"
     };
 
+    private string SortHref(Guid id, string sortBy)
+    {
+        bool nextDescending = CurrentSort == sortBy && !CurrentDescending;
+        string result = ItemsUrl(id, 1);
+        return result + $"&sort={sortBy}&desc={(nextDescending ? "true" : "false")}";
+    }
+
     private string HistoryUrl(Guid id, int historyPage)
     {
-        string result = ManageUrl(id) + $"&historyPage={historyPage}";
-        if (Page is > 1) result += $"&page={Page}";
-        if (!string.IsNullOrWhiteSpace(Search)) result += $"&search={Uri.EscapeDataString(Search.Trim())}";
-        return result;
+        string result = ItemsUrl(id, Page ?? 1) + $"&historyPage={historyPage}";
+        return result + SortQuery;
     }
+
+    private string SortQuery => $"&sort={CurrentSort}&desc={(CurrentDescending ? "true" : "false")}";
 
     private string ItemsUrl(Guid id, int page)
     {
         string result = ManageUrl(id) + $"&page={page}";
         if (!string.IsNullOrWhiteSpace(Search)) result += $"&search={Uri.EscapeDataString(Search.Trim())}";
+        return result;
+    }
+
+    private string PagedItemsUrl(Guid id, int page)
+    {
+        string result = ItemsUrl(id, page) + SortQuery;
+        if (HistoryPage is > 1) result += $"&historyPage={HistoryPage}";
         return result;
     }
 
@@ -673,7 +703,8 @@
                     return;
                 }
                 _items = await Manager.ReadItemsAsync(userId, _workspace.Tenant!.TenantId,
-                    Id.Value, Search, Page ?? 1, 25, context.RequestAborted);
+                    Id.Value, Search, Page ?? 1, 25, context.RequestAborted,
+                    CurrentSort, CurrentDescending);
                 _history = await Manager.ReadHistoryAsync(userId, _workspace.Tenant!.TenantId,
                     Id.Value, HistoryPage ?? 1, 25, context.RequestAborted);
             }

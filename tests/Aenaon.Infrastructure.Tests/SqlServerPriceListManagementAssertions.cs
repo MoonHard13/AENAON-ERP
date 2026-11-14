@@ -52,6 +52,53 @@ internal static class SqlServerPriceListManagementAssertions
         Assert.IsNotNull(rows);
         Assert.IsTrue(rows.Rows.Any(x => x.Id == itemId && x.UnitPrice == 9.8765m));
 
+        // Φυσική αριθμητική σειρά: η ταξινόμηση προηγείται της SQL σελιδοποίησης.
+        PriceListItemsPage? firstCodes = await store.ReadItemsAsync(
+            tenant, created.Id.Value, null, 1, 2, token);
+        PriceListItemsPage? secondCodes = await store.ReadItemsAsync(
+            tenant, created.Id.Value, null, 2, 2, token);
+        PriceListItemsPage? reverseCodes = await store.ReadItemsAsync(
+            tenant, created.Id.Value, null, 1, 2, token, "code", true);
+        Assert.IsNotNull(firstCodes);
+        Assert.IsNotNull(secondCodes);
+        Assert.IsNotNull(reverseCodes);
+        CollectionAssert.AreEqual(new[] { "1", "2" },
+            firstCodes.Rows.Select(x => x.Code).ToArray());
+        Assert.AreEqual("10", secondCodes.Rows[0].Code);
+        CollectionAssert.AreEqual(new[] { "10", "2" },
+            reverseCodes.Rows.Select(x => x.Code).ToArray());
+
+        // Οι μη τιμολογημένες εγγραφές βρίσκονται στο τέλος στο sort κατά ποσό.
+        PriceListItemsPage? ascendingPrices = await store.ReadItemsAsync(
+            tenant, created.Id.Value, null, 1, 25, token, "price");
+        PriceListItemsPage? descendingPrices = await store.ReadItemsAsync(
+            tenant, created.Id.Value, null, 1, 25, token, "price", true);
+        Assert.IsNotNull(ascendingPrices);
+        Assert.IsNotNull(descendingPrices);
+        Assert.AreEqual(itemId, ascendingPrices.Rows[0].Id);
+        Assert.AreEqual(itemId, descendingPrices.Rows[0].Id);
+        Assert.IsNull(ascendingPrices.Rows[^1].UnitPrice);
+
+        PriceListItemsPage? unpricedFirst = await store.ReadItemsAsync(
+            tenant, created.Id.Value, null, 1, 25, token, "priced");
+        PriceListItemsPage? pricedFirst = await store.ReadItemsAsync(
+            tenant, created.Id.Value, null, 1, 25, token, "priced", true);
+        Assert.IsNotNull(unpricedFirst);
+        Assert.IsNotNull(pricedFirst);
+        Assert.IsNull(unpricedFirst.Rows[0].UnitPrice);
+        Assert.AreEqual(itemId, pricedFirst.Rows[0].Id);
+
+        PriceListItemsPage? byKind = await store.ReadItemsAsync(
+            tenant, created.Id.Value, null, 1, 25, token, "kind");
+        PriceListItemsPage? byName = await store.ReadItemsAsync(
+            tenant, created.Id.Value, null, 1, 25, token, "name");
+        Assert.IsNotNull(byKind);
+        Assert.IsNotNull(byName);
+        Assert.HasCount(rows.Rows.Count, byKind.Rows);
+        Assert.HasCount(rows.Rows.Count, byName.Rows);
+        Assert.IsNull(await store.ReadItemsAsync(foreignTenant, created.Id.Value,
+            null, 1, 25, token, "price"));
+
         // Ίδιο κατάστημα/κανάλι/ημέρα επιτρέπεται χωρίς κοινό είδος, όχι με κοινή τιμή.
         PriceListResult secondList = await store.ApplyAsync(tenant,
             new PriceListChange(PriceListAction.Create, Code: "PROMO-CI-2",

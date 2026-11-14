@@ -24,7 +24,7 @@ public static class PriceListManageCommand
         for (int i = 0; i < args.Length && !invalid;)
         {
             string key = args[i++];
-            if (key is "--dry-run" or "--apply" or "--inactive" or "--confirm-policy-change")
+            if (key is "--dry-run" or "--apply" or "--inactive" or "--confirm-policy-change" or "--descending")
             {
                 invalid = !flags.Add(key);
                 continue;
@@ -33,7 +33,7 @@ public static class PriceListManageCommand
             if (key is not ("--username" or "--tenant-id" or "--confirm-database" or
                 "--action" or "--id" or "--code" or "--name" or "--scope-store-id" or
                 "--channel" or "--include-vat" or "--valid-from" or "--valid-until" or
-                "--search" or "--page" or "--price" or "--item-id" or "--expected-price") || i == args.Length ||
+                "--search" or "--page" or "--sort" or "--price" or "--item-id" or "--expected-price") || i == args.Length ||
                 args[i].StartsWith("--", StringComparison.Ordinal))
             {
                 invalid = true;
@@ -150,6 +150,9 @@ public static class PriceListManageCommand
                 changes.Select(x => x.CatalogItemId).Distinct().Count() != changes.Count)) ||
             (action != "prices" && changes.Count > 0) ||
             (action != "list" && flags.Contains("--inactive")) ||
+            ((values.ContainsKey("--sort") || flags.Contains("--descending")) && action != "items") ||
+            (values.TryGetValue("--sort", out string? sortText) &&
+                !PriceListItemSort.IsValid(sortText)) ||
             (values.TryGetValue("--search", out string? search) &&
                 (search.Length > 80 || search.Any(char.IsControl))))
         {
@@ -232,7 +235,8 @@ public static class PriceListManageCommand
                 "[--channel All|DineIn|Takeaway|Delivery|Retail|Online] [--include-vat true|false] " +
                 "[--valid-from yyyy-MM-dd] [--valid-until yyyy-MM-dd] " +
                 "[--price ITEM_GUID=AMOUNT]... [--item-id GUID] [--expected-price AMOUNT] " +
-                "[--search PREFIX] [--page N] [--inactive] [--confirm-policy-change] " +
+                "[--search PREFIX] [--page N] [--sort code|name|kind|price|priced] [--descending] " +
+                "[--inactive] [--confirm-policy-change] " +
                 "(--dry-run | --apply). Απαιτείται διαδραστικό τερματικό.");
             return 2;
         }
@@ -289,7 +293,8 @@ public static class PriceListManageCommand
             if (action == "items")
             {
                 PriceListItemsPage? rows = await service.ReadItemsAsync(userId, tenant, id!.Value,
-                    values.GetValueOrDefault("--search"), page, 25, token);
+                    values.GetValueOrDefault("--search"), page, 25, token,
+                    values.GetValueOrDefault("--sort") ?? "code", flags.Contains("--descending"));
                 if (rows is null)
                 {
                     await error.WriteLineAsync("Δεν επιτρέπεται η πρόσβαση ή δεν βρέθηκε ο τιμοκατάλογος.");

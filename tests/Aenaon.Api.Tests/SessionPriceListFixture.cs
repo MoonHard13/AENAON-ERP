@@ -13,6 +13,8 @@ internal sealed class SessionPriceListFixture : IPriceListManagementStore
     public PriceListChange? LastChange { get; private set; }
     public int PriceCalls { get; private set; }
     public int RemoveCalls { get; private set; }
+    public string LastItemsSort { get; private set; } = "code";
+    public bool LastItemsDescending { get; private set; }
     public IReadOnlyList<PriceListPriceChange>? LastPriceChanges { get; private set; }
 
     private static PriceListSummary Summary => new(
@@ -28,10 +30,15 @@ internal sealed class SessionPriceListFixture : IPriceListManagementStore
         Task.FromResult<PriceListSummary?>(tenantId == Tenant && id == ListId ? Summary : null);
 
     public Task<PriceListItemsPage?> ReadItemsAsync(Guid tenantId, Guid listId,
-        string? search, int page, int pageSize, CancellationToken token) =>
-        Task.FromResult<PriceListItemsPage?>(tenantId == Tenant && listId == ListId ?
+        string? search, int page, int pageSize, CancellationToken token,
+        string sortBy = "code", bool descending = false)
+    {
+        LastItemsSort = sortBy;
+        LastItemsDescending = descending;
+        return Task.FromResult<PriceListItemsPage?>(tenantId == Tenant && listId == ListId ?
             new([new PriceListItemRow(ItemId, "SKU001", "Δοκιμαστικό προϊόν",
                 CatalogItemKind.Product, 10m)], page, false) : null);
+    }
 
     public Task<PriceListHistoryPage?> ReadHistoryAsync(Guid tenantId, Guid priceListId,
         int page, int pageSize, CancellationToken token) =>

@@ -244,7 +244,8 @@ public static class PriceListManagementEndpoints
             !TrySingle(form, "search", out string search) ||
             !TrySingle(form, "page", out string pageText) ||
             !int.TryParse(pageText, NumberStyles.None, CultureInfo.InvariantCulture, out int page) ||
-            page is < 1 or > 100_000 || search.Length > 80 || search.Any(char.IsControl))
+            page is < 1 or > 100_000 || search.Length > 80 || search.Any(char.IsControl) ||
+            !TryItemSort(form, out string sortBy, out bool descending))
         {
             return Results.BadRequest();
         }
@@ -304,7 +305,7 @@ public static class PriceListManagementEndpoints
                 CultureInfo.InvariantCulture, out decimal price))
             {
                 return Results.Redirect(EditorUrl(tenant.Value, currentStore, id) +
-                    $"&page={page}&error=invalid");
+                    $"&page={page}{SortParameters(sortBy, descending)}&error=invalid");
             }
 
             if (expected == price)
@@ -316,7 +317,8 @@ public static class PriceListManagementEndpoints
         }
 
         string destination = EditorUrl(tenant.Value, currentStore, id) +
-            $"&page={page}" + (search.Length > 0 ? "&search=" + Uri.EscapeDataString(search) : "");
+            $"&page={page}" + (search.Length > 0 ? "&search=" + Uri.EscapeDataString(search) : "") +
+            SortParameters(sortBy, descending);
         if (changes.Count == 0)
         {
             return Results.Redirect(destination + "&unchanged=1");
@@ -368,7 +370,8 @@ public static class PriceListManagementEndpoints
             search.Length > 80 || search.Any(char.IsControl) ||
             !TrySingle(form, "page", out string pageText) ||
             !int.TryParse(pageText, NumberStyles.None, CultureInfo.InvariantCulture, out int page) ||
-            page is < 1 or > 100_000 || tenant is null || id is null || itemId is null)
+            page is < 1 or > 100_000 || tenant is null || id is null || itemId is null ||
+            !TryItemSort(form, out string sortBy, out bool descending))
         {
             return Results.BadRequest();
         }
@@ -391,7 +394,8 @@ public static class PriceListManagementEndpoints
         }
 
         string destination = EditorUrl(tenant.Value, currentStore, id) +
-            $"&page={page}" + (search.Length > 0 ? "&search=" + Uri.EscapeDataString(search) : "");
+            $"&page={page}" + (search.Length > 0 ? "&search=" + Uri.EscapeDataString(search) : "") +
+            SortParameters(sortBy, descending);
         context.Response.Headers.CacheControl = "no-store";
         return Results.Redirect(destination + (result.Status switch
         {
@@ -400,6 +404,29 @@ public static class PriceListManagementEndpoints
             _ => "&error=invalid"
         }));
     }
+
+    /// <summary>Απορρίπτει μη επιτρεπόμενα πεδία ταξινόμησης πριν από ανακατεύθυνση.</summary>
+    private static bool TryItemSort(IFormCollection form, out string sortBy, out bool descending)
+    {
+        sortBy = "code";
+        descending = false;
+        if (!TrySingle(form, "sort", out string sortText) ||
+            !TrySingle(form, "desc", out string descText))
+        {
+            return false;
+        }
+
+        if (sortText.Length > 0)
+        {
+            sortBy = sortText;
+        }
+
+        return PriceListItemSort.IsValid(sortBy) &&
+            (descText.Length == 0 || bool.TryParse(descText, out descending));
+    }
+
+    private static string SortParameters(string sortBy, bool descending) =>
+        $"&sort={sortBy}&desc={(descending ? "true" : "false")}";
 
     private static async Task<bool> VerifyRequestAsync(HttpContext context,
         IAntiforgery csrf) =>
