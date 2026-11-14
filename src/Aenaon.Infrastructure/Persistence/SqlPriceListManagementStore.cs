@@ -115,8 +115,47 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
 
                 if (change.Action == PriceListAction.Update)
                 {
-                    // Το scope, το κανάλι και το καθεστώς ΦΠΑ δεν μεταβάλλονται.
-                    list.Update(change.Name, change.ValidFrom, change.ValidUntil);
+                    if (!change.EditCommercialProfile)
+                    {
+                        list.Update(change.Name, change.ValidFrom, change.ValidUntil);
+                    }
+                    else
+                    {
+                        // Όλες οι αλλαγές πλαισίου ελέγχονται με την αρχική εικόνα της φόρμας.
+                        if (list.StoreId != change.ExpectedStoreId ||
+                            list.Channel != change.ExpectedChannel ||
+                            list.PricesIncludeVat != change.ExpectedPricesIncludeVat)
+                        {
+                            return new(PriceListStatus.Conflict, Error: "pricelist.profile.conflict");
+                        }
+
+                        bool changed = list.StoreId != change.StoreId ||
+                            list.Channel != change.Channel ||
+                            list.PricesIncludeVat != change.PricesIncludeVat;
+
+                        if (changed)
+                        {
+                            if (change.StoreId.HasValue &&
+                                !await context.Stores.AsNoTracking().AnyAsync(x =>
+                                    x.TenantId == tenantId && x.Id == change.StoreId.Value, token))
+                            {
+                                return new(PriceListStatus.Invalid, Error: "pricelist.store.invalid");
+                            }
+
+                            // Η αλλαγή τιμής με/χωρίς ΦΠΑ αλλάζει την οικονομική σημασία:
+                            // απαιτείται ρητή επιβεβαίωση όταν ο τιμοκατάλογος έχει τιμές.
+                            if (!change.ConfirmPolicyChange &&
+                                await context.PriceListItems.AsNoTracking().AnyAsync(x =>
+                                    x.TenantId == tenantId && x.PriceListId == list.Id, token))
+                            {
+                                return new(PriceListStatus.Invalid, Error: "pricelist.policy.confirm_required");
+                            }
+                        }
+
+                        list.UpdateCommercialProfile(change.Name, change.StoreId,
+                            change.Channel, change.PricesIncludeVat,
+                            change.ValidFrom, change.ValidUntil);
+                    }
                 }
                 else
                 {
