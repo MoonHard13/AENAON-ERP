@@ -218,6 +218,7 @@ internal sealed class SessionApiFactory(string environment = "Development") : We
     public SessionCatalogReadFixture Catalog { get; } = new();
     public SessionCatalogWriteFixture CatalogWriter { get; } = new();
     public SessionPriceListFixture PriceLists { get; } = new();
+    public SessionPriceResolutionFixture PriceResolution { get; } = new();
     public SessionTenancyFixture Access { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -237,6 +238,8 @@ internal sealed class SessionApiFactory(string environment = "Development") : We
             services.AddSingleton<ICatalogWriteStore>(CatalogWriter);
             services.RemoveAll<IPriceListManagementStore>();
             services.AddSingleton<IPriceListManagementStore>(PriceLists);
+            services.RemoveAll<IPriceResolutionStore>();
+            services.AddSingleton<IPriceResolutionStore>(PriceResolution);
         });
     }
 
