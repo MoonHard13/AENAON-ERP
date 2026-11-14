@@ -154,7 +154,7 @@ public sealed class PricePreviewUiTests
     {
         System.Text.RegularExpressions.Match match =
             System.Text.RegularExpressions.Regex.Match(html,
-                "name=\\\"__RequestVerificationToken\\\"[^>]*value=\\\"([^\\\"]+)\\\"",
+                "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"",
                 System.Text.RegularExpressions.RegexOptions.CultureInvariant,
                 TimeSpan.FromSeconds(1));
         Assert.IsTrue(match.Success);
