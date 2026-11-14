@@ -92,6 +92,27 @@ public sealed class BackOfficeLayoutUiTests
     }
 
     [TestMethod]
+    public async Task ExistingProductEditor_ShowsStatusBesideHeading_NotAsNavigation()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/catalog/manage?view=products&id={SessionCatalogWriteFixture.ItemId:D}&tenantId={Tenant:D}"));
+        int card = html.IndexOf("<section class=\"surface-card catalog-editor\"", StringComparison.Ordinal);
+        int titleRow = html.IndexOf("class=\"catalog-editor__title-row\"", card, StringComparison.Ordinal);
+        int heading = html.IndexOf("Βασικά στοιχεία", titleRow, StringComparison.Ordinal);
+        int status = html.IndexOf("Κατάσταση καταχώρησης:", heading, StringComparison.Ordinal);
+        int actions = html.IndexOf("class=\"catalog-editor__header-actions\"", status, StringComparison.Ordinal);
+        int back = html.IndexOf("Επιστροφή στον κατάλογο", actions, StringComparison.Ordinal);
+
+        Assert.IsTrue(card >= 0 && titleRow > card && heading > titleRow);
+        Assert.IsTrue(status > heading && actions > status && back > actions,
+            "Η κατάσταση πρέπει να συνοδεύει τον τίτλο, όχι το κουμπί επιστροφής.");
+    }
+
+    [TestMethod]
     public async Task SidebarToggle_IsIconOnlyInsideBrandHeader()
     {
         await using var factory = new SessionApiFactory();
