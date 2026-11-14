@@ -87,6 +87,9 @@ public static class PriceListManagementEndpoints
         PriceListChannel? expectedChannel = null;
         bool? expectedIncludeVat = null;
         bool confirmPolicyChange = false;
+        string? expectedName = null;
+        DateOnly? expectedFrom = null;
+        DateOnly? expectedUntil = null;
         if (action is PriceListAction.Create or PriceListAction.Update)
         {
             if (!TrySingle(form, "name", out string nameValue) ||
@@ -141,6 +144,30 @@ public static class PriceListManagementEndpoints
                     return Results.BadRequest();
                 }
 
+                if (!form.ContainsKey("expectedName") ||
+                    !form.ContainsKey("expectedValidFrom") ||
+                    !form.ContainsKey("expectedValidUntil") ||
+                    !TrySingle(form, "expectedName", out string previousName) ||
+                    !TrySingle(form, "expectedValidFrom", out string previousFrom) ||
+                    !DateOnly.TryParseExact(previousFrom, "dd/MM/yyyy", CultureInfo.InvariantCulture,
+                        DateTimeStyles.None, out DateOnly previousFromDate) ||
+                    !TrySingle(form, "expectedValidUntil", out string previousUntil))
+                {
+                    return Results.BadRequest();
+                }
+                expectedName = previousName;
+                expectedFrom = previousFromDate;
+                if (previousUntil.Length > 0)
+                {
+                    if (!DateOnly.TryParseExact(previousUntil, "dd/MM/yyyy", CultureInfo.InvariantCulture,
+                        DateTimeStyles.None, out DateOnly previousUntilDate))
+                    {
+                        return Results.BadRequest();
+                    }
+
+                    expectedUntil = previousUntilDate;
+                }
+
                 expectedChannel = parsedChannel;
                 expectedIncludeVat = parsedBasis;
                 if (form.ContainsKey("confirmPolicyChange"))
@@ -164,7 +191,11 @@ public static class PriceListManagementEndpoints
                 ConfirmPolicyChange: confirmPolicyChange,
                 ExpectedStoreId: expectedStore,
                 ExpectedChannel: expectedChannel,
-                ExpectedPricesIncludeVat: expectedIncludeVat), context.RequestAborted);
+                ExpectedPricesIncludeVat: expectedIncludeVat,
+                ExpectedName: expectedName,
+                ExpectedValidFrom: expectedFrom,
+                ExpectedValidUntil: expectedUntil,
+                CheckExpectedDetails: action == PriceListAction.Update), context.RequestAborted);
         loggerFactory.CreateLogger(nameof(PriceListManagementEndpoints)).LogInformation(
             "Price list SSR action {Action} {Status} user {UserId} tenant {TenantId} list {ListId}",
             action, result.Status, userId, tenant.Value, result.Id ?? id);
