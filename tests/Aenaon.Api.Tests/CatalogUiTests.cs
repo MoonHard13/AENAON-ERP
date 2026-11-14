@@ -289,6 +289,22 @@ public sealed class CatalogUiTests
     }
 
     [TestMethod]
+    public async Task Catalog_DisplaysBarcodeAndAllowsSortableBarcodeWithoutShowingVerboseDescription()
+    {
+        await using var factory = new SessionApiFactory();
+        var source = factory.Catalog.Items[0];
+        factory.Catalog.Items[0] = source with { Barcode = "INT-123" };
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            "/catalog?view=products&sort=barcode"));
+        Assert.Contains("INT-123", html);
+        Assert.Contains("Barcode", html);
+        Assert.AreEqual("barcode", factory.Catalog.LastQuery?.SortBy);
+    }
+
+    [TestMethod]
     public async Task ProductionCatalog_IsNotMapped()
     {
         await using var factory = new SessionApiFactory("Production");

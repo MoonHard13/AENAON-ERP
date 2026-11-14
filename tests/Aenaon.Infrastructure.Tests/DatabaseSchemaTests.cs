@@ -17,7 +17,7 @@ public sealed class DatabaseSchemaTests
             "Server=example.invalid;Database=AenaonERP_Unit;User ID=unit;Password=unit-only;Encrypt=True;", false));
 
         Assert.IsFalse(context.Database.HasPendingModelChanges());
-        Assert.HasCount(8, context.Database.GetMigrations().ToArray());
+        Assert.HasCount(9, context.Database.GetMigrations().ToArray());
     }
 
     [TestMethod]

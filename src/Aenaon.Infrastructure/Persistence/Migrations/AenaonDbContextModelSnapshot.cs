@@ -81,6 +81,11 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                 b.Property<Guid>("CategoryId")
                     .HasColumnType("uniqueidentifier");
 
+                b.Property<string>("Barcode")
+                    .HasMaxLength(40)
+                    .HasColumnType("nvarchar(40)")
+                    .UseCollation("Greek_CI_AS");
+
                 b.Property<string>("Code")
                     .IsRequired()
                     .HasMaxLength(40)
@@ -92,6 +97,10 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
 
                 b.Property<int>("Kind")
                     .HasColumnType("int");
+
+                b.Property<string>("LongDescription")
+                    .HasMaxLength(2000)
+                    .HasColumnType("nvarchar(2000)");
 
                 b.Property<string>("Name")
                     .IsRequired()
@@ -113,12 +122,18 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
 
                 b.HasIndex("TenantId", "CategoryId");
 
+                b.HasIndex("TenantId", "Barcode")
+                    .IsUnique()
+                    .HasFilter("[Barcode] IS NOT NULL");
+
                 b.HasIndex("TenantId", "Code")
                     .IsUnique();
 
                 b.ToTable("CatalogItems", "dbo", t =>
                     {
                         t.HasCheckConstraint("CK_CatalogItems_AccountingType", "[AccountingType] BETWEEN 1 AND 6");
+
+                        t.HasCheckConstraint("CK_CatalogItems_Barcode", "[Barcode] IS NULL OR (LEN([Barcode]) BETWEEN 1 AND 40 AND DATALENGTH([Barcode]) = DATALENGTH(LTRIM(RTRIM([Barcode]))) AND PATINDEX('%[^-0-9A-Z._]%', [Barcode] COLLATE Latin1_General_100_BIN2) = 0)");
 
                         t.HasCheckConstraint("CK_CatalogItems_CategoryId", "[CategoryId] <> '00000000-0000-0000-0000-000000000000'");
 

@@ -124,6 +124,62 @@ public sealed class CatalogManageCommandTests
     }
 
     [TestMethod]
+    public async Task Apply_ProductDetails_UsesSharedServiceAndExplicitFlags()
+    {
+        string[] args =
+        [
+            "--username", "admin", "--tenant-id", Tenant.ToString("D"),
+            "--confirm-database", "AenaonERP_Unit",
+            "--view", "products", "--action", "create",
+            "--code", "P-01", "--name", "Προϊόν",
+            "--category-id", Guid.NewGuid().ToString("D"),
+            "--barcode", "int-123",
+            "--long-description", "Αναλυτική περιγραφή από το CLI",
+            "--apply"
+        ];
+        var store = new FakeWriter();
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        int result = await CatalogManageCommand.ExecuteAsync(args,
+            new TenantCredentialFixture(true),
+            CreateService(store, TenantMembershipRole.Owner),
+            new TenantAccessSchemaFixture(), NullLogger.Instance,
+            output, error, () => "FixtureSecret!17", true);
+
+        Assert.AreEqual(0, result, error.ToString());
+        Assert.AreEqual("int-123", store.LastCommand?.Barcode);
+        Assert.AreEqual("Αναλυτική περιγραφή από το CLI", store.LastCommand?.LongDescription);
+        Assert.IsTrue(store.LastCommand?.SetBarcode == true);
+        Assert.IsTrue(store.LastCommand?.SetLongDescription == true);
+    }
+
+    [TestMethod]
+    public async Task DryRun_InvalidGtinDoesNotWrite()
+    {
+        string[] args =
+        [
+            "--username", "admin", "--tenant-id", Tenant.ToString("D"),
+            "--confirm-database", "AenaonERP_Unit",
+            "--view", "services", "--action", "create",
+            "--code", "S-01", "--name", "Υπηρεσία",
+            "--category-id", Guid.NewGuid().ToString("D"),
+            "--barcode", "4006381333932", "--dry-run"
+        ];
+        var store = new FakeWriter();
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        int result = await CatalogManageCommand.ExecuteAsync(args,
+            new TenantCredentialFixture(true),
+            CreateService(store, TenantMembershipRole.Owner),
+            new TenantAccessSchemaFixture(), NullLogger.Instance,
+            output, error, () => "FixtureSecret!17", true);
+
+        Assert.AreEqual(2, result);
+        Assert.Contains("GTIN", error.ToString());
+        Assert.AreEqual(0, store.ApplyCalls);
+    }
+
+    [TestMethod]
     public async Task InvalidCommercialType_IsRejectedBeforeDatabaseOrCredentials()
     {
         string[] args =

@@ -178,6 +178,31 @@
                             @if (View is "products" or "services")
                             {
                                 <div class="catalog-editor__section-title catalog-editor__field--wide">
+                                    <h3>Πρόσθετα στοιχεία είδους</h3>
+                                    <p>Το barcode είναι προαιρετικό και διαφορετικό από τον εσωτερικό κωδικό.</p>
+                                </div>
+                                <div class="catalog-editor__field">
+                                    <label for="edit-barcode">Barcode / EAN (προαιρετικό)</label>
+                                    <input id="edit-barcode" name="barcode" autocomplete="off"
+                                           maxlength="@CatalogItemDetails.MaxBarcodeLength"
+                                           value="@CurrentBarcode" placeholder="π.χ. 4006381333931" />
+                                    <small>GTIN 8/12/13/14: έλεγχος ψηφίου. Εσωτερικό barcode: A–Z, 0–9, -, _, .</small>
+                                    @if (CurrentError is "barcode" or "duplicateBarcode")
+                                    {
+                                        <small class="catalog-editor__error" role="alert">@ErrorMessage</small>
+                                    }
+                                </div>
+                                <div class="catalog-editor__field catalog-editor__field--wide">
+                                    <label for="edit-long-description">Αναλυτική περιγραφή (προαιρετική)</label>
+                                    <textarea id="edit-long-description" name="longDescription" rows="4"
+                                              maxlength="@CatalogItemDetails.MaxLongDescriptionLength"
+                                              placeholder="Πρόσθετες πληροφορίες προϊόντος ή υπηρεσίας">@CurrentLongDescription</textarea>
+                                    @if (CurrentError == "description")
+                                    {
+                                        <small class="catalog-editor__error" role="alert">@ErrorMessage</small>
+                                    }
+                                </div>
+                                <div class="catalog-editor__section-title catalog-editor__field--wide">
                                     <h3>Εμπορικά και λογιστικά στοιχεία</h3>
                                     <p>Η μονάδα και ο λογιστικός τύπος δεν ορίζουν αυτόματα ΦΠΑ ή myDATA.</p>
                                 </div>
@@ -339,6 +364,9 @@
     private bool IsAutoCode => !Id.HasValue && (_draft?.AutoCode ?? true);
     private string CurrentCode => _draft?.Code ?? _details?.Record?.Code ?? "";
     private string CurrentName => _draft?.Name ?? _details?.Record?.Name ?? "";
+    private string CurrentBarcode => _draft?.Barcode ?? _details?.Record?.Barcode ?? "";
+    private string CurrentLongDescription => _draft?.LongDescription ??
+        _details?.Record?.LongDescription ?? "";
     private Guid? CurrentSelectedCategory => View == "categories"
         ? (_draft is not null ? _draft.ParentCategoryId : _details?.Record?.ParentCategoryId)
         : (_draft is not null ? _draft.CategoryId : _details?.Record?.CategoryId);
@@ -356,6 +384,9 @@
     private string ErrorMessage => CurrentError switch
     {
         "duplicate" => "Ο κωδικός χρησιμοποιείται ήδη στην επιχείρηση.",
+        "duplicateBarcode" => "Το barcode χρησιμοποιείται ήδη από άλλο είδος της επιχείρησης.",
+        "barcode" => "Μη έγκυρο barcode ή λάθος ψηφίο ελέγχου GTIN/EAN.",
+        "description" => "Η αναλυτική περιγραφή περιέχει μη έγκυρους χαρακτήρες ή ξεπερνά το όριο.",
         "code" => "Δεν υπάρχουν διαθέσιμοι αριθμητικοί κωδικοί.",
         "category" => "Επιλέξτε έγκυρη και ενεργή κατηγορία.",
         "unit" => "Επιλέξτε έγκυρη μονάδα μέτρησης για το είδος.",

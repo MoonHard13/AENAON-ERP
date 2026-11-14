@@ -132,7 +132,7 @@
                             <input type="hidden" name="storeId" value="@StoreId.Value" />
                         }
                         <div class="catalog-field catalog-field--search">
-                            <label for="catalog-search">Κωδικός ή περιγραφή (αρχίζει από)</label>
+                            <label for="catalog-search">Κωδικός, barcode ή περιγραφή (αρχίζει από)</label>
                             <div class="catalog-search">
                                 <AppIcon Name="search" />
                                 <input id="catalog-search" name="search" type="search"
@@ -262,6 +262,8 @@
                                                            Active="@(CurrentSort == "code")" Descending="@CurrentDescending" />
                                         <CatalogSortHeader Label="Περιγραφή" Href="@SortHref("name")"
                                                            Active="@(CurrentSort == "name")" Descending="@CurrentDescending" />
+                                        <CatalogSortHeader Label="Barcode" Href="@SortHref("barcode")"
+                                                           Active="@(CurrentSort == "barcode")" Descending="@CurrentDescending" />
                                         <CatalogSortHeader Label="Κατηγορία" Href="@SortHref("category")"
                                                            Active="@(CurrentSort == "category")" Descending="@CurrentDescending" />
                                         <CatalogSortHeader Label="Τύπος" Href="@SortHref("kind")"
@@ -283,6 +285,7 @@
                                         <tr>
                                             <td><span class="catalog-code">@row.Code</span></td>
                                             <td class="catalog-table__name">@row.Name</td>
+                                            <td><span class="catalog-code">@(row.Barcode ?? "—")</span></td>
                                             <td><span class="catalog-tree-path">@(row.CategoryPath ?? row.CategoryName ?? "—")</span></td>
                                             <td>@(row.Kind == CatalogItemKind.Service ? "Υπηρεσία" : "Προϊόν")</td>
                                             <td>@(row.UnitOfMeasure is { } unit
@@ -409,7 +412,7 @@
     private bool CurrentDescending => Descending == true;
     private bool SortIsValidForView(string view, string key) =>
         key is "code" or "name" or "status" ||
-        (view != "categories" && key is "category" or "kind" or "stock" or "unit" or "accounting");
+        (view != "categories" && key is "category" or "kind" or "stock" or "unit" or "accounting" or "barcode");
     private string SortHref(string key) =>
         BuildUrl(SelectedView, 1, sort: key,
             descending: CurrentSort == key && !CurrentDescending);

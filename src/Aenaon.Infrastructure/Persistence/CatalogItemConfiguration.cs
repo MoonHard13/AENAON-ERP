@@ -18,6 +18,10 @@ internal sealed class CatalogItemConfiguration : IEntityTypeConfiguration<Catalo
                 "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
             table.HasCheckConstraint("CK_CatalogItems_CategoryId",
                 "[CategoryId] <> '00000000-0000-0000-0000-000000000000'");
+            table.HasCheckConstraint("CK_CatalogItems_Barcode",
+                "[Barcode] IS NULL OR (LEN([Barcode]) BETWEEN 1 AND 40 " +
+                "AND DATALENGTH([Barcode]) = DATALENGTH(LTRIM(RTRIM([Barcode]))) " +
+                "AND PATINDEX('%[^-0-9A-Z._]%', [Barcode] COLLATE Latin1_General_100_BIN2) = 0)");
             table.HasCheckConstraint("CK_CatalogItems_Code",
                 "LEN(LTRIM(RTRIM([Code]))) > 0");
             table.HasCheckConstraint("CK_CatalogItems_Name",
@@ -42,6 +46,10 @@ internal sealed class CatalogItemConfiguration : IEntityTypeConfiguration<Catalo
         builder.Property(item => item.Code).IsRequired()
             .HasMaxLength(CatalogItem.MaxCodeLength).UseCollation("Greek_CI_AS");
         builder.Property(item => item.Name).IsRequired().HasMaxLength(CatalogItem.MaxNameLength);
+        builder.Property(item => item.Barcode).IsRequired(false)
+            .HasMaxLength(CatalogItemDetails.MaxBarcodeLength).UseCollation("Greek_CI_AS");
+        builder.Property(item => item.LongDescription).IsRequired(false)
+            .HasMaxLength(CatalogItemDetails.MaxLongDescriptionLength);
         builder.Property(item => item.Kind).HasConversion<int>().IsRequired();
         builder.Property(item => item.IsActive).IsRequired();
         builder.Property(item => item.TracksStock).IsRequired();
@@ -49,6 +57,8 @@ internal sealed class CatalogItemConfiguration : IEntityTypeConfiguration<Catalo
         builder.Property(item => item.AccountingType).HasConversion<int>().IsRequired();
 
         builder.HasIndex(item => new { item.TenantId, item.Code }).IsUnique();
+        builder.HasIndex(item => new { item.TenantId, item.Barcode }).IsUnique()
+            .HasFilter("[Barcode] IS NOT NULL");
         builder.HasIndex(item => new { item.TenantId, item.CategoryId });
 
         // Το σύνθετο foreign key απαγορεύει αναφορά σε κατηγορία άλλης επιχείρησης.

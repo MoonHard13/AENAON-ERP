@@ -433,16 +433,18 @@ html {
 .catalog-editor__return .app-icon { width: 18px; height: 18px; flex: 0 0 18px; }
 
 .catalog-editor__field label { font-size: 13px; font-weight: 750; color: var(--muted-strong); }
-.catalog-editor__field input, .catalog-editor__field select {
+.catalog-editor__field input, .catalog-editor__field select, .catalog-editor__field textarea {
     min-height: 46px; padding: 10px 13px;
     width: 100%; border: 1px solid var(--border); border-radius: 10px;
     background: var(--input-bg); color: var(--text);
     font: inherit; font-size: 14px;
 }
 .catalog-editor__field input:focus-visible,
-.catalog-editor__field select:focus-visible {
+.catalog-editor__field select:focus-visible,
+.catalog-editor__field textarea:focus-visible {
     outline: 3px solid var(--positive); outline-offset: 2px;
 }
+.catalog-editor__field textarea { min-height: 112px; resize: vertical; line-height: 1.5; }
 .catalog-editor__field small { font-size: 12px; color: var(--muted); }
 .catalog-editor__checkbox {
     display: flex; align-items: center; gap: 10px;

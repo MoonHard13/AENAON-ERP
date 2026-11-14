@@ -50,19 +50,27 @@ public sealed class ProductCatalog
     public CatalogItem AddItem(Guid categoryId, string? code, string? name,
         CatalogItemKind kind, bool tracksStock = false,
         CatalogUnitOfMeasure? unitOfMeasure = null,
-        CatalogAccountingType? accountingType = null)
+        CatalogAccountingType? accountingType = null,
+        string? barcode = null, string? longDescription = null)
     {
         CatalogCategory category = RequireCategory(categoryId);
         EnsureActive(category);
 
         var item = new CatalogItem(TenantId, category.Id, code, name, kind,
-            tracksStock, unitOfMeasure, accountingType);
+            tracksStock, unitOfMeasure, accountingType, barcode, longDescription);
 
         if (_items.Any(existing =>
             StringComparer.OrdinalIgnoreCase.Equals(existing.Code, item.Code)))
         {
             throw new DomainRuleException("catalog.item.code.duplicate",
                 "Υπάρχει ήδη είδος ή υπηρεσία με αυτόν τον κωδικό στην επιχείρηση.");
+        }
+
+        if (item.Barcode is { } normalizedBarcode && _items.Any(existing =>
+            StringComparer.OrdinalIgnoreCase.Equals(existing.Barcode, normalizedBarcode)))
+        {
+            throw new DomainRuleException("catalog.item.barcode.duplicate",
+                "Υπάρχει ήδη είδος ή υπηρεσία με αυτό το barcode στην επιχείρηση.");
         }
 
         _items.Add(item);
@@ -94,6 +102,22 @@ public sealed class ProductCatalog
     public void SetCategoryActive(Guid categoryId, bool isActive)
     {
         RequireCategory(categoryId).SetActive(isActive);
+    }
+
+    /// <summary>Προστατεύει τη μοναδικότητα barcode και κατά την αλλαγή των λεπτομερειών.</summary>
+    public void UpdateItemDetails(Guid itemId, string? barcode, string? longDescription)
+    {
+        CatalogItem item = RequireItem(itemId);
+        string? normalized = CatalogItemDetails.NormalizeBarcode(barcode);
+        string? description = CatalogItemDetails.NormalizeLongDescription(longDescription);
+        if (normalized is not null && _items.Any(other => other.Id != itemId &&
+            StringComparer.OrdinalIgnoreCase.Equals(other.Barcode, normalized)))
+        {
+            throw new DomainRuleException("catalog.item.barcode.duplicate",
+                "Το barcode χρησιμοποιείται ήδη στην επιχείρηση.");
+        }
+
+        item.UpdateDetails(normalized, description);
     }
 
     public void ChangeItemCode(Guid itemId, string? code)

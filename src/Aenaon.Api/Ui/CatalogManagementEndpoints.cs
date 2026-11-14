@@ -92,8 +92,12 @@ public static class CatalogManagementEndpoints
 
         string code = fields["code"].ToString();
         string name = fields["name"].ToString();
+        string barcode = fields["barcode"].ToString();
+        string longDescription = fields["longDescription"].ToString();
         if (code.Length > CatalogItem.MaxCodeLength + 8 ||
-            name.Length > CatalogItem.MaxNameLength + 8)
+            name.Length > CatalogItem.MaxNameLength + 8 ||
+            barcode.Length > CatalogItemDetails.MaxBarcodeLength + 8 ||
+            longDescription.Length > CatalogItemDetails.MaxLongDescriptionLength + 8)
         {
             return Results.BadRequest();
         }
@@ -134,7 +138,7 @@ public static class CatalogManagementEndpoints
 
         var draft = new CatalogEditorDraft(userId, tenantId, id, view, code, name,
             categoryId, null, tracksStock, autoCode, "", storeId,
-            unitOfMeasure, accountingType);
+            unitOfMeasure, accountingType, barcode, longDescription);
         Guid returnDraft = drafts.Save(draft);
         context.Response.Headers.CacheControl = "no-store";
         string storeQuery = storeId.HasValue ? $"&storeId={storeId.Value:D}" : "";
@@ -306,6 +310,10 @@ public static class CatalogManagementEndpoints
         bool writingFields = action is CatalogChangeAction.Create or CatalogChangeAction.Update;
         string code = fields["code"].ToString();
         string name = fields["name"].ToString();
+        string barcode = fields["barcode"].ToString();
+        string longDescription = fields["longDescription"].ToString();
+        bool setBarcode = writingFields && fields.ContainsKey("barcode");
+        bool setLongDescription = writingFields && fields.ContainsKey("longDescription");
         bool autoCode = writingFields && action == CatalogChangeAction.Create &&
             string.Equals(fields["codeMode"], "auto", StringComparison.Ordinal);
 
@@ -350,7 +358,9 @@ public static class CatalogManagementEndpoints
         }
 
         if (code.Length > CatalogItem.MaxCodeLength + 8 ||
-            name.Length > CatalogItem.MaxNameLength + 8)
+            name.Length > CatalogItem.MaxNameLength + 8 ||
+            barcode.Length > CatalogItemDetails.MaxBarcodeLength + 8 ||
+            longDescription.Length > CatalogItemDetails.MaxLongDescriptionLength + 8)
         {
             return Results.BadRequest();
         }
@@ -376,7 +386,10 @@ public static class CatalogManagementEndpoints
         CatalogChangeCommand command = new(entity, action, id,
             writingFields && autoCode ? null : code,
             name, categoryId, tracksStock, parentCategoryId, autoCode, requestId,
-            unitOfMeasure, accountingType);
+            unitOfMeasure, accountingType,
+            setBarcode ? barcode : null,
+            setLongDescription ? longDescription : null,
+            setBarcode, setLongDescription);
         CatalogChangeResult result = await manager.ApplyAsync(
             userId, tenantId, command, context.RequestAborted);
 
@@ -420,12 +433,15 @@ public static class CatalogManagementEndpoints
             return Results.Redirect(destination, permanent: false);
         }
 
-        string error = result.Status == CatalogChangeStatus.Duplicate ? "duplicate" :
+        string error = result.Error == "catalog.item.barcode.duplicate" ? "duplicateBarcode" :
+            result.Status == CatalogChangeStatus.Duplicate ? "duplicate" :
             result.Error switch
             {
                 "catalog.parent.invalid" => "parent",
                 "catalog.category.in_use" => "inuse",
                 "catalog.category.inactive_or_missing" => "category",
+                "catalog.item.barcode.invalid" or "catalog.item.barcode.check_digit" => "barcode",
+                "catalog.item.description.invalid" => "description",
                 "catalog.item.unit.invalid" => "unit",
                 "catalog.item.accounting.invalid" or
                 "catalog.item.service.profile.invalid" or
@@ -450,7 +466,8 @@ public static class CatalogManagementEndpoints
             // Η προεπισκόπηση/επεξεργασία απαιτεί ξανά authorization μετά το redirect.
             var draft = new CatalogEditorDraft(userId, tenantId, id, view,
                 code, name, categoryId, parentCategoryId, tracksStock, autoCode,
-                codeError, storeId, unitOfMeasure, accountingType);
+                codeError, storeId, unitOfMeasure, accountingType,
+                barcode, longDescription);
             Guid token = drafts.Save(draft);
             return Results.Redirect(
                 $"/catalog/manage?view={view}&tenantId={tenantId:D}" +

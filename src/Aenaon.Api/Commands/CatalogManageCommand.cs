@@ -23,7 +23,8 @@ public static class CatalogManageCommand
         for (int index = 0; index < args.Length && !invalid;)
         {
             string option = args[index++];
-            if (option is "--apply" or "--dry-run" or "--tracks-stock" or "--auto-code" or "--root")
+            if (option is "--apply" or "--dry-run" or "--tracks-stock" or "--auto-code" or "--root" or
+                "--clear-barcode" or "--clear-long-description")
             {
                 invalid = !flags.Add(option);
                 continue;
@@ -31,7 +32,8 @@ public static class CatalogManageCommand
 
             if (option is not ("--username" or "--tenant-id" or "--confirm-database" or
                 "--view" or "--action" or "--id" or "--code" or "--name" or "--category-id" or
-                "--parent-category-id" or "--unit" or "--accounting-type") ||
+                "--parent-category-id" or "--unit" or "--accounting-type" or
+                "--barcode" or "--long-description") ||
                 index == args.Length ||
                 args[index].StartsWith("--", StringComparison.Ordinal))
             {
@@ -65,6 +67,12 @@ public static class CatalogManageCommand
         bool apply = flags.Contains("--apply");
         bool dryRun = flags.Contains("--dry-run");
         bool autoCode = flags.Contains("--auto-code");
+        bool setBarcode = values.ContainsKey("--barcode") || flags.Contains("--clear-barcode");
+        bool setLongDescription = values.ContainsKey("--long-description") ||
+            flags.Contains("--clear-long-description");
+        string? barcode = flags.Contains("--clear-barcode") ? null : values.GetValueOrDefault("--barcode");
+        string? longDescription = flags.Contains("--clear-long-description")
+            ? null : values.GetValueOrDefault("--long-description");
         Guid? id = null;
         Guid? categoryId = null;
         Guid? parentId = null;
@@ -131,7 +139,14 @@ public static class CatalogManageCommand
                 values.ContainsKey("--code"))) ||
             (entity == CatalogManagedEntity.Category && categoryField is not null) ||
             (entity == CatalogManagedEntity.Category &&
-             (unitText is not null || accountingText is not null)) ||
+             (unitText is not null || accountingText is not null ||
+              setBarcode || setLongDescription)) ||
+            (values.ContainsKey("--barcode") && flags.Contains("--clear-barcode")) ||
+            (values.ContainsKey("--long-description") && flags.Contains("--clear-long-description")) ||
+            (action is CatalogChangeAction.Activate or CatalogChangeAction.Deactivate &&
+             (setBarcode || setLongDescription)) ||
+            (action == CatalogChangeAction.Create &&
+             (flags.Contains("--clear-barcode") || flags.Contains("--clear-long-description"))) ||
             (entity == CatalogManagedEntity.Product &&
              (unitOfMeasure == CatalogUnitOfMeasure.Service ||
               accountingType == CatalogAccountingType.Service)) ||
@@ -154,6 +169,8 @@ public static class CatalogManageCommand
                 "[--category-id GUID] [--parent-category-id GUID | --root] " +
                 "[--tracks-stock] [--unit Piece|Kilogram|Gram|Liter|Milliliter|Portion|Hour|Service] " +
                 "[--accounting-type Merchandise|FinishedProduct|RawMaterial|Consumable|Service|FixedAsset] " +
+                "[--barcode VALUE | --clear-barcode] " +
+                "[--long-description TEXT | --clear-long-description] " +
                 "(--dry-run | --apply). Απαιτείται διαδραστικό τερματικό.");
             return 2;
         }
@@ -161,7 +178,8 @@ public static class CatalogManageCommand
         CatalogChangeCommand command = new(entity, action, id,
             values.GetValueOrDefault("--code"), values.GetValueOrDefault("--name"),
             categoryId, flags.Contains("--tracks-stock"), parentId, autoCode, Guid.NewGuid(),
-            unitOfMeasure, accountingType);
+            unitOfMeasure, accountingType, barcode, longDescription,
+            setBarcode, setLongDescription);
 
         try
         {
@@ -235,7 +253,8 @@ public static class CatalogManageCommand
                         validationCode, command.Name,
                         entity == CatalogManagedEntity.Service
                             ? CatalogItemKind.Service : CatalogItemKind.Product,
-                        command.TracksStock, command.UnitOfMeasure, command.AccountingType);
+                        command.TracksStock, command.UnitOfMeasure, command.AccountingType,
+                        command.Barcode, command.LongDescription);
                 }
             }
 
@@ -256,7 +275,8 @@ public static class CatalogManageCommand
             {
                 logger.LogWarning("Catalog CLI change rejected: {Status} for {TenantId}",
                     result.Status, tenantId);
-                await error.WriteLineAsync($"Η αλλαγή απορρίφθηκε: {result.Status}.");
+                await error.WriteLineAsync($"Η αλλαγή απορρίφθηκε: {result.Status} " +
+                    $"({result.Error ?? "invalid"}).");
                 return result.Status == CatalogChangeStatus.Denied ? 3 : 4;
             }
 

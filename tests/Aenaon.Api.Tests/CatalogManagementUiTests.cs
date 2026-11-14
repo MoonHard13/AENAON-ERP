@@ -179,6 +179,8 @@ public sealed class CatalogManagementUiTests
             $"/catalog/manage?view=products&tenantId={Tenant:D}"));
         Assert.Contains("name=\"unitOfMeasure\"", form);
         Assert.Contains("name=\"accountingType\"", form);
+        Assert.Contains("name=\"barcode\"", form);
+        Assert.Contains("name=\"longDescription\"", form);
         Assert.Contains("Λογιστικός τύπος", form);
         Assert.Contains("Μονάδα μέτρησης", form);
 
@@ -191,7 +193,9 @@ public sealed class CatalogManagementUiTests
             ["name"] = "Αλεύρι",
             ["categoryId"] = SessionCatalogWriteFixture.CategoryId.ToString("D"),
             ["unitOfMeasure"] = ((int)CatalogUnitOfMeasure.Kilogram).ToString(),
-            ["accountingType"] = ((int)CatalogAccountingType.RawMaterial).ToString()
+            ["accountingType"] = ((int)CatalogAccountingType.RawMaterial).ToString(),
+            ["barcode"] = "4006381333931",
+            ["longDescription"] = "Πληροφορίες δοκιμαστικού είδους"
         });
 
         Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
@@ -199,6 +203,37 @@ public sealed class CatalogManagementUiTests
             factory.CatalogWriter.LastCommand?.UnitOfMeasure);
         Assert.AreEqual(CatalogAccountingType.RawMaterial,
             factory.CatalogWriter.LastCommand?.AccountingType);
+        Assert.AreEqual("4006381333931", factory.CatalogWriter.LastCommand?.Barcode);
+        Assert.AreEqual("Πληροφορίες δοκιμαστικού είδους",
+            factory.CatalogWriter.LastCommand?.LongDescription);
+        Assert.IsTrue(factory.CatalogWriter.LastCommand?.SetBarcode == true);
+        Assert.IsTrue(factory.CatalogWriter.LastCommand?.SetLongDescription == true);
+    }
+
+    [TestMethod]
+    public async Task InvalidGtin_RejectsBeforeAnyWrite()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+        string form = await client.GetStringAsync("/catalog/manage?view=products");
+        using var response = await PostAsync(client, ExtractToken(form), new()
+        {
+            ["tenantId"] = Tenant.ToString("D"),
+            ["view"] = "products",
+            ["action"] = "create",
+            ["code"] = "P-INVALID",
+            ["name"] = "Προϊόν",
+            ["categoryId"] = SessionCatalogWriteFixture.CategoryId.ToString("D"),
+            ["barcode"] = "4006381333932",
+            ["longDescription"] = "Περιγραφή"
+        });
+        Assert.AreEqual(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.AreEqual(0, factory.CatalogWriter.ApplyCalls);
+        string returned = WebUtility.HtmlDecode(await client.GetStringAsync(
+            response.Headers.Location?.OriginalString));
+        Assert.Contains("Μη έγκυρο barcode", returned);
+        Assert.Contains("4006381333932", returned);
     }
 
     [TestMethod]
@@ -256,6 +291,9 @@ public sealed class CatalogManagementUiTests
         Assert.AreEqual(CatalogManagedEntity.Product, factory.CatalogWriter.LastCommand!.Entity);
         Assert.AreEqual(CatalogChangeAction.Update, factory.CatalogWriter.LastCommand.Action);
         Assert.IsTrue(factory.CatalogWriter.LastCommand.TracksStock);
+        // Παλιές φόρμες δεν δηλώνουν εκκαθάριση των νέων προαιρετικών πεδίων.
+        Assert.IsFalse(factory.CatalogWriter.LastCommand.SetBarcode);
+        Assert.IsFalse(factory.CatalogWriter.LastCommand.SetLongDescription);
     }
 
     [TestMethod]
