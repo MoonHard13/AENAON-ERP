@@ -267,3 +267,28 @@
 - Συμβατότητα: σχεδιάστηκε βάσει myDATA v2.0.2 και επίσημων IMPACT VAT/classification/measurement unit/conditional field pages, με επανέλεγχο κατά την υλοποίηση.
 
 **Οι συμβάσεις δεν αποτελούν φορολογική πιστοποίηση ούτε έλεγχο επιτρεπόμενων κωδικών ή συνδυασμών.** Αυτά απαιτούν versioned reference catalog και ειδική policy/contract tests στα επόμενα βήματα.
+
+## Επικαιροποίηση κατάστασης — 14/11/2026 (μετά τα PR #48/#49)
+
+Οι παραπάνω αρχικές απαιτήσεις έως το 9.3A διατηρούνται **ως ιστορικό σχεδιασμού**. Η [σημερινή κατάσταση](00-current-state-and-roadmap.md) και τα εγχειρίδια των μεταγενέστερων βημάτων υπερισχύουν για διαθέσιμες δυνατότητες.
+
+| Βήματα | Σημερινή υλοποίηση | Όρια |
+| --- | --- | --- |
+| 9.3B–9.3C | Fiscal staging, offline XLSX/myDATA/IMPACT diagnostics | 254 review observations παραμένουν Pending, καμία φορολογική έγκριση |
+| 9.4A–9.4C.4 | Κατάλογος: ανάγνωση, CRUD, κατηγορίες/ιεραρχία, αρίθμηση, sorting | Development-only, Tenant/Store isolation |
+| 9.5A–9.5A.2 | Μονάδες μέτρησης, λογιστικοί τύποι, ενιαία dropdowns, UI | Όχι αυτόματο ΦΠΑ/Ε3/myDATA |
+| 9.5B.1–9.5B.2 | Πολλαπλοί τιμοκατάλογοι, SQL, GUI και CLI | Όχι χρήση σε παραστατικά |
+| 9.5B.3A–9.5B.3B | Read-only PriceResolutionService και Blazor price preview | Ισοβαθμίες: Ambiguous, χωρίς SQL writes, taxes ή price snapshots |
+
+**Σχήμα:** Στο `main` υπάρχουν **8 migrations** μέχρι `20261113150000_PriceListsFoundation`. Εφαρμογή όλων στη βάση `AenaonERP_Dev` δεν έχει επιβεβαιωθεί μέσω του GitHub — απαιτείται πραγματικός SQL/CLI έλεγχος.
+
+### Ανοιχτές απαιτήσεις / μελλοντικός σχεδιασμός
+
+- **Προτεινόμενο 9.6A:** Μενού εστίασης, ομάδες, παραλλαγές, πρόσθετα, επιλογές και διαθεσιμότητα κατά store/channel. **Δεν έχει υλοποιηθεί**· απαιτεί προηγούμενο design review.
+- **Παραγγελιοληψία / POS / Android APK / offline:** απαιτούν μοντέλα παραγγελίας, immutable εμπορικά snapshots, συγχρονισμό, προστασία επανάληψης και σχεδιασμό συσκευών.
+- **Φορολογικά:** επικαιροποίηση και έλεγχος επίσημων myDATA/IMPACT πηγών, νόμιμων συμβολαίων, ΦΠΑ, παραστατικών και τελών **πριν από έκδοση ή διαβίβαση**. Το [compliance gate](18-mydata-impact-compatibility.md) παραμένει υποχρεωτικό.
+- **Περιβαλλοντικά τέλη:** μόνο [design](47-environmental-fees-fiscal-design.md), χωρίς αυτόματους κανόνες ή SQL changes.
+- **Excel και μαζικές εργασίες:** [αναβλήθηκαν](48-bulk-actions-and-excel-import-plan.md), μέχρι να ολοκληρωθούν οι βασικές δυνατότητες.
+- **Παραγωγική εγκατάσταση:** δεν έχει εγκριθεί production hosting, SLAs ή πλήρης production security readiness.
+
+**Κανόνας διατήρησης documentation:** Κάθε merged feature επικαιροποιεί το `README.md` και τον [χάρτη](00-current-state-and-roadmap.md). Τα step-by-step manuals παραμένουν ιστορικά τεκμήρια. Τα GitBook starter templates δεν θεωρούνται τεκμηρίωση AENAON πριν από επιβεβαίωση του ενεργού site.
