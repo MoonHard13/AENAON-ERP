@@ -57,8 +57,9 @@
                     </div>
 
                     <form method="get" action="/price-lists/preview"
-                          class="price-preview-filters" role="search"
+                          class="price-preview-form" role="search"
                           aria-label="Επιλογή εμπορικής τιμής">
+                        <div class="price-preview-filters">
                         <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
                         <input type="hidden" name="page" value="@_pageNumber" />
                         @if (_workspace.Store is { } currentStore)
@@ -109,6 +110,7 @@
                                 <AppIcon Name="search" /> Αναζήτηση ειδών
                             </button>
                             <a class="catalog-reset" href="@ResetUrl">Καθαρισμός</a>
+                        </div>
                         </div>
                     @* Ο πίνακας ανήκει στην ίδια GET φόρμα, ώστε η επιλογή είδους να
                        αποστέλλει πάντοτε τις τρέχουσες τιμές ημερομηνίας/καναλιού/καταστήματος. *@
