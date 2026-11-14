@@ -19,8 +19,9 @@ internal static class SqlServerPriceListAssertions
         Guid otherStoreId = await context.Stores.AsNoTracking()
             .Where(x => x.TenantId == otherTenantId)
             .Select(x => x.Id).FirstAsync(token);
+        // Η δοκιμή επίλυσης τιμής απαιτεί ενεργό είδος· μην επιλέγετε αυθαίρετα ανενεργό.
         Guid itemId = await context.CatalogItems.AsNoTracking()
-            .Where(x => x.TenantId == tenantId)
+            .Where(x => x.TenantId == tenantId && x.IsActive)
             .Select(x => x.Id).FirstAsync(token);
         Guid otherItemId = await context.CatalogItems.AsNoTracking()
             .Where(x => x.TenantId == otherTenantId)
