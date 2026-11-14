@@ -152,6 +152,10 @@ public sealed class BackOfficeLayoutUiTests
         Assert.Contains(".dashboard-overview.dashboard__body", css);
         Assert.Contains(".dashboard-overview .workspace-selection__header h1", css);
         Assert.Contains("@media (max-width: 540px)", css);
+        Assert.Contains(".sidebar__foot .sidebar__collapse-toggle", css);
+        Assert.Contains("grid-column: 1 / -1", css);
+        Assert.Contains(":root[data-sidebar=\"collapsed\"] .sidebar__foot", css);
+        Assert.DoesNotContain(".topbar__sidebar-toggle", css);
     }
 
     private static async Task LoginAsync(HttpClient client)
