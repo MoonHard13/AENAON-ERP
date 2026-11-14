@@ -106,8 +106,9 @@
                     }
                     else
                     {
-                        <div class="catalog-table-wrap">
-                            <table class="catalog-table">
+                        <div class="catalog-table-wrap" tabindex="0" role="region"
+                             aria-label="Τιμοκατάλογοι">
+                            <table class="catalog-table mobile-card-table mobile-price-lists-table">
                                 <thead>
                                     <tr>
                                         <th scope="col">Κωδικός</th>
@@ -124,17 +125,17 @@
                                     @foreach (PriceListSummary row in _page.Rows)
                                     {
                                         <tr>
-                                            <td><strong>@row.Code</strong></td>
-                                            <td>@row.Name <small class="price-list-hint">@(row.PricesIncludeVat ? "Με ΦΠΑ" : "Χωρίς ΦΠΑ")</small></td>
-                                            <td>@ChannelLabel(row.Channel)</td>
-                                            <td>@StoreLabel(row.StoreId)</td>
-                                            <td><span class="price-list-nowrap">@row.ValidFrom.ToString("dd/MM/yyyy")</span>
+                                            <td data-label="Κωδικός" class="mobile-card-primary"><strong>@row.Code</strong></td>
+                                            <td data-label="Περιγραφή" class="mobile-card-title">@row.Name <small class="price-list-hint">@(row.PricesIncludeVat ? "Με ΦΠΑ" : "Χωρίς ΦΠΑ")</small></td>
+                                            <td data-label="Κανάλι">@ChannelLabel(row.Channel)</td>
+                                            <td data-label="Κατάστημα">@StoreLabel(row.StoreId)</td>
+                                            <td data-label="Ισχύς"><span class="price-list-nowrap">@row.ValidFrom.ToString("dd/MM/yyyy")</span>
                                                 <span class="price-list-hint">έως @(row.ValidUntil?.ToString("dd/MM/yyyy") ?? "χωρίς λήξη")</span></td>
-                                            <td>@row.ItemCount</td>
-                                            <td><span class="@(row.IsActive ? "catalog-status catalog-status--active" : "catalog-status catalog-status--inactive")">
+                                            <td data-label="Είδη">@row.ItemCount</td>
+                                            <td data-label="Κατάσταση"><span class="@(row.IsActive ? "catalog-status catalog-status--active" : "catalog-status catalog-status--inactive")">
                                                 @(row.IsActive ? "Ενεργός" : "Ανενεργός")
                                             </span></td>
-                                            <td><a class="catalog-edit-link" href="@ManageUrl(row.Id)">@(CanManage ? "Διαχείριση" : "Προβολή")</a></td>
+                                            <td data-label="Ενέργειες"><a class="catalog-edit-link" href="@ManageUrl(row.Id)">@(CanManage ? "Διαχείριση" : "Προβολή")</a></td>
                                         </tr>
                                     }
                                 </tbody>
