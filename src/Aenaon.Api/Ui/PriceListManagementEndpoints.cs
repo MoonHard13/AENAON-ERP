@@ -130,7 +130,8 @@ public static class PriceListManagementEndpoints
             }
             else
             {
-                if (!TryGuid(form, "expectedScopeStoreId", required: false, out expectedStore) ||
+                if (!form.ContainsKey("expectedScopeStoreId") ||
+                    !TryGuid(form, "expectedScopeStoreId", required: false, out expectedStore) ||
                     !TrySingle(form, "expectedChannel", out string previousChannel) ||
                     !Enum.TryParse(previousChannel, false, out PriceListChannel parsedChannel) ||
                     !Enum.IsDefined(parsedChannel) ||
