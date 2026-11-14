@@ -1,12 +1,12 @@
 # Aenaon ERP
 
-Cloud σύστημα εστίασης για πολλές ανεξάρτητες επιχειρήσεις, με POS, Back office και υποστήριξη υπηρεσιών.
+Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες επιχειρήσεις εστίασης. Διαθέτει Development Back Office και υποστήριξη προϊόντων/υπηρεσιών· το POS και η εφαρμογή σερβιτόρων είναι **μελλοντικές λειτουργίες**, όχι διαθέσιμο προϊόν.
 
 ## Υποχρεωτική συμβατότητα ΑΑΔΕ myDATA / IMPACT
 
 Όλες οι σχετικές υλοποιήσεις του Aenaon ERP πρέπει να ελέγχονται ως προς τις ισχύουσες **επίσημες τεχνικές προδιαγραφές myDATA** και το **API/τεκμηρίωση του παρόχου IMPACT**. Αυτή είναι οριζόντια αρχιτεκτονική απαίτηση, όχι προαιρετική μεταγενέστερη ενσωμάτωση.
 
-Δες το [myDATA & IMPACT Compatibility Gate](docs/18-mydata-impact-compatibility.md) και το υποχρεωτικό GitHub PR checklist. Το Product Catalog 9.1/9.2 δεν περιλαμβάνει ακόμη φορολογικό mapping ή έκδοση παραστατικών.
+Δες το [myDATA & IMPACT Compatibility Gate](docs/18-mydata-impact-compatibility.md) και το υποχρεωτικό GitHub PR checklist. Οι εμπορικές λειτουργίες καταλόγου και τιμών δεν αποτελούν εγκεκριμένο φορολογικό mapping ή δυνατότητα έκδοσης παραστατικών. Οι fiscal έλεγχοι παραμένουν offline / υπό ανεξάρτητη έγκριση.
 
 ## Βήμα 9.3 — Fiscal Catalog Design Gate
 
@@ -116,25 +116,55 @@ Cloud σύστημα εστίασης για πολλές ανεξάρτητες
 
 **Δεν** υπάρχουν ακόμη τιμές/τιμοκατάλογοι, φορολογικοί χαρακτηρισμοί, myDATA/IMPACT ή έκδοση παραστατικών. Η migration απαιτεί ξεχωριστό preview, backup και ρητή επιβεβαίωση πριν εφαρμοστεί στη βάση.
 
-## Τρέχον στάδιο
+## Βήμα 9.5A.1 — Ενοποιημένοι εμπορικοί επιλογείς
 
-**Βήμα 9.4C.2 — Back Office UI Polish & Category Picker (Development, Owner write / Member read).** Οι κατηγορίες, τα προϊόντα και οι υπηρεσίες αποθηκεύονται πλέον σε SQL Server με τρίτη EF Core migration, unique keys ανά Tenant, προστασία από διασύνδεση κατηγορίας άλλης επιχείρησης και SQL κανόνα ότι οι υπηρεσίες δεν παρακολουθούν απόθεμα. Το Login, το Dashboard και ο νέος κατάλογος `/catalog` παραμένουν Development-only. Υπάρχει πλέον ασφαλής προβολή καταλόγου για Owner/Member και περιορισμένη δημιουργία/επεξεργασία/αλλαγή ενεργής κατάστασης από Owner μέσω UI και CLI.
+Οι επιλογείς μονάδας μέτρησης και λογιστικού τύπου έγιναν αναζητήσιμοι, προσβάσιμοι και κοινοί στις φόρμες. [Manual 43](docs/43-unified-commercial-dropdowns.md).
 
-Κάθε κατάστημα έχει συγκεκριμένο ιδιοκτήτη (`TenantId`). Ο κωδικός καταστήματος είναι μοναδικός μέσα στην ίδια επιχείρηση· διαφορετικές επιχειρήσεις μπορούν να έχουν τον ίδιο κωδικό. Η συλλογή καταστημάτων τροποποιείται μέσα από τους κανόνες της επιχείρησης.
+## Βήμα 9.5A.2 — Back Office layout
 
-| Διαδρομή | Απάντηση |
+Βελτιώθηκαν η πυκνότητα πληροφοριών, το responsive UI και η σύμπτυξη sidebar. [Manual 44](docs/44-back-office-layout-refinement.md).
+
+## Βήμα 9.5B.1 — Θεμελίωση τιμοκαταλόγων
+
+Η **8η EF Core migration** `20261113150000_PriceListsFoundation` εισάγει tenant-safe πίνακες `PriceLists` και `PriceListItems`, με περιοχές ισχύος, κατάστημα/κανάλι και EUR. [Manual 45](docs/45-price-lists-foundation.md).
+
+## Βήμα 9.5B.2 — Διαχείριση τιμοκαταλόγων
+
+Διαχείριση καταλόγων/τιμών με Owner/Manage, Blazor UI και CLI, χωρίς νέα migration σε αυτό το βήμα. [Manual 46](docs/46-price-list-management.md).
+
+## Βήμα 9.5B.3A — Read-only Price Resolution (PR #48 merged)
+
+Η `PriceResolutionService` επιλέγει τιμή ανά κατάστημα, κανάλι και ημερομηνία, με σταθερή προτεραιότητα και `Ambiguous` σε ισοβαθμίες. Χωρίς writes, ΦΠΑ ή παραστατικό. [Manual 49](docs/49-price-resolution-foundation.md).
+
+## Βήμα 9.5B.3B — Blazor Price Preview (PR #49 merged)
+
+Η οθόνη `/price-lists/preview` διαβάζει ενεργά είδη και εξηγεί εμπορική τιμή, scope, κανάλι και προτεραιότητα. **Οπτική αποδοχή Light/Dark, mobile και πληκτρολογίου παραμένει εκκρεμής.** [Manual 50](docs/50-price-preview-blazor.md).
+
+## Μελλοντικά θέματα
+
+Τα [περιβαλλοντικά τέλη](docs/47-environmental-fees-fiscal-design.md) παραμένουν design-only. Η [εισαγωγή Excel και οι μαζικές εργασίες](docs/48-bulk-actions-and-excel-import-plan.md) έχουν αναβληθεί κατόπιν απόφασης έως την ωρίμανση του μοντέλου.
+
+## Τρέχον στάδιο — 14/11/2026, μετά το PR #49
+
+**Τελευταίο ολοκληρωμένο feature: Step 9.5B.3B — Read-only Προεπισκόπηση Τιμών.** Το `main` έχει τα PR #48/#49. Το AENAON ERP υποστηρίζει σε **Development** HTTPS Login/Dashboard, tenant-scoped κατηγορίες/προϊόντα/υπηρεσίες, CRUD και sorting καταλόγου, εμπορικά πεδία, διαχείριση πολλαπλών τιμοκαταλόγων και read-only επίλυση/προεπισκόπηση τιμής.
+
+- **Σχήμα:** Στον κώδικα υπάρχουν **8 EF Core migrations**, με τελευταία την `20261113150000_PriceListsFoundation`. Δεν τεκμαίρεται ότι όλες έχουν εφαρμοστεί στην τοπική `AenaonERP_Dev` — χρειάζεται `--migrate-database --dry-run`. Τα PR #48/#49 δεν προσθέτουν migration.
+- **Δικαιώματα:** Owner/Manage για μεταβολές, Owner/Member με Read για προβολή, πάντα με Tenant/Store έλεγχο.
+- **Όχι ακόμη:** production POS, Android APK, offline συγχρονισμός, τιμολόγηση παραγγελιών, έκδοση/αποστολή παραστατικών, εγκεκριμένοι φορολογικοί κανόνες myDATA/IMPACT ή immutable price snapshots.
+- **Επόμενο προτεινόμενο βήμα:** 9.6A — Μενού εστίασης, έπειτα από σχεδιασμό και έγκριση. Excel / bulk παραμένουν αναβλημένα.
+
+Η πιο πρόσφατη σύνοψη και η διάκριση ιστορικών manuals: [Κατάσταση και χάρτης τεκμηρίωσης](docs/00-current-state-and-roadmap.md).
+
+| Διαδρομή | Σκοπός |
 | --- | --- |
-| `GET /health` | `Healthy`, όταν το API ανταποκρίνεται. |
-| `GET /api/info` | `{"name":"Aenaon ERP API"}`. |
-| `GET /health/database` | `Healthy` ή `Unhealthy`, αποκλειστικά σε Development, για την πραγματική σύνδεση SQL. |
-
-Το `/health` σε αυτό το στάδιο ελέγχει τη διαθεσιμότητα του API. Δεν ελέγχει βάση δεδομένων, πάροχο ή συγχρονισμό.
-
-Ο έλεγχος `/health/database` ανοίγει τη ρυθμισμένη σύνδεση και διαβάζει το compatibility level. Δεν δημιουργεί ή τροποποιεί πίνακες/δεδομένα και δεν αποτελεί έλεγχο ολοκλήρωσης migrations.
+| `GET /health` | Διαθεσιμότητα API, όχι πλήρης έλεγχος SQL ή παρόχου |
+| `GET /api/info` | Στοιχεία εφαρμογής |
+| `GET /health/database` | Development SQL connectivity, όχι πιστοποίηση migrations |
+| `/catalog`, `/price-lists`, `/price-lists/preview` | Προστατευμένο Back Office σε Development |
 
 ## Γρήγορη εκκίνηση σε Windows / PowerShell
 
-Προϋποθέσεις: Git και .NET SDK **10.0.403** ή νεότερο σταθερό patch της ίδιας σειράς `10.0.4xx`.
+Προϋποθέσεις: Git και .NET SDK **10.0.404** ή νεότερο συμβατό stable patch της σειράς `10.0.4xx` (σύμφωνα με το `global.json`).
 
 ```powershell
 git clone https://github.com/MoonHard13/AENAON-ERP.git
@@ -298,7 +328,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 
 Άνοιξε τη διεύθυνση **https://localhost:7140/login** και συνδέσου με τον υπάρχοντα λογαριασμό admin. Μετά το login μεταφέρεσαι στο **/dashboard**, όπου προβάλλονται μόνο επιχειρήσεις στις οποίες ανήκεις και καταστήματα της επιλεγμένης επιχείρησης.
 
-**Λογότυπα:** Το GitHub connector υποστηρίζει μόνο εγγραφή text files. Οι αυθεντικές PNG και οι optimized WebP εικόνες παραδίδονται σε συμπληρωματικό ZIP. Αποσυμπίεσέ το στο root του repository και κάνε commit τον φάκελο εικόνων στο feature branch πριν από το merge του PR.
+**Λογότυπα:** Τα επίσημα WebP (dark/light) και PNG favicon βρίσκονται ήδη στο `src/Aenaon.Api/wwwroot/images/` του `main`· δεν απαιτείται συμπληρωματικό ZIP.
 
 Πλήρης οδηγός: [Blazor Login UI και Dashboard](docs/11-blazor-login-ui.md).
 
@@ -332,7 +362,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 
 Τα δύο WebP λογότυπα αντικαθίστανται από ακριβώς ευθυγραμμισμένες εκδόσεις ίδιου καμβά 960×960, προερχόμενες από τα αυθεντικά MoonHard PNG. Διορθώνεται η έντονη σκιά του User Menu σε Light Mode και η αναγνωσιμότητα μικρών ετικετών, χωρίς λειτουργικές αλλαγές.
 
-**Απαιτείται προσθήκη binary assets πριν από το merge:** Κατέβασε το AenaonERP_VisualConsistency_Assets.zip από τη συνομιλία, αποσυμπίεσέ το στον φάκελο του repository και κάνε commit τα δύο αρχεία στο ίδιο feature branch. Τα νέα HTTP tests ελέγχουν τις πραγματικές διαστάσεις WebP και αποτυγχάνουν έως ότου ανέβουν οι σωστές εικόνες.
+**Ιστορική σημείωση:** Τα απαραίτητα binary assets ενσωματώθηκαν στο `main` και οι διαστάσεις τους ελέγχονται από τα σχετικά HTTP tests. Δεν χρειάζεται ξεχωριστό ZIP.
 
 Οδηγίες: [Visual Consistency Polish](docs/15-visual-consistency-polish.md).
 
@@ -340,7 +370,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 
 Προστέθηκαν τα Domain μοντέλα `ProductCatalog`, `CatalogCategory`, `CatalogItem`, `CatalogItemKind` στο `src/Aenaon.Domain/Catalog/`, με αυστηρή απομόνωση ανά Tenant, κωδικούς μοναδικούς ανά επιχείρηση, διαχείριση ενεργής κατάστασης και διακριτό stock tracking (απαγορεύεται για υπηρεσίες).
 
-Το βήμα λειτουργεί **μόνο στη μνήμη**. Δεν τροποποιεί τη βάση `AenaonERP_Dev`, δεν εκθέτει endpoints ή νέα οθόνη, δεν προσθέτει NuGet packages. Οι SQL constraints και το persistence σχεδιάζονται για το Βήμα 9.2.
+**Ιστορική κατάσταση του 9.1:** Τότε λειτουργούσε μόνο στη μνήμη. Η SQL αποθήκευση προστέθηκε στο 9.2 και το διαχειριστικό UI/CLI στο 9.4C. Δεν αποτελεί τρέχον περιορισμό.
 
 Εκτέλεση tests: `dotnet test tests/Aenaon.Domain.Tests --configuration Release --filter "FullyQualifiedName~ProductCatalogTests"`.
 
@@ -352,7 +382,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https
 - Νέοι πίνακες: `dbo.CatalogCategories`, `dbo.CatalogItems`.
 - Μοναδικοί κωδικοί ανά Tenant, composite category foreign key, υπηρεσίες χωρίς stock.
 - Μη καταστροφική επέκταση schema: η εφαρμογή δεν εφαρμόζει migration αυτόματα.
-- **Δεν ενεργοποιούνται ακόμη HTTP/CLI λειτουργίες CRUD καταλόγου**.
+- **Ιστορική κατάσταση του 9.2:** Δεν υπήρχε ακόμη CRUD, το οποίο προστέθηκε αργότερα στο 9.4C (Development-only).
 
 ```powershell
 dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database --dry-run
@@ -400,7 +430,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 
 ## Ασφάλεια και όρια του σταδίου
 
-Το τρέχον API εκθέτει αποκλειστικά πληροφορίες λειτουργίας. Δεν υπάρχουν ακόμη production login endpoints, πρόσβαση σε επιχειρησιακά δεδομένα ή έκδοση παραστατικών. Σε Development δοκιμάζονται αποκλειστικά ασφαλείς συνεδρίες. Η απομόνωση επιχειρήσεων και η εξουσιοδότηση αποτελούν προϋποθέσεις πριν προστεθούν αντίστοιχα endpoints.
+Το API εκθέτει **Development-only** HTTPS sessions και εξουσιοδοτημένη ανάγνωση/επεξεργασία καταλόγου και τιμοκαταλόγων, με Tenant/Store isolation, Owner/Member permissions και CSRF όπου απαιτείται. Δεν έχει ενεργοποιηθεί παραγωγικό POS, τιμολόγηση, έκδοση παραστατικών ή αποστολή σε myDATA/IMPACT.
 
 Τα διαπιστευτήρια ανάπτυξης θα αποθηκεύονται με .NET User Secrets. Στο production θα χρησιμοποιούνται ασφαλείς ρυθμίσεις του παρόχου φιλοξενίας. Μην ανεβάζεις κωδικούς, πραγματικά δεδομένα πελατών ή κλειδιά παρόχου στο repository.
 
@@ -439,4 +469,17 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Offline IMPACT Payload Preflight](docs/31-impact-offline-payload-preflight.md)
 - [IMPACT Classification Source Reconciliation](docs/32-impact-classification-source-reconciliation.md)
 - [IMPACT Conditional Field Evidence](docs/33-impact-conditional-field-evidence.md)
+- [Ενοποιημένα dropdowns](docs/43-unified-commercial-dropdowns.md)
+- [Back Office layout](docs/44-back-office-layout-refinement.md)
+- [Υποδομή τιμοκαταλόγων](docs/45-price-lists-foundation.md)
+- [Διαχείριση τιμοκαταλόγων](docs/46-price-list-management.md)
+- [Περιβαλλοντικά τέλη — σχεδιασμός](docs/47-environmental-fees-fiscal-design.md)
+- [Excel / μαζικές εργασίες — αναβολή](docs/48-bulk-actions-and-excel-import-plan.md)
+- [Read-only επίλυση τιμής](docs/49-price-resolution-foundation.md)
+- [Blazor προεπισκόπηση τιμής](docs/50-price-preview-blazor.md)
+- [Κατάσταση έργου και χάρτης τεκμηρίωσης](docs/00-current-state-and-roadmap.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
+
+### Σημείωση για GitBook starter περιεχόμενο
+
+Οι φάκελοι `documentation/`, `home/`, `help-center/` και `changelog/` περιέχουν ακόμη **γενικά GitBook templates** («Developer Platform», «Feature description»), όχι εγκεκριμένα manuals AENAON ERP. Οι πραγματικοί τεχνικοί οδηγοί είναι στο `docs/`. Η αλλαγή ή απόσυρση των template pages απαιτεί ξεχωριστή επαλήθευση των ενεργών GitBook spaces και της σύνδεσής τους με αυτό το repository.
