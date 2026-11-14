@@ -174,7 +174,7 @@ public sealed class PriceListUiTests
         Assert.IsTrue(factory.PriceLists.LastChange.ExpectedPricesIncludeVat);
         Assert.IsTrue(factory.PriceLists.LastChange.CheckExpectedDetails);
         Assert.AreEqual("Βασική λιανική", factory.PriceLists.LastChange.ExpectedName);
-        Assert.AreEqual(new DateOnly(2026, 11, 13), factory.PriceLists.LastChange.ExpectedValidFrom);
+        Assert.IsTrue(factory.PriceLists.LastChange.ExpectedValidFrom == new DateOnly(2026, 11, 13));
 
         fields.Remove("expectedName");
         using var missingSnapshot = await client.PostAsync("/ui/price-lists/save",
