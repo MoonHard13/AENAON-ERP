@@ -280,12 +280,13 @@
 | 9.5B.1–9.5B.2 | Πολλαπλοί τιμοκατάλογοι, SQL, GUI και CLI | Όχι χρήση σε παραστατικά |
 | 9.5B.3A–9.5B.3B | Read-only PriceResolutionService και Blazor price preview | Ισοβαθμίες: Ambiguous, χωρίς SQL writes, taxes ή price snapshots |
 
-**Σχήμα:** Στο `main` υπάρχουν **8 migrations** μέχρι `20261113150000_PriceListsFoundation`. Εφαρμογή όλων στη βάση `AenaonERP_Dev` δεν έχει επιβεβαιωθεί μέσω του GitHub — απαιτείται πραγματικός SQL/CLI έλεγχος.
+**Σχήμα:** Με το feature 9.5C.2 ο κώδικας διαθέτει **9 migrations**, μέχρι `20261114151000_CatalogItemDetails` (additive nullable barcode και long description, unique tenant index). Εφαρμογή στη βάση `AenaonERP_Dev` δεν έχει επιβεβαιωθεί μέσω του GitHub — απαιτείται πραγματικός SQL/CLI έλεγχος.
 
 ### Ανοιχτές απαιτήσεις / μελλοντικός σχεδιασμός
 
 - **9.5C.1 — Catalog & Pricing Gap Analysis:** [Manual 51](51-catalog-pricing-gap-analysis.md), τεκμηριώνει πραγματικά πεδία και κενά χωρίς μεταβολές SQL/κώδικα. 
-- **Πριν από το 9.6A:** ολοκλήρωση 9.5C.2–9.5C.5 (barcode, long description, τιμολογιακό ιστορικό, έλεγχοι επικαλύψεων και readiness).
+- **9.5C.2 — Catalog Core Completeness:** [Manual 52](52-catalog-item-details.md). Προαιρετικό barcode/GTIN και αναλυτική περιγραφή για προϊόντα/υπηρεσίες, μέσω Domain/SQL/Blazor/CLI, με έλεγχο μοναδικότητας ανά Tenant. Δεν μεταβάλλει τιμές/φορολογικά ή υπάρχοντα στοιχεία.
+- **Πριν από το 9.6A:** ολοκλήρωση 9.5C.3–9.5C.5 (τιμολογιακό ιστορικό, overlap integrity, εμπορικά scopes και readiness).
 - **Μεταγενέστερο 9.6A:** Μενού εστίασης, ομάδες, παραλλαγές, πρόσθετα, επιλογές και διαθεσιμότητα κατά store/channel. **Δεν έχει υλοποιηθεί**· απαιτεί προηγούμενο design review.
 - **Παραγγελιοληψία / POS / Android APK / offline:** απαιτούν μοντέλα παραγγελίας, immutable εμπορικά snapshots, συγχρονισμό, προστασία επανάληψης και σχεδιασμό συσκευών.
 - **Φορολογικά:** επικαιροποίηση και έλεγχος επίσημων myDATA/IMPACT πηγών, νόμιμων συμβολαίων, ΦΠΑ, παραστατικών και τελών **πριν από έκδοση ή διαβίβαση**. Το [compliance gate](18-mydata-impact-compatibility.md) παραμένει υποχρεωτικό.
