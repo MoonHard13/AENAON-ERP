@@ -90,7 +90,10 @@ public sealed class SqlCatalogWriteStore(AenaonDbContext context) : ICatalogWrit
         }
         catch (DbUpdateException exception) when (HasSqlNumber(exception, 2601, 2627))
         {
-            return new(CatalogChangeStatus.Duplicate, Error: "catalog.code.duplicate");
+            return new(CatalogChangeStatus.Duplicate, Error:
+                exception.ToString().Contains("IX_CatalogItems_TenantId_Barcode",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? "catalog.item.barcode.duplicate" : "catalog.code.duplicate");
         }
         catch (DbUpdateException exception) when (HasSqlNumber(exception, 547))
         {
@@ -134,7 +137,8 @@ public sealed class SqlCatalogWriteStore(AenaonDbContext context) : ICatalogWrit
                     .Where(x => x.TenantId == tenantId && x.Id == id.Value && x.Kind == kind)
                     .Select(x => new CatalogManageRecord(x.Id, x.Code, x.Name, x.IsActive,
                         x.CategoryId, x.Kind, x.TracksStock, null,
-                        x.UnitOfMeasure, x.AccountingType))
+                        x.UnitOfMeasure, x.AccountingType,
+                        x.Barcode, x.LongDescription))
                     .SingleOrDefaultAsync(cancellationToken);
             }
         }
@@ -346,7 +350,8 @@ public sealed class SqlCatalogWriteStore(AenaonDbContext context) : ICatalogWrit
 
             item = CatalogItem.Create(tenantId, command.CategoryId!.Value,
                 command.Code, command.Name, kind, command.TracksStock,
-                command.UnitOfMeasure, command.AccountingType);
+                command.UnitOfMeasure, command.AccountingType,
+                command.Barcode, command.LongDescription);
             context.CatalogItems.Add(item);
         }
         else
@@ -366,6 +371,13 @@ public sealed class SqlCatalogWriteStore(AenaonDbContext context) : ICatalogWrit
                     !await CategoryIsActiveAsync(tenantId, command.CategoryId, cancellationToken))
                 {
                     return new(CatalogChangeStatus.Invalid, Error: "catalog.category.inactive_or_missing");
+                }
+
+                if (command.SetBarcode || command.SetLongDescription)
+                {
+                    item.UpdateDetails(
+                        command.SetBarcode ? command.Barcode : item.Barcode,
+                        command.SetLongDescription ? command.LongDescription : item.LongDescription);
                 }
 
                 item.Update(command.CategoryId ?? Guid.Empty, command.Code, command.Name,
