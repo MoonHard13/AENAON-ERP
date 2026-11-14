@@ -186,6 +186,7 @@ function browserExecutable() {
 let browser;
 let websocket;
 let userData;
+let chromeStderr = "";
 try {
     await new Promise(done => server.listen(0, "127.0.0.1", done));
     const httpPort = server.address().port;
@@ -197,13 +198,21 @@ try {
         "--disable-dev-shm-usage", "--no-first-run",
         "--remote-allow-origins=*", "--remote-debugging-port=" + debugPort,
         "--user-data-dir=" + userData, "about:blank"
-    ], { stdio: "ignore" });
+    ], { stdio: ["ignore", "ignore", "pipe"] });
+    browser.stderr.on("data", chunk => {
+        chromeStderr = (chromeStderr + chunk.toString("utf8")).slice(-4096);
+    });
 
     const page = await waitFor(async () => {
         const response = await fetch("http://127.0.0.1:" + debugPort + "/json/list");
         const targets = await response.json();
         return targets.find(item => item.type === "page");
-    }, "Δεν ξεκίνησε το Chrome DevTools.", 240);
+    }, "Δεν ξεκίνησε το Chrome DevTools.", 240).catch(error => {
+        // Περιορισμένο stderr μόνο όταν αποτύχει η έναρξη, χωρίς υποκατάσταση του smoke test.
+        throw new Error(error.message + " Chrome exit code: " +
+            (browser.exitCode ?? "running") + "; stderr: " +
+            (chromeStderr.slice(-1500) || "empty"));
+    });
 
     websocket = new WebSocket(page.webSocketDebuggerUrl);
     await new Promise((done, reject) => {
