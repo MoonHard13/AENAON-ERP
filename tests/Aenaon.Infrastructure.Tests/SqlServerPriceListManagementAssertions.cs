@@ -141,7 +141,12 @@ internal static class SqlServerPriceListManagementAssertions
             }, token);
         Assert.AreEqual(PriceListStatus.Invalid, foreignStore.Status);
 
-        // Το ήδη τιμολογημένο RETAIL με κοινό είδος και ημέρα απαγορεύει αμφισημία.
+        // Όταν ο πρώτος κατάλογος μετακινηθεί σε άλλο κανάλι, η δεύτερη τιμή είναι νόμιμη.
+        PriceListResult allowedOther = await store.SetPricesAsync(tenant, secondList.Id.Value,
+            [new PriceListPriceChange(itemId, 8m)], token);
+        Assert.AreEqual(PriceListStatus.Saved, allowedOther.Status);
+
+        // Η επιστροφή στο ίδιο κατάστημα/κανάλι και περίοδο θα δημιουργούσε ισοβαθμία.
         PriceListResult overlap = await store.ApplyAsync(tenant,
             policy with
             {
