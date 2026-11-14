@@ -37,7 +37,9 @@ public sealed class CatalogQuickCategoryUiTests
                 ["name"] = "Αποθηκευμένα στοιχεία προϊόντος",
                 ["tracksStock"] = "true",
                 ["unitOfMeasure"] = "2",
-                ["accountingType"] = "3"
+                ["accountingType"] = "3",
+                ["barcode"] = "4006381333931",
+                ["longDescription"] = "Αναλυτικά στοιχεία πριν από νέα κατηγορία"
             }));
         Assert.AreEqual(HttpStatusCode.Redirect, start.StatusCode);
         Assert.AreEqual(0, factory.CatalogWriter.ApplyCalls);
@@ -74,6 +76,8 @@ public sealed class CatalogQuickCategoryUiTests
         string restored = WebUtility.HtmlDecode(await client.GetStringAsync(productReturn));
         Assert.Contains("SKU-900", restored);
         Assert.Contains("Αποθηκευμένα στοιχεία προϊόντος", restored);
+        Assert.Contains("4006381333931", restored);
+        Assert.Contains("Αναλυτικά στοιχεία πριν από νέα κατηγορία", restored);
         Assert.Contains("name=\"tracksStock\"", restored);
         Assert.IsNotNull(factory.CatalogWriter.CreatedCategoryId);
         Assert.Contains(factory.CatalogWriter.CreatedCategoryId.Value.ToString("D"), restored);
