@@ -13,7 +13,10 @@ public enum PriceListStatus { Saved, Denied, Missing, Invalid, Duplicate, Confli
 public sealed record PriceListChange(PriceListAction Action, Guid? Id = null,
     string? Code = null, string? Name = null, Guid? StoreId = null,
     PriceListChannel Channel = PriceListChannel.All, bool PricesIncludeVat = true,
-    DateOnly ValidFrom = default, DateOnly? ValidUntil = null);
+    DateOnly ValidFrom = default, DateOnly? ValidUntil = null,
+    bool EditCommercialProfile = false, bool ConfirmPolicyChange = false,
+    Guid? ExpectedStoreId = null, PriceListChannel? ExpectedChannel = null,
+    bool? ExpectedPricesIncludeVat = null);
 
 public sealed record PriceListPriceChange(Guid CatalogItemId, decimal UnitPrice,
     decimal? ExpectedUnitPrice = null, bool CheckExpected = false);
@@ -112,6 +115,10 @@ public sealed class PriceListManagementService(
             (change.Action != PriceListAction.Create &&
              (!change.Id.HasValue || change.Id == Guid.Empty)) ||
             change.StoreId == Guid.Empty ||
+            (change.Action == PriceListAction.Update && change.EditCommercialProfile &&
+             (!Enum.IsDefined(change.Channel) ||
+              !change.ExpectedChannel.HasValue ||
+              !change.ExpectedPricesIncludeVat.HasValue)) ||
             (change.Action is PriceListAction.Create or PriceListAction.Update &&
              string.IsNullOrWhiteSpace(change.Name)))
         {
