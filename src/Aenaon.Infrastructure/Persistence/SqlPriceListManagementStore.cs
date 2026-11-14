@@ -144,6 +144,13 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
                 }
                 list = existing;
                 beforePolicy = PolicySnapshot(existing);
+                if (change.CheckExpectedDetails &&
+                    (list.Name != change.ExpectedName ||
+                     list.ValidFrom != change.ExpectedValidFrom ||
+                     list.ValidUntil != change.ExpectedValidUntil))
+                {
+                    return new(PriceListStatus.Conflict, Error: "pricelist.profile.conflict");
+                }
 
                 if (change.Action == PriceListAction.Update)
                 {
