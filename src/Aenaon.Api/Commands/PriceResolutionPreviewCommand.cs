@@ -40,18 +40,23 @@ public static class PriceResolutionPreviewCommand
             }
         }
 
+        Guid tenantId = Guid.Empty;
+        Guid itemId = Guid.Empty;
+        PriceListChannel channel = PriceListChannel.All;
+        DateOnly businessDate = default;
+
         valid = valid && dryRun &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--username")) &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--confirm-database")) &&
-            Guid.TryParse(values.GetValueOrDefault("--tenant-id"), out Guid tenantId) &&
+            Guid.TryParse(values.GetValueOrDefault("--tenant-id"), out tenantId) &&
             tenantId != Guid.Empty &&
-            Guid.TryParse(values.GetValueOrDefault("--item-id"), out Guid itemId) &&
+            Guid.TryParse(values.GetValueOrDefault("--item-id"), out itemId) &&
             itemId != Guid.Empty &&
-            Enum.TryParse(values.GetValueOrDefault("--channel"), false, out PriceListChannel channel) &&
+            Enum.TryParse(values.GetValueOrDefault("--channel"), false, out channel) &&
             Enum.IsDefined(channel) &&
             DateOnly.TryParseExact(values.GetValueOrDefault("--business-date"),
                 "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                out DateOnly businessDate);
+                out businessDate);
 
         Guid? storeId = null;
         if (values.TryGetValue("--store-id", out string? rawStore))
