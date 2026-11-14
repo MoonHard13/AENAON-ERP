@@ -78,6 +78,79 @@ public sealed class PriceListUiTests
     }
 
     [TestMethod]
+    public async Task ExistingPriceList_ProvidesAccessibleCollapsiblePanelsAndEditablePolicy()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}"));
+
+        Assert.Contains("data-panel-toggle=\"price-list-details\"", html);
+        Assert.Contains("data-panel-toggle=\"price-list-items-content\"", html);
+        Assert.Contains("aria-controls=\"price-list-details\"", html);
+        Assert.Contains("data-panel-content", html);
+        Assert.Contains("name=\"expectedScopeStoreId\"", html);
+        Assert.Contains("name=\"expectedChannel\"", html);
+        Assert.Contains("name=\"expectedIncludeVat\"", html);
+        Assert.Contains("name=\"confirmPolicyChange\"", html);
+        Assert.Contains("name=\"scopeStoreId\"", html);
+        Assert.Contains("name=\"channel\"", html);
+        Assert.Contains("name=\"includeVat\"", html);
+        Assert.DoesNotContain("price-list-readonly-value", html);
+    }
+
+    [TestMethod]
+    public async Task UpdateCommercialPolicy_HasExpectedSnapshotAndRequiresValidParameters()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string page = await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}");
+
+        var fields = new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = Token(page),
+            ["tenantId"] = Tenant.ToString("D"),
+            ["id"] = SessionPriceListFixture.ListId.ToString("D"),
+            ["action"] = "update",
+            ["name"] = "Νέο όνομα",
+            ["scopeStoreId"] = "",
+            ["expectedScopeStoreId"] = "",
+            ["channel"] = "Delivery",
+            ["expectedChannel"] = "Retail",
+            ["includeVat"] = "false",
+            ["expectedIncludeVat"] = "true",
+            ["confirmPolicyChange"] = "yes",
+            ["validFrom"] = "13/11/2026",
+            ["validUntil"] = ""
+        };
+        using var posted = await client.PostAsync("/ui/price-lists/save",
+            new FormUrlEncodedContent(fields));
+
+        Assert.AreEqual(HttpStatusCode.Redirect, posted.StatusCode);
+        Assert.AreEqual(1, factory.PriceLists.SaveCalls);
+        Assert.IsNotNull(factory.PriceLists.LastChange);
+        Assert.IsTrue(factory.PriceLists.LastChange.EditCommercialProfile);
+        Assert.IsTrue(factory.PriceLists.LastChange.ConfirmPolicyChange);
+        Assert.AreEqual(Aenaon.Domain.Catalog.PriceListChannel.Delivery,
+            factory.PriceLists.LastChange.Channel);
+        Assert.IsFalse(factory.PriceLists.LastChange.PricesIncludeVat);
+        Assert.AreEqual(Aenaon.Domain.Catalog.PriceListChannel.Retail,
+            factory.PriceLists.LastChange.ExpectedChannel);
+        Assert.IsTrue(factory.PriceLists.LastChange.ExpectedPricesIncludeVat);
+
+        fields["channel"] = "INVALID";
+        using var invalid = await client.PostAsync("/ui/price-lists/save",
+            new FormUrlEncodedContent(fields));
+        Assert.AreEqual(HttpStatusCode.BadRequest, invalid.StatusCode);
+        Assert.AreEqual(1, factory.PriceLists.SaveCalls);
+    }
+
+    [TestMethod]
     public async Task MemberCanViewButCannotSave()
     {
         await using var factory = new SessionApiFactory();
