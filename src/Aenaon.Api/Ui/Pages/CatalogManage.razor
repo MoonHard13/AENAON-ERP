@@ -57,18 +57,21 @@
 
                 <section class="surface-card catalog-editor">
                     <div class="catalog-editor__header">
-                        <div>
-                            <h1>Βασικά στοιχεία</h1>
+                        <div class="catalog-editor__heading">
+                            <div class="catalog-editor__title-row">
+                                <h1>Βασικά στοιχεία</h1>
+                                @if (_details.Record is { } record)
+                                {
+                                    <span class="catalog-status @(record.IsActive
+                                        ? "catalog-status--active" : "catalog-status--inactive")"
+                                          aria-label="Κατάσταση καταχώρησης: @StatusLabel(record.IsActive)">
+                                        @StatusLabel(record.IsActive)
+                                    </span>
+                                }
+                            </div>
                             <p>Τα υποχρεωτικά πεδία σημειώνονται με *.</p>
                         </div>
                         <div class="catalog-editor__header-actions">
-                            @if (_details.Record is { } record)
-                            {
-                                <span class="catalog-status @(record.IsActive
-                                    ? "catalog-status--active" : "catalog-status--inactive")">
-                                    @StatusLabel(record.IsActive)
-                                </span>
-                            }
                             <a class="button button--outline" href="@EditorCancelUrl" accesskey="b">
                                 <AppIcon Name="chevron" />
                                 @(_returnEditor is null ? "Επιστροφή στον κατάλογο" : "Πίσω στην καταχώρηση")
