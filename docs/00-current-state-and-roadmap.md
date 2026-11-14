@@ -1,6 +1,6 @@
 # AENAON ERP — Κατάσταση και χάρτης τεκμηρίωσης
 
-**Αποτύπωση:** 14/11/2026 · **Βάση:** `main` μετά τα PR #48/#49 · **Τελευταίο υλοποιημένο feature:** 9.5B.3B (read-only Blazor price preview).
+**Αποτύπωση:** 14/11/2026 · **Βάση:** `main` μετά το PR #50 · **Τελευταίο υλοποιημένο feature:** 9.5B.3B (read-only Blazor price preview). Το **9.5C.1** είναι documentation-only audit, όχι νέα λειτουργία.
 
 {% hint style="info" %}
 Τα manuals ανά βήμα διατηρούνται **ως ιστορική τεκμηρίωση**. Για την τρέχουσα κατάσταση προτιμήστε το [root README](../README.md), αυτόν τον χάρτη και τον ίδιο τον κώδικα του `main`. Τα παλαιότερα «δεν υπάρχει ακόμη» αφορούν τη συγκεκριμένη έκδοση του βήματος.
@@ -16,6 +16,7 @@
 | Εμπορικά πεδία | Μονάδες/λογιστικοί τύποι, dropdowns, compact UI: [42](42-catalog-commercial-profile.md)–[44](44-back-office-layout-refinement.md) |
 | Τιμοκατάλογοι | SQL και διαχείριση UI/CLI: [45](45-price-lists-foundation.md)–[46](46-price-list-management.md) |
 | Επίλυση τιμής | Read-only service και Blazor preview: [49](49-price-resolution-foundation.md)–[50](50-price-preview-blazor.md) |
+| Επόμενο design gate | [9.5C.1 — Catalog & Pricing Gap Analysis](51-catalog-pricing-gap-analysis.md): τεκμηριωμένα κενά, προτεραιότητες, acceptance criteria, χωρίς κώδικα/SQL | 
 | Μελλοντικά | [Περιβαλλοντικά τέλη — design](47-environmental-fees-fiscal-design.md), [Excel/bulk — αναβολή](48-bulk-actions-and-excel-import-plan.md) |
 
 ## Database / installation
@@ -37,7 +38,8 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - POS, online/offline παραγγελιοληψία, Android waiter APK και παραγωγικό cloud deployment.
 - ΦΠΑ/φορολογικός υπολογισμός, έκδοση/διαβίβαση myDATA/IMPACT, εγκεκριμένοι φορολογικοί χαρακτηρισμοί. Τα 254 fiscal review observations καταγράφηκαν ως **Pending**, όχι ως approved.
 - Τιμή δεσμευμένη σε παραγγελία (immutable snapshot), εκπτώσεις και ιστορικό παραστατικών.
-- Προτεινόμενο **9.6A — Μενού εστίασης**, μόνο μετά από design review.
+- **9.5C.2–9.5C.5 — Προηγείται του 9.6A:** barcode, long description, price audit/history, overlap integrity, commercial scopes και τελικό acceptance, σύμφωνα με το [Manual 51](51-catalog-pricing-gap-analysis.md).
+- Το **9.6A — Μενού εστίασης** αρχίζει μόνο μετά την ολοκλήρωση και αποδοχή των παραπάνω.
 - Excel imports και μαζικές εργασίες: **αναβλημένα**.
 - Οπτική αποδοχή της σελίδας preview σε Light/Dark, mobile και keyboard-only: **εκκρεμής**.
 
