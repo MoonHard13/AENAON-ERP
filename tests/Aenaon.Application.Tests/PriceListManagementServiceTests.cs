@@ -155,22 +155,26 @@ public sealed class PriceListManagementServiceTests
             string? search, int page, int pageSize, CancellationToken token) =>
             Task.FromResult<PriceListItemsPage?>(new([], page, false));
 
+        public Task<PriceListHistoryPage?> ReadHistoryAsync(Guid tenantId, Guid priceListId,
+            int page, int pageSize, CancellationToken token) =>
+            Task.FromResult<PriceListHistoryPage?>(new PriceListHistoryPage([], page, false));
+
         public Task<PriceListResult> ApplyAsync(Guid tenantId, PriceListChange change,
-            CancellationToken token)
+            CancellationToken token, Guid? actorUserId = null, string source = "System")
         {
             ApplyCalls++;
             return Task.FromResult(new PriceListResult(PriceListStatus.Saved, Guid.NewGuid()));
         }
 
         public Task<PriceListResult> SetPricesAsync(Guid tenantId, Guid priceListId,
-            IReadOnlyList<PriceListPriceChange> changes, CancellationToken token)
+            IReadOnlyList<PriceListPriceChange> changes, CancellationToken token, Guid? actorUserId = null, string source = "System")
         {
             PriceCalls++;
             return Task.FromResult(new PriceListResult(PriceListStatus.Saved, priceListId));
         }
 
         public Task<PriceListResult> RemovePriceAsync(Guid tenantId, Guid priceListId,
-            Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token)
+            Guid catalogItemId, decimal expectedUnitPrice, CancellationToken token, Guid? actorUserId = null, string source = "System")
         {
             RemoveCalls++;
             return Task.FromResult(new PriceListResult(PriceListStatus.Saved, priceListId));
