@@ -173,7 +173,7 @@ internal static class SqlServerCatalogAssertions
                 TracksStock: true, UnitOfMeasure: CatalogUnitOfMeasure.Liter,
                 AccountingType: CatalogAccountingType.Merchandise,
                 Barcode: "INT-COLA", LongDescription: "Περιγραφή αναψυκτικού"), token);
-        Assert.AreEqual(CatalogChangeStatus.Saved, item.Status);
+        Assert.AreEqual(CatalogChangeStatus.Saved, item.Status, item.Error ?? "Αγνωστη αποτυχία SQL.");
         Assert.IsNotNull(item.Id);
 
         CatalogManageDetails details = await writer.GetDetailsAsync(
