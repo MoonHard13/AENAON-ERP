@@ -73,6 +73,29 @@ public sealed class PriceList
         ValidUntil = validUntil;
     }
 
+    /// <summary>Αλλάζει το εμπορικό πλαίσιο χωρίς αλλαγή της ταυτότητας ή των τιμών.</summary>
+    public void UpdateCommercialProfile(string? name, Guid? storeId,
+        PriceListChannel channel, bool pricesIncludeVat,
+        DateOnly validFrom, DateOnly? validUntil)
+    {
+        if (storeId == Guid.Empty)
+        {
+            throw new DomainRuleException("pricelist.scope.invalid",
+                "Το κατάστημα πρέπει να ανήκει στην επιχείρηση.");
+        }
+
+        if (!Enum.IsDefined(channel))
+        {
+            throw new DomainRuleException("pricelist.channel.invalid",
+                "Μη έγκυρο κανάλι πώλησης.");
+        }
+
+        Update(name, validFrom, validUntil);
+        StoreId = storeId;
+        Channel = channel;
+        PricesIncludeVat = pricesIncludeVat;
+    }
+
     public void ChangeActive(bool active) => IsActive = active;
 
     public bool IsValidOn(DateOnly day) =>
