@@ -179,7 +179,7 @@ internal static class SqlServerPriceListManagementAssertions
             {
                 Name = "Επιστροφή",
                 StoreId = storeId,
-                Channel = PriceListChannel.Retail,
+                Channel = PriceListChannel.Delivery,
                 PricesIncludeVat = true,
                 ExpectedStoreId = null,
                 ExpectedChannel = PriceListChannel.DineIn,
