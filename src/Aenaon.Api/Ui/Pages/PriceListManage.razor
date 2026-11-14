@@ -248,9 +248,6 @@
                         </div>
                         <div id="price-list-items-content" data-panel-content>
                         <form method="get" action="/price-lists/manage" class="catalog-filters" role="search" aria-label="Αναζήτηση ειδών για τιμολόγηση">
-                            <input type="hidden" class="desktop-sort-param" name="sort" value="@CurrentSort" />
-                            <input type="hidden" class="desktop-sort-param" name="desc"
-                                   value="@(CurrentDescending ? "true" : "false")" />
                             <input type="hidden" name="id" value="@selected.Id" />
                             <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
                             @if (_workspace.Store is { } filterScopeStore)
