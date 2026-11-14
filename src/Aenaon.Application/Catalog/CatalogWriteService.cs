@@ -136,6 +136,21 @@ public sealed class CatalogWriteService(
 
         try
         {
+            // Η ίδια επικύρωση ισχύει πριν από κάθε SQL πρόσβαση και για GUI και για CLI.
+            if (command.Entity != CatalogManagedEntity.Category &&
+                command.Action is CatalogChangeAction.Create or CatalogChangeAction.Update)
+            {
+                if (command.Action == CatalogChangeAction.Create || command.SetBarcode)
+                {
+                    _ = CatalogItemDetails.NormalizeBarcode(command.Barcode);
+                }
+
+                if (command.Action == CatalogChangeAction.Create || command.SetLongDescription)
+                {
+                    _ = CatalogItemDetails.NormalizeLongDescription(command.LongDescription);
+                }
+            }
+
             return await store.ApplyAsync(tenantId, command, cancellationToken);
         }
         catch (DomainRuleException exception)
