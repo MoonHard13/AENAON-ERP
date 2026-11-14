@@ -41,7 +41,7 @@ internal static class SqlServerSchemaAssertions
         Assert.AreEqual(DatabaseSchemaStatus.Updated, applied.Status);
         Assert.HasCount(10, applied.AppliedMigrations!);
         Assert.HasCount(0, applied.PendingMigrations!);
-        await AssertUserTableCountAsync(connection, 19, cancellationToken);
+        await AssertUserTableCountAsync(connection, 20, cancellationToken);
 
         var options = AenaonDbContextOptions.Create(connectionString, true);
         await using var context = new AenaonDbContext(options);
