@@ -129,19 +129,36 @@ public static class PriceListManageCommand
         var changes = new List<PriceListPriceChange>();
         foreach (string field in priceArgs)
         {
+            // Η τιμή `@none` δηλώνει απουσία προηγούμενης τιμής, όχι μηδενική τιμή.
             string[] pair = field.Split('=', 2);
+            string[] amountAndExpected = pair.Length == 2 ? pair[1].Split('@', 2) : [];
+            bool hasExpected = amountAndExpected.Length == 2;
+            decimal? expected = null;
+            bool expectedValid = !hasExpected ||
+                string.Equals(amountAndExpected[1], "none", StringComparison.OrdinalIgnoreCase) ||
+                (decimal.TryParse(amountAndExpected[1],
+                    NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
+                    CultureInfo.InvariantCulture, out decimal parsedExpected) &&
+                 (expected = parsedExpected) >= 0 && expected <= PriceListItem.MaxUnitPrice &&
+                 decimal.Round(parsedExpected, 4) == parsedExpected);
             if (pair.Length != 2 ||
                 !Guid.TryParse(pair[0], out Guid itemId) || itemId == Guid.Empty ||
-                !decimal.TryParse(pair[1],
+                !decimal.TryParse(amountAndExpected[0],
                     NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
                     CultureInfo.InvariantCulture, out decimal price) ||
                 price < 0 || price > PriceListItem.MaxUnitPrice ||
-                decimal.Round(price, 4) != price)
+                decimal.Round(price, 4) != price || !expectedValid)
             {
                 valid = false;
                 break;
             }
-            changes.Add(new(itemId, price));
+            changes.Add(new(itemId, price, expected, CheckExpected: hasExpected));
+        }
+
+        // Οι πραγματικές CLI εγγραφές απαιτούν την τιμή που είδε ο χειριστής.
+        if (action == "prices" && apply && changes.Any(x => !x.CheckExpected))
+        {
+            valid = false;
         }
 
         if ((action is "items" or "history" or "update" or "activate" or "deactivate" or "prices" or "remove-price" && !id.HasValue) ||
@@ -234,7 +251,7 @@ public static class PriceListManageCommand
                 "[--id GUID] [--code CODE] [--name NAME] [--scope-store-id GUID|all] " +
                 "[--channel All|DineIn|Takeaway|Delivery|Retail|Online] [--include-vat true|false] " +
                 "[--valid-from yyyy-MM-dd] [--valid-until yyyy-MM-dd] " +
-                "[--price ITEM_GUID=AMOUNT]... [--item-id GUID] [--expected-price AMOUNT] " +
+                "[--price ITEM_GUID=AMOUNT@EXPECTED|none]... [--item-id GUID] [--expected-price AMOUNT] " +
                 "[--search PREFIX] [--page N] [--sort code|name|kind|price|priced] [--descending] " +
                 "[--inactive] [--confirm-policy-change] " +
                 "(--dry-run | --apply). Απαιτείται διαδραστικό τερματικό.");
@@ -407,7 +424,9 @@ public static class PriceListManageCommand
                     ExpectedName: action == "update" ? current?.Name : null,
                     ExpectedValidFrom: action == "update" ? current?.ValidFrom : null,
                     ExpectedValidUntil: action == "update" ? current?.ValidUntil : null,
-                    CheckExpectedDetails: action == "update"), token, source: "CLI");
+                    CheckExpectedDetails: action == "update",
+                    ExpectedIsActive: action is "activate" or "deactivate" ? current?.IsActive : null),
+                    token, source: "CLI");
 
             if (result.Status != PriceListStatus.Saved)
             {
