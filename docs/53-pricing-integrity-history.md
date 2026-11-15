@@ -53,7 +53,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-price-lists --username admin --tenant-id "TENANT_GUID" --confirm-database AenaonERP_Dev --action history --id "PRICE_LIST_GUID" --page 1 --dry-run
 ```
 
-Οι υφιστάμενες λειτουργίες `create`, `update`, `activate`, `deactivate`, `prices`, `remove-price` παραμένουν διαθέσιμες με `--apply` για εγγραφή ή `--dry-run` για προεπισκόπηση. Στην παραγωγή γεγονότων το CLI καταγράφει προέλευση `CLI`; η φόρμα `Web`.
+Οι λειτουργίες `create`, `update`, `activate`, `deactivate`, `prices`, `remove-price` διατηρούνται με `--apply` για εγγραφή ή `--dry-run` για προεπισκόπηση. Για ασφάλεια από παρωχημένες τιμές, το CLI `--action prices --apply` **απαιτεί** για κάθε είδος `--price ITEM_GUID=NEW_AMOUNT@EXPECTED_AMOUNT` (ενημέρωση) ή `--price ITEM_GUID=NEW_AMOUNT@none` (νέα τιμή). Χρησιμοποιήστε `--action items --dry-run` για να διαβάσετε την υπάρχουσα τιμή. Χωρίς `@...`, το write απορρίπτεται με exit code `2` πριν από οποιαδήποτε μεταβολή· το παλιό συντομευμένο όρισμα επιτρέπεται μόνο σε dry-run. Σε πραγματική σύγκρουση η εντολή επιστρέφει exit code `4`, χωρίς overwrite. Το Blazor και το CLI επιβεβαιώνουν την προηγούμενη ενεργή κατάσταση πριν από ενεργοποίηση/απενεργοποίηση. Το CLI καταγράφει προέλευση `CLI` και η φόρμα `Web`.
 
 ## Επεξήγηση πεδίων ιστορικού
 | Πεδίο | Έννοια |
@@ -92,7 +92,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-price-lis
 - [ ] Μηδενικό audit σε αποτυχία/duplicate/conflict/ίδια τιμή και ατομικές εγγραφές.
 - [ ] Ασφαλής ανάγνωση για Owner/Member και αδυναμία cross-tenant leakage.
 - [ ] Αποτροπή overlapping τιμών του ίδιου rank, επιτρεπτό fallback διαφορετικής βαθμίδας.
-- [ ] Δύο ταυτόχρονες αλλαγές δεν προκαλούν διπλή/σιωπηρή αποθήκευση.
+- [ ] Δύο ταυτόχρονες αλλαγές δεν προκαλούν διπλή/σιωπηρή αποθήκευση (και CLI `@EXPECTED` / stale ενεργοποίηση).
 - [ ] Blazor, CLI, desktop/mobile, light/dark, keyboard controls και automated CI green.
 
 ## Επόμενο βήμα
