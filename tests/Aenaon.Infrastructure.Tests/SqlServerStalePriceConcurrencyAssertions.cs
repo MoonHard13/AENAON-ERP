@@ -49,10 +49,10 @@ internal static class SqlServerStalePriceConcurrencyAssertions
         Assert.AreEqual(1, outcomes.Count(x => x.Status == PriceListStatus.Conflict &&
             x.Error == "pricelist.price.conflict"));
 
-        decimal actual = await context.PriceListItems.AsNoTracking()
+        decimal winningPrice = await context.PriceListItems.AsNoTracking()
             .Where(x => x.TenantId == tenantId && x.PriceListId == listId &&
                 x.CatalogItemId == items[0]).Select(x => x.UnitPrice).SingleAsync(token);
-        Assert.IsTrue(actual is 6m or 7m);
+        Assert.IsTrue(winningPrice is 6m or 7m);
 
         // Το απορριφθέν POST δεν αφήνει δεύτερη ενημέρωση ούτε πλασματικό audit.
         Assert.AreEqual(1, await context.PriceListAuditEntries.AsNoTracking()
@@ -80,7 +80,7 @@ internal static class SqlServerStalePriceConcurrencyAssertions
             .Where(x => x.TenantId == tenantId && x.PriceListId == listId &&
                 x.CatalogItemId == items[1]).Select(x => x.UnitPrice).SingleAsync(token);
         Assert.AreEqual(8m, secondPrice);
-        Assert.AreEqual(actual, await context.PriceListItems.AsNoTracking()
+        Assert.AreEqual(winningPrice, await context.PriceListItems.AsNoTracking()
             .Where(x => x.TenantId == tenantId && x.PriceListId == listId &&
                 x.CatalogItemId == items[0]).Select(x => x.UnitPrice).SingleAsync(token));
         Assert.AreEqual(countBefore, await context.PriceListAuditEntries.AsNoTracking()
