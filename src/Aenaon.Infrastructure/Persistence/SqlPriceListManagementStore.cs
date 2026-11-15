@@ -189,6 +189,12 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
                 }
                 list = existing;
                 beforePolicy = PolicySnapshot(existing);
+                // Η παρωχημένη αλλαγή κατάστασης απορρίπτεται πριν από τη μεταβολή.
+                if ((change.Action is PriceListAction.Activate or PriceListAction.Deactivate) &&
+                    list.IsActive != change.ExpectedIsActive)
+                {
+                    return new(PriceListStatus.Conflict, Error: "pricelist.state.conflict");
+                }
                 if (change.CheckExpectedDetails &&
                     (list.Name != change.ExpectedName ||
                      list.ValidFrom != change.ExpectedValidFrom ||
