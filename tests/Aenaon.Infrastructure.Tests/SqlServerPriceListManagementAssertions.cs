@@ -299,5 +299,63 @@ internal static class SqlServerPriceListManagementAssertions
         // Το είδος παραμένει στον Κατάλογο και δεν διαγράφεται από άλλη επιχειρησιακή ενότητα.
         Assert.IsTrue(await context.CatalogItems.AsNoTracking()
             .AnyAsync(x => x.TenantId == tenant && x.Id == itemId, token));
+
+        // Δεύτερη ανεξάρτητη SQL σύνδεση δεν επιτρέπεται να δημιουργήσει ισόβαθμη τιμή.
+        await AssertConcurrentEqualRankWritesAsync(context, tenant, storeId, itemId, token);
+
+        // Το append-only trigger αποκλείει και φυσική διαγραφή εκτός EF.
+        Microsoft.Data.SqlClient.SqlException rejectedDelete =
+            await Assert.ThrowsExactlyAsync<Microsoft.Data.SqlClient.SqlException>(
+                async () => await context.Database.ExecuteSqlInterpolatedAsync(
+                    $"DELETE FROM dbo.PriceListAuditEntries WHERE TenantId = {tenant} AND PriceListId = {created.Id.Value}",
+                    token));
+        Assert.AreEqual(51010, rejectedDelete.Number);
+    }
+
+    /// <summary>Δύο πραγματικά DbContexts και SQL connections συναγωνίζονται για ισόβαθμη τιμή.</summary>
+    private static async Task AssertConcurrentEqualRankWritesAsync(AenaonDbContext context,
+        Guid tenantId, Guid storeId, Guid itemId, CancellationToken token)
+    {
+        var store = new SqlPriceListManagementStore(context);
+        var first = await store.ApplyAsync(tenantId,
+            new PriceListChange(PriceListAction.Create, Code: "RACE-ONLINE-A",
+                Name: "Ταυτόχρονη εγγραφή A", StoreId: storeId,
+                Channel: PriceListChannel.Online, ValidFrom: new DateOnly(2027, 1, 1)),
+            token);
+        var second = await store.ApplyAsync(tenantId,
+            new PriceListChange(PriceListAction.Create, Code: "RACE-ONLINE-B",
+                Name: "Ταυτόχρονη εγγραφή B", StoreId: storeId,
+                Channel: PriceListChannel.Online, ValidFrom: new DateOnly(2027, 1, 1)),
+            token);
+        Assert.AreEqual(PriceListStatus.Saved, first.Status);
+        Assert.AreEqual(PriceListStatus.Saved, second.Status);
+        Assert.IsNotNull(first.Id);
+        Assert.IsNotNull(second.Id);
+
+        // Κάθε εγγραφή χρησιμοποιεί δικό της DbContext και φυσική SQL connection.
+        var options = AenaonDbContextOptions.Create(
+            context.Database.GetConnectionString()!, true);
+        await using var firstContext = new AenaonDbContext(options);
+        await using var secondContext = new AenaonDbContext(options);
+        Task<PriceListResult> firstWrite = new SqlPriceListManagementStore(firstContext)
+            .SetPricesAsync(tenantId, first.Id.Value,
+                [new PriceListPriceChange(itemId, 21m)], token);
+        Task<PriceListResult> secondWrite = new SqlPriceListManagementStore(secondContext)
+            .SetPricesAsync(tenantId, second.Id.Value,
+                [new PriceListPriceChange(itemId, 22m)], token);
+
+        PriceListResult[] outcomes = await Task.WhenAll(firstWrite, secondWrite);
+        Assert.AreEqual(1, outcomes.Count(x => x.Status == PriceListStatus.Saved));
+        Assert.AreEqual(1, outcomes.Count(x => x.Status == PriceListStatus.Conflict &&
+            x.Error == "pricelist.overlap.conflict"));
+
+        Guid[] priceListIds = [first.Id.Value, second.Id.Value];
+        Assert.AreEqual(1, await context.PriceListItems.AsNoTracking()
+            .CountAsync(x => x.TenantId == tenantId &&
+                priceListIds.Contains(x.PriceListId) && x.CatalogItemId == itemId, token));
+        Assert.AreEqual(1, await context.PriceListAuditEntries.AsNoTracking()
+            .CountAsync(x => x.TenantId == tenantId &&
+                priceListIds.Contains(x.PriceListId) &&
+                x.CatalogItemId == itemId && x.Action == PriceListAuditAction.AddPrice, token));
     }
 }
