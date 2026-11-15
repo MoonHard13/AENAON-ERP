@@ -229,6 +229,36 @@ public sealed class PriceListUiTests
     }
 
     [TestMethod]
+    public async Task StateChangeRequiresOriginalStateAndRejectsMissingExpectedField()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+        string page = await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}");
+        Assert.Contains("name=\"expectedIsActive\"", page);
+
+        var fields = new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = Token(page),
+            ["tenantId"] = Tenant.ToString("D"),
+            ["id"] = SessionPriceListFixture.ListId.ToString("D"),
+            ["action"] = "deactivate"
+        };
+        using var missing = await client.PostAsync("/ui/price-lists/save",
+            new FormUrlEncodedContent(fields));
+        Assert.AreEqual(HttpStatusCode.BadRequest, missing.StatusCode);
+        Assert.AreEqual(0, factory.PriceLists.SaveCalls);
+
+        fields["expectedIsActive"] = "true";
+        using var saved = await client.PostAsync("/ui/price-lists/save",
+            new FormUrlEncodedContent(fields));
+        Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
+        Assert.AreEqual(1, factory.PriceLists.SaveCalls);
+        Assert.IsTrue(factory.PriceLists.LastChange?.ExpectedIsActive == true);
+    }
+
+    [TestMethod]
     public async Task UpdateCommercialPolicy_HasExpectedSnapshotAndRequiresValidParameters()
     {
         await using var factory = new SessionApiFactory();
