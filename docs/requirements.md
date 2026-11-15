@@ -280,7 +280,7 @@
 | 9.5B.1–9.5B.2 | Πολλαπλοί τιμοκατάλογοι, SQL, GUI και CLI | Όχι χρήση σε παραστατικά |
 | 9.5B.3A–9.5B.3B | Read-only PriceResolutionService και Blazor price preview | Ισοβαθμίες: Ambiguous, χωρίς SQL writes, taxes ή price snapshots |
 
-**Σχήμα:** Με το feature 9.5C.2 ο κώδικας διαθέτει **9 migrations**, μέχρι `20261114151000_CatalogItemDetails` (additive nullable barcode και long description, unique tenant index). Εφαρμογή στη βάση `AenaonERP_Dev` δεν έχει επιβεβαιωθεί μέσω του GitHub — απαιτείται πραγματικός SQL/CLI έλεγχος.
+**Σχήμα:** Το 9.5C.2 εισήγαγε την **9η migration** `20261114151000_CatalogItemDetails` (nullable barcode/long description και tenant unique index). Το τωρινό `main` διαθέτει **10 migrations**, με τελευταία την `20261114163000_PriceListAuditHistory` (append-only audit ιστορικού). Η τελευταία αναφερθείσα τοπική κατάσταση `AenaonERP_Dev` είναι **9 applied / 1 pending**, όχι επιβεβαιωμένο σημερινό αποτέλεσμα· χρειάζεται νέο dry-run, SQL review, backup και ρητή άδεια πριν από οποιοδήποτε apply.
 
 ### Ανοιχτές απαιτήσεις / μελλοντικός σχεδιασμός
 
