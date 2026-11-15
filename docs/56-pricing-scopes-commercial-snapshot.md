@@ -105,6 +105,13 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --resolve-price --
 | Αλλαγή της τρέχουσας τιμής | Το παλιό snapshot δεν αλλάζει· νέο preview δημιουργεί νέα τιμή |
 | Εκκρεμεί migration | Δεν προστέθηκε migration στο 9.5C.4· ελέγξτε την εγκατάσταση χωρίς apply |
 
+## Επίσημο checkpoint φορολογικής συμβατότητας — 15/11/2026
+
+- [ΑΑΔΕ — Τεχνικές προδιαγραφές myDATA](https://www.aade.gr/mydata/tehnikes-prodiagrafes-ekdoseis-mydata): δημόσια τεχνική έκδοση **v2.0.2**.
+- [IMPACT — επίσημο Swagger](https://einvoiceapi.impact.gr/swagger/Index.html): Core API **2.8.12-build.b9a733**, MyData Version **202** κατά τη δημόσια επιθεώρηση.
+- Το παρόν αντικείμενο καταγράφει μόνο εμπορική τιμή, νόμισμα, χρόνο, scope και ένδειξη συμπερίληψης ΦΠΑ. **Δεν** περιέχει εγκεκριμένη VAT category, συντελεστή, απαλλαγή, E3 χαρακτηρισμούς, έκδοση παραστατικού ή τον πλήρη φορολογικό υπολογισμό γραμμής.
+- Καμία συμβατότητα έκδοσης/διαβίβασης δεν τεκμηριώνεται από αυτό το contract. Πριν από διασύνδεση με Order/POS/Invoice απαιτούνται ενημερωμένες επίσημες προδιαγραφές, field-by-field mapping, έγκριση φορολογικής λογικής και ξεχωριστά integration/contract tests.
+
 ## Checklist τεχνικής αποδοχής
 
 - [x] Διατήρηση υλοποιημένων scopes, priority και ambiguity.
