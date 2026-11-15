@@ -355,6 +355,84 @@ public sealed class PriceListUiTests
     }
 
     [TestMethod]
+    public async Task MemberCannotForgePriceUpdatesOrRemovalWithValidAntiforgeryToken()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.Access.GrantedRole = TenantMembershipRole.Member;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string page = await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}");
+        string token = Token(page);
+        var prices = new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["tenantId"] = Tenant.ToString("D"),
+            ["id"] = SessionPriceListFixture.ListId.ToString("D"),
+            ["page"] = "1",
+            ["search"] = "",
+            [$"expected_{SessionPriceListFixture.ItemId:D}"] = "10.0000",
+            [$"price_{SessionPriceListFixture.ItemId:D}"] = "99.0000"
+        };
+
+        // Η απουσία κουμπιών δεν αρκεί: ο server πρέπει να απορρίπτει πλαστά POST.
+        using var priceResponse = await client.PostAsync("/ui/price-lists/prices",
+            new FormUrlEncodedContent(prices));
+        Assert.AreEqual(HttpStatusCode.Forbidden, priceResponse.StatusCode);
+        Assert.AreEqual(0, factory.PriceLists.PriceCalls);
+
+        var remove = new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["tenantId"] = Tenant.ToString("D"),
+            ["id"] = SessionPriceListFixture.ListId.ToString("D"),
+            ["catalogItemId"] = SessionPriceListFixture.ItemId.ToString("D"),
+            ["expectedPrice"] = "10.0000",
+            ["page"] = "1",
+            ["search"] = ""
+        };
+        using var removeResponse = await client.PostAsync("/ui/price-lists/remove-price",
+            new FormUrlEncodedContent(remove));
+        Assert.AreEqual(HttpStatusCode.Forbidden, removeResponse.StatusCode);
+        Assert.AreEqual(0, factory.PriceLists.RemoveCalls);
+    }
+
+    [TestMethod]
+    public async Task ForeignTenantCannotReadPriceHistoryOrForgePriceWrites()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+        Guid foreignTenant = Guid.Parse("88888888-8888-4888-8888-888888888888");
+
+        // Η ρητή επιλογή ξένης επιχείρησης δεν πρέπει να κάνει fallback στο ενεργό Tenant.
+        string foreign = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={foreignTenant:D}&id={SessionPriceListFixture.ListId:D}"));
+        Assert.Contains("Δεν έχετε πρόσβαση στην επιλεγμένη επιχείρηση", foreign);
+        Assert.DoesNotContain("Ιστορικό αλλαγών τιμοκαταλόγου", foreign);
+        Assert.DoesNotContain("SKU001", foreign);
+
+        string ownPage = await client.GetStringAsync(
+            $"/price-lists/manage?tenantId={Tenant:D}&id={SessionPriceListFixture.ListId:D}");
+        string token = Token(ownPage);
+        var forgedPrices = new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["tenantId"] = foreignTenant.ToString("D"),
+            ["id"] = SessionPriceListFixture.ListId.ToString("D"),
+            ["page"] = "1",
+            ["search"] = "",
+            [$"expected_{SessionPriceListFixture.ItemId:D}"] = "10.0000",
+            [$"price_{SessionPriceListFixture.ItemId:D}"] = "99.0000"
+        };
+        using var denied = await client.PostAsync("/ui/price-lists/prices",
+            new FormUrlEncodedContent(forgedPrices));
+        Assert.AreEqual(HttpStatusCode.Forbidden, denied.StatusCode);
+        Assert.AreEqual(0, factory.PriceLists.PriceCalls);
+    }
+
+    [TestMethod]
     public async Task CreateRequiresCsrfAndRejectsForeignTenant()
     {
         await using var factory = new SessionApiFactory();
