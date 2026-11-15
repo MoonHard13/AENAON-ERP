@@ -18,7 +18,7 @@ public sealed record PriceListChange(PriceListAction Action, Guid? Id = null,
     Guid? ExpectedStoreId = null, PriceListChannel? ExpectedChannel = null,
     bool? ExpectedPricesIncludeVat = null, string? ExpectedName = null,
     DateOnly? ExpectedValidFrom = null, DateOnly? ExpectedValidUntil = null,
-    bool CheckExpectedDetails = false);
+    bool CheckExpectedDetails = false, bool? ExpectedIsActive = null);
 
 public sealed record PriceListPriceChange(Guid CatalogItemId, decimal UnitPrice,
     decimal? ExpectedUnitPrice = null, bool CheckExpected = false);
@@ -147,6 +147,10 @@ public sealed class PriceListManagementService(
               !change.ExpectedPricesIncludeVat.HasValue)) ||
             (change.CheckExpectedDetails && (change.Action != PriceListAction.Update ||
                 change.ExpectedName is null || change.ExpectedValidFrom is null)) ||
+            (change.Action is PriceListAction.Activate or PriceListAction.Deactivate &&
+                change.ExpectedIsActive is null) ||
+            (change.Action is PriceListAction.Create or PriceListAction.Update &&
+                change.ExpectedIsActive.HasValue) ||
             (change.Action is PriceListAction.Create or PriceListAction.Update &&
              string.IsNullOrWhiteSpace(change.Name)))
         {

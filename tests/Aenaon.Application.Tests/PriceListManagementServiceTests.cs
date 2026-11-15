@@ -130,6 +130,24 @@ public sealed class PriceListManagementServiceTests
     }
 
     [TestMethod]
+    public async Task StateChangesRequireOriginalStateAndForwardItToPersistence()
+    {
+        var store = new FakeStore();
+        var service = Create(TenantMembershipRole.Owner, store);
+        Guid listId = Guid.NewGuid();
+        PriceListResult missingExpected = await service.ApplyAsync(User, Tenant,
+            new PriceListChange(PriceListAction.Deactivate, listId));
+        Assert.AreEqual(PriceListStatus.Invalid, missingExpected.Status);
+        Assert.AreEqual(0, store.ApplyCalls);
+
+        PriceListResult valid = await service.ApplyAsync(User, Tenant,
+            new PriceListChange(PriceListAction.Deactivate, listId,
+                ExpectedIsActive: true));
+        Assert.AreEqual(PriceListStatus.Saved, valid.Status);
+        Assert.AreEqual(1, store.ApplyCalls);
+    }
+
+    [TestMethod]
     public async Task HistoryIsReadOnlyTenantScopedAndAvailableToMember()
     {
         var store = new FakeStore();

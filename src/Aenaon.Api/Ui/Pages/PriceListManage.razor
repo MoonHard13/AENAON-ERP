@@ -223,6 +223,7 @@
                                 }
                                 <input type="hidden" name="id" value="@current.Id" />
                                 <input type="hidden" name="action" value="@(current.IsActive ? "deactivate" : "activate")" />
+                                <input type="hidden" name="expectedIsActive" value="@(current.IsActive ? "true" : "false")" />
                                 <button class="button button--outline" type="submit">Επιβεβαίωση</button>
                             </form>
                         </details>

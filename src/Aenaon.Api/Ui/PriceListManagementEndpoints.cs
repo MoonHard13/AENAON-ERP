@@ -88,6 +88,16 @@ public static class PriceListManagementEndpoints
         bool? expectedIncludeVat = null;
         bool confirmPolicyChange = false;
         string? expectedName = null;
+        bool? expectedIsActive = null;
+        if (action is PriceListAction.Activate or PriceListAction.Deactivate)
+        {
+            if (!TrySingle(form, "expectedIsActive", out string previousActive) ||
+                !bool.TryParse(previousActive, out bool parsedActive))
+            {
+                return Results.BadRequest();
+            }
+            expectedIsActive = parsedActive;
+        }
         DateOnly? expectedFrom = null;
         DateOnly? expectedUntil = null;
         if (action is PriceListAction.Create or PriceListAction.Update)
@@ -195,7 +205,8 @@ public static class PriceListManagementEndpoints
                 ExpectedName: expectedName,
                 ExpectedValidFrom: expectedFrom,
                 ExpectedValidUntil: expectedUntil,
-                CheckExpectedDetails: action == PriceListAction.Update), context.RequestAborted);
+                CheckExpectedDetails: action == PriceListAction.Update,
+                ExpectedIsActive: expectedIsActive), context.RequestAborted);
         loggerFactory.CreateLogger(nameof(PriceListManagementEndpoints)).LogInformation(
             "Price list SSR action {Action} {Status} user {UserId} tenant {TenantId} list {ListId}",
             action, result.Status, userId, tenant.Value, result.Id ?? id);

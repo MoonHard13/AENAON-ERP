@@ -53,7 +53,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-price-lists --username admin --tenant-id "TENANT_GUID" --confirm-database AenaonERP_Dev --action history --id "PRICE_LIST_GUID" --page 1 --dry-run
 ```
 
-Οι υφιστάμενες λειτουργίες `create`, `update`, `activate`, `deactivate`, `prices`, `remove-price` παραμένουν διαθέσιμες με `--apply` για εγγραφή ή `--dry-run` για προεπισκόπηση. Στην παραγωγή γεγονότων το CLI καταγράφει προέλευση `CLI`; η φόρμα `Web`.
+Οι λειτουργίες `create`, `update`, `activate`, `deactivate`, `prices`, `remove-price` διατηρούνται με `--apply` για εγγραφή ή `--dry-run` για προεπισκόπηση. Για ασφάλεια από παρωχημένες τιμές, το CLI `--action prices --apply` **απαιτεί** για κάθε είδος `--price ITEM_GUID=NEW_AMOUNT@EXPECTED_AMOUNT` (ενημέρωση) ή `--price ITEM_GUID=NEW_AMOUNT@none` (νέα τιμή). Χρησιμοποιήστε `--action items --dry-run` για να διαβάσετε την υπάρχουσα τιμή. Χωρίς `@...`, το write απορρίπτεται με exit code `2` πριν από οποιαδήποτε μεταβολή· το παλιό συντομευμένο όρισμα επιτρέπεται μόνο σε dry-run. Σε πραγματική σύγκρουση η εντολή επιστρέφει exit code `4`, χωρίς overwrite. Το Blazor και το CLI επιβεβαιώνουν την προηγούμενη ενεργή κατάσταση πριν από ενεργοποίηση/απενεργοποίηση. Το CLI καταγράφει προέλευση `CLI` και η φόρμα `Web`.
 
 ## Επεξήγηση πεδίων ιστορικού
 | Πεδίο | Έννοια |
@@ -86,13 +86,23 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-price-lis
 - Διατηρήστε backup/retention plan για τον αυξανόμενο ιστορικό πίνακα, αλλά **μην αυτοματοποιήσετε deletion** χωρίς εγκεκριμένη πολιτική διατήρησης και νομικό έλεγχο.
 - Ελέγχετε την προτεραιότητα επιλογής τιμής (Store + Channel → Store + All → All + Channel → All + All) και τη fail-closed ένδειξη `Ambiguous`. Η ανίχνευση overlaps **δεν** τροποποιεί το read-time resolution.
 
+## Αυτοματοποιημένοι έλεγχοι 9.5C.3 (απομονωμένο περιβάλλον)
+
+Το CI εκτελεί σε Windows/Ubuntu δοκιμές Application και HTTP/SSR χωρίς παραγωγική βάση. Τα HTTP tests καλύπτουν ανάγνωση ιστορικού Owner/Member, φόρμες με CSRF, αποτροπή πλαστών αιτημάτων `prices` και `remove-price` από Member και απαγόρευση ανάγνωσης ιστορικού ή τροποποίησης τιμών από μη εξουσιοδοτημένο Tenant. Τα tests αυτά χρησιμοποιούν **απομονωμένα fixtures** και δεν υποκαθιστούν δοκιμή με πραγματικό browser ή SQL.
+
+Το Linux CI εκτελεί επιπλέον **πραγματικό SQL Server 2022 σε προσωρινό container**. Οι δοκιμές ελέγχουν τιμές και audit σε κοινό transaction, overlap, tenant isolation και ταυτόχρονες ενημερώσεις από ανεξάρτητα DbContexts. Ειδικά για την ίδια τιμή με κοινό αρχικό ποσό, ακριβώς μία από δύο ανταγωνιστικές ενημερώσεις πρέπει να επιτύχει και μόνο αυτή να δημιουργήσει audit `UpdatePrice`. Σε batch με παρωχημένη αρχική τιμή, δεν επιτρέπεται μερική αποθήκευση άλλης γραμμής ή επιπλέον audit.
+
+{% hint style="warning" %}
+Τα tests CI **δεν είναι human-style acceptance**. Απαιτούνται πραγματική πλοήγηση AENAON σε δύο καρτέλες, Owner/Member login, desktop/mobile, light/dark, πληκτρολόγιο, οπτικός έλεγχος και επιβεβαίωση persistence σε απομονωμένη βάση. Μέχρι να περάσουν και να εγκριθούν, η κατάσταση είναι **implemented, not fully accepted**.
+{% endhint %}
+
 ## Checklist αποδοχής
 - [ ] 10 migrations applied, 0 pending και νέο table+trigger με επαληθευμένο backup.
 - [ ] Audit για δημιουργία/μεταβολή/απενεργοποίηση/ενεργοποίηση λίστας και προσθήκη/αλλαγή/αφαίρεση τιμής.
 - [ ] Μηδενικό audit σε αποτυχία/duplicate/conflict/ίδια τιμή και ατομικές εγγραφές.
 - [ ] Ασφαλής ανάγνωση για Owner/Member και αδυναμία cross-tenant leakage.
 - [ ] Αποτροπή overlapping τιμών του ίδιου rank, επιτρεπτό fallback διαφορετικής βαθμίδας.
-- [ ] Δύο ταυτόχρονες αλλαγές δεν προκαλούν διπλή/σιωπηρή αποθήκευση.
+- [ ] Δύο ταυτόχρονες αλλαγές δεν προκαλούν διπλή/σιωπηρή αποθήκευση (και CLI `@EXPECTED` / stale ενεργοποίηση).
 - [ ] Blazor, CLI, desktop/mobile, light/dark, keyboard controls και automated CI green.
 
 ## Επόμενο βήμα
