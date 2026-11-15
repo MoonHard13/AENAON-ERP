@@ -44,7 +44,7 @@ public sealed class CommercialPriceSnapshotTests
         Assert.ThrowsExactly<DomainRuleException>(() =>
             Make(priceListStoreId: Guid.NewGuid()));
         Assert.ThrowsExactly<DomainRuleException>(() =>
-            Make(storeId: null, priceListStoreId: Store));
+            Make(withoutStore: true, priceListStoreId: Store));
         Assert.ThrowsExactly<DomainRuleException>(() =>
             Make(priceListChannel: PriceListChannel.Takeaway));
         Assert.ThrowsExactly<DomainRuleException>(() =>
@@ -92,13 +92,13 @@ public sealed class CommercialPriceSnapshotTests
     }
 
     private static CommercialPriceSnapshot Make(Guid? tenantId = null,
-        Guid? storeId = null, Guid? catalogItemId = null, Guid? priceListId = null,
+        Guid? storeId = null, bool withoutStore = false, Guid? catalogItemId = null, Guid? priceListId = null,
         string? priceListCode = "RETAIL", Guid? priceListStoreId = null,
         PriceListChannel priceListChannel = PriceListChannel.Delivery,
         PriceListChannel requestedChannel = PriceListChannel.Delivery,
         DateOnly? businessDate = null, decimal amount = 10m,
         string? currency = "EUR", DateTimeOffset? capturedUtc = null) =>
-        CommercialPriceSnapshot.Capture(tenantId ?? Tenant, storeId ?? Store,
+        CommercialPriceSnapshot.Capture(tenantId ?? Tenant, withoutStore ? null : storeId ?? Store,
             catalogItemId ?? Item, priceListId ?? List, priceListCode,
             priceListStoreId, priceListChannel, requestedChannel,
             businessDate ?? Day, amount, true, currency, capturedUtc ?? Captured);

@@ -49,7 +49,8 @@ public sealed class CommercialPriceSnapshot
             !string.Equals(currency, PriceList.SupportedCurrency, StringComparison.Ordinal) ||
             !Enum.IsDefined(priceListChannel) || !Enum.IsDefined(requestedChannel) ||
             (priceListStoreId.HasValue && priceListStoreId != storeId) ||
-            (priceListChannel != PriceListChannel.All && priceListChannel != requestedChannel) ||
+            (priceListChannel != global::Aenaon.Domain.Catalog.PriceListChannel.All &&
+             priceListChannel != requestedChannel) ||
             unitPrice < 0 || unitPrice > PriceListItem.MaxUnitPrice ||
             decimal.Round(unitPrice, 4) != unitPrice ||
             capturedUtc == default || capturedUtc.Offset != TimeSpan.Zero)
