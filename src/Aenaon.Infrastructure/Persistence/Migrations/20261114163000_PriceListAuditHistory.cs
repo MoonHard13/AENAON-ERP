@@ -57,16 +57,16 @@ public partial class PriceListAuditHistory : Migration
             schema: "dbo", table: "PriceListAuditEntries",
             columns: new[] { "TenantId", "PriceListId", "OccurredUtc", "Id" });
 
-        // SQL Server προστασία ιστορικού ακόμη και από τυχαίο UPDATE ή DELETE εκτός EF.
+        // Η δυναμική εκτέλεση κρατά το CREATE TRIGGER πρώτο στο δικό του SQL batch.
         migrationBuilder.Sql("""
-            CREATE TRIGGER [dbo].[TR_PriceListAuditEntries_Immutable]
+            EXEC(N'CREATE TRIGGER [dbo].[TR_PriceListAuditEntries_Immutable]
             ON [dbo].[PriceListAuditEntries]
             AFTER UPDATE, DELETE
             AS
             BEGIN
                 SET NOCOUNT ON;
-                THROW 51010, 'Price list audit entries are append-only.', 1;
-            END
+                THROW 51010, ''Price list audit entries are append-only.'', 1;
+            END');
             """);
     }
 
