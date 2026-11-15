@@ -46,6 +46,7 @@ public sealed class CommercialPriceSnapshot
             priceListStoreId == Guid.Empty || businessDate == default ||
             string.IsNullOrWhiteSpace(priceListCode) ||
             priceListCode.Length > PriceList.MaxCodeLength ||
+            currency is null ||
             !string.Equals(currency, PriceList.SupportedCurrency, StringComparison.Ordinal) ||
             !Enum.IsDefined(priceListChannel) || !Enum.IsDefined(requestedChannel) ||
             (priceListStoreId.HasValue && priceListStoreId != storeId) ||
