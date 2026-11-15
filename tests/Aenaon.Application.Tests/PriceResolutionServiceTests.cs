@@ -88,6 +88,71 @@ public sealed class PriceResolutionServiceTests
         Assert.AreEqual(2, result.ConflictingPriceListIds!.Count);
     }
 
+    [TestMethod]
+    public async Task SnapshotPreview_OnlyUniqueAuthorizedPriceProducesImmutableContract()
+    {
+        var fake = new FakeStore();
+        Guid sourceList = Guid.NewGuid();
+        fake.Candidates.Add(new PriceResolutionCandidate(sourceList, "STORE",
+            Store, PriceListChannel.All, false, "EUR",
+            Date.AddDays(-1), null, true, 19.1250m));
+        var service = Create(TenantMembershipRole.Member, fake);
+
+        PriceSnapshotPreview result = await service.PreviewSnapshotAsync(
+            User, Tenant, Item, Store, PriceListChannel.Delivery, Date);
+
+        Assert.AreEqual(PriceResolutionStatus.Resolved, result.Resolution.Status);
+        CommercialPriceSnapshot snapshot = result.Snapshot!;
+        Assert.IsNotNull(snapshot);
+        Assert.AreEqual(1, snapshot.ContractVersion);
+        Assert.AreEqual(PriceResolutionPolicy.PolicyVersion, snapshot.SelectionPolicyVersion);
+        Assert.AreEqual(Tenant, snapshot.TenantId);
+        Assert.AreEqual(Store, snapshot.StoreId);
+        Assert.AreEqual(Item, snapshot.CatalogItemId);
+        Assert.AreEqual(sourceList, snapshot.PriceListId);
+        Assert.AreEqual(PriceListChannel.All, snapshot.PriceListChannel);
+        Assert.AreEqual(PriceListChannel.Delivery, snapshot.RequestedChannel);
+        Assert.AreEqual(Date, snapshot.BusinessDate);
+        Assert.AreEqual(19.1250m, snapshot.UnitPrice);
+        Assert.IsFalse(snapshot.PricesIncludeVat);
+        Assert.AreEqual(TimeSpan.Zero, snapshot.CapturedUtc.Offset);
+        Assert.AreEqual(1, fake.CandidateCalls);
+
+        fake.Candidates.Clear();
+        Assert.AreEqual(19.1250m, snapshot.UnitPrice);
+    }
+
+    [TestMethod]
+    public async Task SnapshotPreview_FailsClosedForDeniedMissingAndAmbiguous()
+    {
+        var fake = new FakeStore();
+        var service = Create(TenantMembershipRole.Owner, fake);
+        PriceSnapshotPreview denied = await service.PreviewSnapshotAsync(
+            User, Tenant, Item, Guid.NewGuid(), PriceListChannel.Delivery, Date);
+        Assert.AreEqual(PriceResolutionStatus.Denied, denied.Resolution.Status);
+        Assert.IsNull(denied.Snapshot);
+        Assert.AreEqual(0, fake.CandidateCalls);
+
+        PriceSnapshotPreview missing = await service.PreviewSnapshotAsync(
+            User, Tenant, Item, Store, PriceListChannel.Delivery, Date);
+        Assert.AreEqual(PriceResolutionStatus.NotPriced, missing.Resolution.Status);
+        Assert.IsNull(missing.Snapshot);
+
+        fake.Candidates.Add(Option(PriceListChannel.Delivery, 10m));
+        fake.Candidates.Add(Option(PriceListChannel.Delivery, 10m));
+        PriceSnapshotPreview ambiguous = await service.PreviewSnapshotAsync(
+            User, Tenant, Item, Store, PriceListChannel.Delivery, Date);
+        Assert.AreEqual(PriceResolutionStatus.Ambiguous, ambiguous.Resolution.Status);
+        Assert.IsNull(ambiguous.Snapshot);
+        Assert.AreEqual(2, ambiguous.Resolution.ConflictingPriceListIds?.Count);
+
+        fake.Active = false;
+        PriceSnapshotPreview inactive = await service.PreviewSnapshotAsync(
+            User, Tenant, Item, Store, PriceListChannel.Delivery, Date);
+        Assert.AreEqual(PriceResolutionStatus.ItemUnavailable, inactive.Resolution.Status);
+        Assert.IsNull(inactive.Snapshot);
+    }
+
     private static PriceResolutionCandidate Option(
         PriceListChannel channel, decimal price) =>
         new(Guid.NewGuid(), "P", null, channel, true, "EUR",

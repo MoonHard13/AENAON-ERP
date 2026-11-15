@@ -2,6 +2,10 @@
 
 Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες επιχειρήσεις εστίασης. Διαθέτει Development Back Office και υποστήριξη προϊόντων/υπηρεσιών· το POS και η εφαρμογή σερβιτόρων είναι **μελλοντικές λειτουργίες**, όχι διαθέσιμο προϊόν.
 
+## Βήμα 9.5C.4 — Εμπορικά scopes και immutable price snapshot (feature branch)
+
+Στο feature branch `feature/step-9-5c-4-pricing-scopes-readiness` εξετάζονται και διατηρούνται τα εμπορικά scopes Tenant/Store/Channel/Date, ενώ προστίθεται αμετάβλητο, versioned Domain contract `CommercialPriceSnapshot` και ασφαλής read-only προεπισκόπηση μέσω της υπάρχουσας υπηρεσίας. **Δεν** προστίθεται SQL migration, Order/POS, customer-group pricing ή φορολογικός υπολογισμός. Δεν αποτελεί ακόμη διαθέσιμη λειτουργία του εγκεκριμένου `main`, ούτε δεσμεύει τιμή σε SQL. [Manual 56](docs/56-pricing-scopes-commercial-snapshot.md). Έπεται CI, human-style acceptance και ξεχωριστή έγκριση.
+
 ## Υποχρεωτική συμβατότητα ΑΑΔΕ myDATA / IMPACT
 
 Όλες οι σχετικές υλοποιήσεις του Aenaon ERP πρέπει να ελέγχονται ως προς τις ισχύουσες **επίσημες τεχνικές προδιαγραφές myDATA** και το **API/τεκμηρίωση του παρόχου IMPACT**. Αυτή είναι οριζόντια αρχιτεκτονική απαίτηση, όχι προαιρετική μεταγενέστερη ενσωμάτωση.
@@ -503,6 +507,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Excel / μαζικές εργασίες — αναβολή](docs/48-bulk-actions-and-excel-import-plan.md)
 - [Read-only επίλυση τιμής](docs/49-price-resolution-foundation.md)
 - [Blazor προεπισκόπηση τιμής](docs/50-price-preview-blazor.md)
+- [Εμπορικά scopes & immutable snapshot — 9.5C.4 (υπό review)](docs/56-pricing-scopes-commercial-snapshot.md)
 - [Κατάσταση έργου και χάρτης τεκμηρίωσης](docs/00-current-state-and-roadmap.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
 

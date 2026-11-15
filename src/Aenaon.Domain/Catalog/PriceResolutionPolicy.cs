@@ -15,6 +15,9 @@ public sealed record PriceSelectionResult(
 /// <summary>Επιλέγει ντετερμινιστικά τιμή και απορρίπτει την αμφίσημη προτεραιότητα.</summary>
 public static class PriceResolutionPolicy
 {
+    /// <summary>Σταθερή έκδοση των κανόνων προτεραιότητας και ισοβαθμίας.</summary>
+    public const string PolicyVersion = "store-channel-v1";
+
     /// <summary>
     /// Προτεραιότητα: κατάστημα+κανάλι, κατάστημα+όλα, επιχείρηση+κανάλι,
     /// επιχείρηση+όλα. Σε ισοβαθμία δεν επιλέγεται αυθαίρετα τιμοκατάλογος.

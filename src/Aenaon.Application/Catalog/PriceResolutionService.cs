@@ -15,6 +15,10 @@ public enum PriceResolutionStatus
     Invalid
 }
 
+/// <summary>Μη αποθηκευμένη προεπισκόπηση αμετάβλητης εμπορικής τιμής.</summary>
+public sealed record PriceSnapshotPreview(PriceResolutionResult Resolution,
+    CommercialPriceSnapshot? Snapshot);
+
 public sealed record PriceResolutionResult(
     PriceResolutionStatus Status,
     Guid? PriceListId = null,
@@ -43,6 +47,32 @@ public interface IPriceResolutionStore
 public sealed class PriceResolutionService(
     TenantAuthorizationService authorization, IPriceResolutionStore store)
 {
+    /// <summary>
+    /// Προβάλλει immutable τιμή μόνο μετά την εξουσιοδοτημένη επίλυση.
+    /// Η δημιουργία αντικειμένου δεν καταχωρίζει παραγγελία ούτε δεσμεύει SQL δεδομένα.
+    /// </summary>
+    public async Task<PriceSnapshotPreview> PreviewSnapshotAsync(
+        Guid userId, Guid tenantId, Guid itemId, Guid? storeId,
+        PriceListChannel channel, DateOnly businessDate,
+        CancellationToken token = default)
+    {
+        PriceResolutionResult resolution = await ResolveAsync(
+            userId, tenantId, itemId, storeId, channel, businessDate, token);
+        if (resolution.Status != PriceResolutionStatus.Resolved)
+        {
+            return new(resolution, null);
+        }
+
+        CommercialPriceSnapshot snapshot = CommercialPriceSnapshot.Capture(
+            tenantId, storeId, itemId,
+            resolution.PriceListId!.Value, resolution.PriceListCode,
+            resolution.PriceListStoreId, resolution.PriceListChannel!.Value,
+            channel, businessDate, resolution.UnitPrice!.Value,
+            resolution.PricesIncludeVat!.Value, resolution.Currency,
+            DateTimeOffset.UtcNow);
+        return new(resolution, snapshot);
+    }
+
     public async Task<PriceResolutionResult> ResolveAsync(
         Guid userId, Guid tenantId, Guid itemId, Guid? storeId,
         PriceListChannel channel, DateOnly businessDate,
