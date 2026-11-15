@@ -307,10 +307,10 @@
 
 ## Step 9.5C.4 — Εμπορικά scopes και μελλοντική δέσμευση τιμής (υπό review)
 
-- Διατηρείται το υλοποιημένο precedence \`store-channel-v1\`: Store+Channel, Store+All, AllStores+Channel, AllStores+All. Ισοβαθμία σημαίνει \`Ambiguous\`, ποτέ επιλογή αυθαίρετης τιμής.
+- Διατηρείται το υλοποιημένο precedence `store-channel-v1`: Store+Channel, Store+All, AllStores+Channel, AllStores+All. Ισοβαθμία σημαίνει `Ambiguous`, ποτέ επιλογή αυθαίρετης τιμής.
 - **Αναβολή Customer Groups:** δεν υπάρχει ακόμη εγκεκριμένο tenant-safe customer/group μοντέλο ή σύμβαση precedence. Απαιτείται νέα επιχειρησιακή απόφαση πριν αλλάξει το query ή το σχήμα.
-- Αμετάβλητο Domain \`CommercialPriceSnapshot\` v1 με Tenant/Store/Item, PriceList ID/code/scope, business date, requested channel, selected price, EUR, \`PricesIncludeVat\`, UTC captured timestamp και αποτυπωμένη policy version.
-- Η \`PriceResolutionService.PreviewSnapshotAsync\` δημιουργεί in-memory snapshot **μόνο** για εξουσιοδοτημένη, μοναδική, ενεργή και έγκυρη τιμή· διαφορετικά επιστρέφει null snapshot και διατηρεί το status.
+- Αμετάβλητο Domain `CommercialPriceSnapshot` v1 με Tenant/Store/Item, PriceList ID/code/scope, business date, requested channel, selected price, EUR, `PricesIncludeVat`, UTC captured timestamp και αποτυπωμένη policy version.
+- Η `PriceResolutionService.PreviewSnapshotAsync` δημιουργεί in-memory snapshot **μόνο** για εξουσιοδοτημένη, μοναδική, ενεργή και έγκυρη τιμή· διαφορετικά επιστρέφει null snapshot και διατηρεί το status.
 - **Δεν υπάρχει ακόμη ιστορική δέσμευση παραγγελίας.** Το μελλοντικό Order/POS service θα χρειαστεί tenant-safe atomic write, price policy revision verification, idempotency και ασφαλή offline conflict strategy. Απαγορεύεται σιωπηρός επανυπολογισμός ιστορικής τιμής.
 - Καμία νέα migration, SQL εγγραφή, UI/CLI λειτουργία snapshot, νέο NuGet package ή αλλαγή σε ΑΑΔΕ/IMPACT.
 - Ο έλεγχος αποδοχής 9.5C.5 και τυχόν fiscal implementation παραμένουν ξεχωριστά βήματα, μετά από CI, human-style acceptance και ρητή έγκριση.

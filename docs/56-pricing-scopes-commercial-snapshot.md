@@ -1,13 +1,13 @@
 # AENAON ERP — 9.5C.4: Εμπορικά scopes και αμετάβλητη εικόνα τιμής
 
-**Κατάσταση:** Feature branch σε review, όχι διαθέσιμη λειτουργία παραγγελίας. **Baseline:** main commit \`493f7b2ff61066e817c0d0cba1d120266f9b9117\` (15/11/2026).
+**Κατάσταση:** Feature branch σε review, όχι διαθέσιμη λειτουργία παραγγελίας. **Baseline:** main commit `493f7b2ff61066e817c0d0cba1d120266f9b9117` (15/11/2026).
 
 ## Σκοπός
 
 Οριστικοποίηση των υπαρχόντων κανόνων εμπορικής τιμής και εισαγωγή ελάχιστου, versioned Domain contract για την ιστορική εικόνα τιμής που θα χρειαστεί η μελλοντική παραγγελιοληψία. Δεν επηρεάζονται φορολογικοί υπολογισμοί ή καταχωρημένα δεδομένα.
 
 {% hint style="warning" %}
-Το \`CommercialPriceSnapshot\` είναι **μόνο αμετάβλητο αντικείμενο στη μνήμη** και το \`PreviewSnapshotAsync\` πραγματοποιεί μόνο ανάγνωση. Δεν προσθέτει Orders, API ή CLI endpoint για snapshot, βάση δεδομένων, μηχανισμό offline συγχρονισμού, έκδοση παραστατικού, ΦΠΑ ή myDATA/IMPACT. **Δεν αποτελεί νομικά ή λογιστικά δεσμευμένη τιμή** έως ότου σχεδιαστεί και εγκριθεί η ατομική καταχώρηση παραγγελίας.
+Το `CommercialPriceSnapshot` είναι **μόνο αμετάβλητο αντικείμενο στη μνήμη** και το `PreviewSnapshotAsync` πραγματοποιεί μόνο ανάγνωση. Δεν προσθέτει Orders, API ή CLI endpoint για snapshot, βάση δεδομένων, μηχανισμό offline συγχρονισμού, έκδοση παραστατικού, ΦΠΑ ή myDATA/IMPACT. **Δεν αποτελεί νομικά ή λογιστικά δεσμευμένη τιμή** έως ότου σχεδιαστεί και εγκριθεί η ατομική καταχώρηση παραγγελίας.
 {% endhint %}
 
 ## Υπάρχοντα εμπορικά πεδία και κανόνες
@@ -15,14 +15,14 @@
 | Πεδίο | Ερμηνεία |
 | --- | --- |
 | TenantId | Υποχρεωτική απομόνωση επιχείρησης σε queries και σύνθετα SQL FK |
-| StoreId | Συγκεκριμένο κατάστημα ή \`null\` για όλα τα καταστήματα |
-| Channel | \`All\`, \`DineIn\`, \`Takeaway\`, \`Delivery\`, \`Retail\`, \`Online\` |
+| StoreId | Συγκεκριμένο κατάστημα ή `null` για όλα τα καταστήματα |
+| Channel | `All`, `DineIn`, `Takeaway`, `Delivery`, `Retail`, `Online` |
 | ValidFrom / ValidUntil | Συμπεριληπτικές ημερομηνίες ισχύος, με προαιρετική ανοικτή λήξη |
 | IsActive | Μόνο ενεργοί τιμοκατάλογοι συμμετέχουν στην επίλυση |
-| UnitPrice | EUR, ακριβές \`decimal(18,4)\`, επιτρέπεται μηδέν |
+| UnitPrice | EUR, ακριβές `decimal(18,4)`, επιτρέπεται μηδέν |
 | PricesIncludeVat | Εμπορική ένδειξη συμπερίληψης ΦΠΑ, **όχι συντελεστής ή φορολογικός χαρακτηρισμός** |
 
-**Προτεραιότητα (policy \`store-channel-v1\`):** 1) ακριβές Store+Channel, 2) Store+All, 3) AllStores+Channel, 4) AllStores+All. Χωρίς επιλεγμένο Store ελέγχονται μόνο γενικοί τιμοκατάλογοι. Ακριβής κοινή προτεραιότητα δύο ενεργών τιμών σημαίνει \`Ambiguous\`, ακόμη και με ίσο ποσό.
+**Προτεραιότητα (policy `store-channel-v1`):** 1) ακριβές Store+Channel, 2) Store+All, 3) AllStores+Channel, 4) AllStores+All. Χωρίς επιλεγμένο Store ελέγχονται μόνο γενικοί τιμοκατάλογοι. Ακριβής κοινή προτεραιότητα δύο ενεργών τιμών σημαίνει `Ambiguous`, ακόμη και με ίσο ποσό.
 
 Το ιστορικό/overlap protection του [Manual 53](53-pricing-integrity-history.md) παραμένει αμετάβλητο.
 
@@ -34,12 +34,12 @@
 
 ## Snapshot contract v1
 
-Το \`CommercialPriceSnapshot\` στο Domain περιέχει μόνο read-only ιδιότητες:
+Το `CommercialPriceSnapshot` στο Domain περιέχει μόνο read-only ιδιότητες:
 
 | Ιδιότητα | Περιεχόμενο |
 | --- | --- |
-| ContractVersion | \`1\` για μελλοντικό versioned persistence |
-| SelectionPolicyVersion | \`store-channel-v1\`, αποτυπωμένη στη δημιουργία |
+| ContractVersion | `1` για μελλοντικό versioned persistence |
+| SelectionPolicyVersion | `store-channel-v1`, αποτυπωμένη στη δημιουργία |
 | TenantId, StoreId, CatalogItemId | Εξουσιοδοτημένο εμπορικό πλαίσιο |
 | PriceListId, PriceListCode | Πηγή επιλεγμένης τιμής |
 | PriceListStoreId, PriceListChannel | Scope της πηγής, που μπορεί να είναι γενικό |
@@ -49,7 +49,7 @@
 
 Ο factory έλεγχος απορρίπτει άκυρες αναφορές, scope διαφορετικού καταστήματος, μη συμβατό κανάλι, μη αποδεκτά ποσά, νόμισμα εκτός EUR και timestamp που δεν είναι UTC.
 
-Το \`PriceResolutionService.PreviewSnapshotAsync\` χρησιμοποιεί την υπάρχουσα \`ResolveAsync\`: ελέγχει προηγουμένως Read permission για Tenant/Store, ενεργό είδος, ισχύ και μοναδικότητα τιμής. **Μόνο** σε \`Resolved\` επιστρέφει snapshot. Σε \`Denied\`, \`Invalid\`, \`ItemUnavailable\`, \`NotPriced\` ή \`Ambiguous\` επιστρέφει null snapshot, διατηρώντας τη διάγνωση.
+Το `PriceResolutionService.PreviewSnapshotAsync` χρησιμοποιεί την υπάρχουσα `ResolveAsync`: ελέγχει προηγουμένως Read permission για Tenant/Store, ενεργό είδος, ισχύ και μοναδικότητα τιμής. **Μόνο** σε `Resolved` επιστρέφει snapshot. Σε `Denied`, `Invalid`, `ItemUnavailable`, `NotPriced` ή `Ambiguous` επιστρέφει null snapshot, διατηρώντας τη διάγνωση.
 
 ## Πότε χρησιμοποιείται / δεν χρησιμοποιείται
 
@@ -59,21 +59,21 @@
 
 ## Προαπαιτούμενα και επαλήθευση
 
-Χρειάζονται .NET SDK σύμφωνα με \`global.json\` (10.0.404), development HTTPS, SQL Server 2022 για τα υπάρχοντα integration tests και λογαριασμός με Tenant Read. Δεν υπάρχει νέα migration. Ενδεικτικές **read-only** εντολές:
+Χρειάζονται .NET SDK σύμφωνα με `global.json` (10.0.404), development HTTPS, SQL Server 2022 για τα υπάρχοντα integration tests και λογαριασμός με Tenant Read. Δεν υπάρχει νέα migration. Ενδεικτικές **read-only** εντολές:
 
-\`\`\`powershell
+```powershell
 dotnet restore AenaonERP.slnx --locked-mode
 dotnet format AenaonERP.slnx --verify-no-changes --no-restore
 dotnet build AenaonERP.slnx -c Release --no-restore
 dotnet test AenaonERP.slnx -c Release --no-build --no-restore --filter "TestCategory!=SqlServer"
 dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database --dry-run
-\`\`\`
+```
 
 Για σύγκριση εμπορικής τιμής από το υπάρχον CLI:
 
-\`\`\`powershell
+```powershell
 dotnet run --project src/Aenaon.Api --launch-profile https -- --resolve-price --username admin --tenant-id TENANT_GUID --item-id ITEM_GUID --store-id STORE_GUID --channel Delivery --business-date 2026-11-15 --confirm-database AenaonERP_Dev --dry-run
-\`\`\`
+```
 
 Η εντολή ζητά διαδραστικά κωδικό πρόσβασης και δεν εκδίδει ούτε αποθηκεύει snapshot. Στο Blazor ανοίξτε **Τιμοκατάλογοι → Προεπισκόπηση τιμής** και επιλέξτε item, store, channel, ημερομηνία.
 
@@ -98,10 +98,10 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --resolve-price --
 
 | Περίπτωση | Ενέργεια |
 | --- | --- |
-| \`NotPriced\` | Ελέγξτε περίοδο, ενεργό είδος, κανάλι και Store |
-| \`Ambiguous\` | Εντοπίστε ισόβαθμους τιμοκαταλόγους, διορθώστε policy· μην επιλέξετε αυθαίρετη τιμή |
-| \`Denied\` | Ελέγξτε membership και ιδιοκτησία Store/Tenant |
-| \`pricing.snapshot.invalid\` | Ελέγξτε αναφορές GUID, νόμισμα, κανάλι, scope, ακρίβεια τιμής και UTC timestamp |
+| `NotPriced` | Ελέγξτε περίοδο, ενεργό είδος, κανάλι και Store |
+| `Ambiguous` | Εντοπίστε ισόβαθμους τιμοκαταλόγους, διορθώστε policy· μην επιλέξετε αυθαίρετη τιμή |
+| `Denied` | Ελέγξτε membership και ιδιοκτησία Store/Tenant |
+| `pricing.snapshot.invalid` | Ελέγξτε αναφορές GUID, νόμισμα, κανάλι, scope, ακρίβεια τιμής και UTC timestamp |
 | Αλλαγή της τρέχουσας τιμής | Το παλιό snapshot δεν αλλάζει· νέο preview δημιουργεί νέα τιμή |
 | Εκκρεμεί migration | Δεν προστέθηκε migration στο 9.5C.4· ελέγξτε την εγκατάσταση χωρίς apply |
 

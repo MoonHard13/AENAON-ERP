@@ -63,7 +63,7 @@ public sealed class CommercialPriceSnapshotTests
         Assert.ThrowsExactly<DomainRuleException>(() => Make(currency: "USD"));
         Assert.ThrowsExactly<DomainRuleException>(() => Make(amount: -1m));
         Assert.ThrowsExactly<DomainRuleException>(() => Make(amount: 1.23456m));
-        Assert.ThrowsExactly<DomainRuleException>(() => Make(businessDate: default));
+        Assert.ThrowsExactly<DomainRuleException>(() => Make(businessDate: DateOnly.MinValue));
         Assert.ThrowsExactly<DomainRuleException>(() =>
             Make(capturedUtc: new DateTimeOffset(2026, 11, 15, 14, 30, 0,
                 TimeSpan.FromHours(2))));
