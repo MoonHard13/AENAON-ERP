@@ -280,7 +280,7 @@
 | 9.5B.1–9.5B.2 | Πολλαπλοί τιμοκατάλογοι, SQL, GUI και CLI | Όχι χρήση σε παραστατικά |
 | 9.5B.3A–9.5B.3B | Read-only PriceResolutionService και Blazor price preview | Ισοβαθμίες: Ambiguous, χωρίς SQL writes, taxes ή price snapshots |
 
-**Σχήμα:** Το 9.5C.2 εισήγαγε την **9η migration** `20261114151000_CatalogItemDetails` (nullable barcode/long description και tenant unique index). Το τωρινό `main` διαθέτει **10 migrations**, με τελευταία την `20261114163000_PriceListAuditHistory` (append-only audit ιστορικού). Η τελευταία αναφερθείσα τοπική κατάσταση `AenaonERP_Dev` είναι **9 applied / 1 pending**, όχι επιβεβαιωμένο σημερινό αποτέλεσμα· χρειάζεται νέο dry-run, SQL review, backup και ρητή άδεια πριν από οποιοδήποτε apply.
+**Σχήμα:** Το 9.5C.2 εισήγαγε την **9η migration** `20261114151000_CatalogItemDetails` (nullable barcode/long description και tenant unique index). Το τωρινό `main` διαθέτει **10 migrations**, με τελευταία την `20261114163000_PriceListAuditHistory` (append-only audit ιστορικού). Ο χειριστής επιβεβαίωσε την τοπική κατάσταση `AenaonERP_Dev` ως **10 applied / 0 pending** με SSMS, ενεργό audit trigger, trusted constraints και index. Δεν απαιτείται επανάληψη της migration· σε άλλη βάση απαιτείται review, backup και ρητή έγκριση πριν από apply.
 
 ### Ανοιχτές απαιτήσεις / μελλοντικός σχεδιασμός
 
