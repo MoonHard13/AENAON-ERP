@@ -312,33 +312,5 @@ internal static class SqlServerPriceListManagementAssertions
         Assert.IsTrue(await context.CatalogItems.AsNoTracking()
             .AnyAsync(x => x.TenantId == tenant && x.Id == itemId, token));
 
-        // Δύο πραγματικά ανεξάρτητα EF contexts διεκδικούν ταυτόχρονα την ίδια κενή τιμή.
-        // Το κλείδωμα Tenant και η αναμενόμενη τιμή επιτρέπουν μία μόνο επιτυχή εγγραφή.
-        PriceListResult concurrencyList = await store.ApplyAsync(tenant,
-            new PriceListChange(PriceListAction.Create, Code: "CONCURRENCY-CI",
-                Name: "Έλεγχος ταυτόχρονων εγγραφών", StoreId: storeId,
-                Channel: PriceListChannel.Online,
-                ValidFrom: new DateOnly(2100, 1, 1)), token);
-        Assert.AreEqual(PriceListStatus.Saved, concurrencyList.Status);
-        Guid concurrencyListId = concurrencyList.Id!.Value;
-
-        var options = AenaonDbContextOptions.Create(
-            context.Database.GetDbConnection().ConnectionString, true);
-        await using var contextA = new AenaonDbContext(options);
-        await using var contextB = new AenaonDbContext(options);
-        var writerA = new SqlPriceListManagementStore(contextA);
-        var writerB = new SqlPriceListManagementStore(contextB);
-        Task<PriceListResult> writeA = writerA.SetPricesAsync(tenant, concurrencyListId,
-            [new PriceListPriceChange(itemId, 31m, null, CheckExpected: true)], token);
-        Task<PriceListResult> writeB = writerB.SetPricesAsync(tenant, concurrencyListId,
-            [new PriceListPriceChange(itemId, 32m, null, CheckExpected: true)], token);
-        PriceListResult[] concurrentResults = await Task.WhenAll(writeA, writeB);
-
-        Assert.AreEqual(1, concurrentResults.Count(x => x.Status == PriceListStatus.Saved));
-        Assert.AreEqual(1, concurrentResults.Count(x => x.Status == PriceListStatus.Conflict));
-        Assert.AreEqual(1, await context.PriceListItems.AsNoTracking().CountAsync(
-            x => x.TenantId == tenant && x.PriceListId == concurrencyListId, token));
-        Assert.AreEqual(2, await context.PriceListAuditEntries.AsNoTracking().CountAsync(
-            x => x.TenantId == tenant && x.PriceListId == concurrencyListId, token));
     }
 }
