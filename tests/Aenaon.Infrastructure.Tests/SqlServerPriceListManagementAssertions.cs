@@ -236,7 +236,13 @@ internal static class SqlServerPriceListManagementAssertions
         Assert.AreEqual(PriceListStatus.Saved, restoredPolicy.Status);
 
         PriceListResult deactivated = await store.ApplyAsync(tenant,
-            new PriceListChange(PriceListAction.Deactivate, created.Id), token);
+            new PriceListChange(PriceListAction.Deactivate, created.Id,
+                ExpectedIsActive: true), token);
+        PriceListResult staleDeactivation = await store.ApplyAsync(tenant,
+            new PriceListChange(PriceListAction.Deactivate, created.Id,
+                ExpectedIsActive: true), token);
+        Assert.AreEqual(PriceListStatus.Conflict, staleDeactivation.Status);
+        Assert.AreEqual("pricelist.state.conflict", staleDeactivation.Error);
         Assert.AreEqual(PriceListStatus.Saved, deactivated.Status);
         PriceListResult inactive = await store.SetPricesAsync(tenant, created.Id.Value,
             [new PriceListPriceChange(itemId, 20m)], token);
@@ -251,7 +257,13 @@ internal static class SqlServerPriceListManagementAssertions
         Assert.AreEqual(PriceListStatus.Invalid, deniedRemoval.Status);
 
         PriceListResult activated = await store.ApplyAsync(tenant,
-            new PriceListChange(PriceListAction.Activate, created.Id), token);
+            new PriceListChange(PriceListAction.Activate, created.Id,
+                ExpectedIsActive: false), token);
+        PriceListResult staleActivation = await store.ApplyAsync(tenant,
+            new PriceListChange(PriceListAction.Activate, created.Id,
+                ExpectedIsActive: false), token);
+        Assert.AreEqual(PriceListStatus.Conflict, staleActivation.Status);
+        Assert.AreEqual("pricelist.state.conflict", staleActivation.Error);
         Assert.AreEqual(PriceListStatus.Saved, activated.Status);
 
         // Απαγορεύεται η διαγραφή νεότερης τιμής από παλιότερη φόρμα.
