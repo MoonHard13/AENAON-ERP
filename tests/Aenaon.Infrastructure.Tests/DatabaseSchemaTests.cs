@@ -34,6 +34,26 @@ public sealed class DatabaseSchemaTests
     }
 
     [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void AuditMigrationSqlScript_UsesSeparateBatchForCreateTrigger(bool idempotent)
+    {
+        using var context = new AenaonDbContext(AenaonDbContextOptions.Create(
+            "Server=example.invalid;Database=AenaonERP_Unit;User ID=unit;Password=unit-only;Encrypt=True;", false));
+
+        string generated = context.GetService<IMigrator>().GenerateScript(
+            "20261114151000_CatalogItemDetails",
+            "20261114163000_PriceListAuditHistory",
+            idempotent ? MigrationsSqlGenerationOptions.Idempotent : MigrationsSqlGenerationOptions.Default);
+
+        // Το CREATE TRIGGER πρέπει να εκτελείται ως η πρώτη εντολή του δικού του batch.
+        Assert.IsTrue(generated.Contains("EXEC(N'CREATE TRIGGER [dbo].[TR_PriceListAuditEntries_Immutable]",
+            StringComparison.Ordinal));
+        Assert.IsFalse(generated.Contains("\nCREATE TRIGGER [dbo].[TR_PriceListAuditEntries_Immutable]",
+            StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     [DataRow(null, true, false, null, DatabaseSchemaStatus.NotConfigured)]
     [DataRow("invalid-key=unit-secret", true, false, null, DatabaseSchemaStatus.InvalidConfiguration)]
     [DataRow("Server=example.invalid;Database=master;User ID=unit;Password=unit-secret;Encrypt=True;", true, false, null, DatabaseSchemaStatus.InvalidConfiguration)]
