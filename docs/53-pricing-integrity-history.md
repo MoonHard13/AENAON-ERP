@@ -97,3 +97,31 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-price-lis
 
 ## Επόμενο βήμα
 **9.5C.4 — Pricing Scopes & Commercial Readiness:** κανόνες customer groups, τεκμηριωμένη προτεραιότητα και ανεξάρτητο immutable order-line price snapshot contract. Οι εισαγωγές Excel και οι γενικές μαζικές εργασίες παραμένουν αναβλημένες.
+
+## Ανεξάρτητη ανασκόπηση αποδοχής — 15/11/2026
+
+Η ανασκόπηση βασίζεται στο GitHub \`main\` commit \`724bf341020f107fa66e497c55b55f0b560ad245\`, μετά τα merged PR #53–#56. Ελέγχθηκαν οι πραγματικές κλάσεις Domain/Application/Infrastructure, η 10η EF migration, το SQL audit trigger, τα UI/CLI boundaries και τα υπάρχοντα integration tests. **Ο έλεγχος κώδικα δεν αποδεικνύει τη σημερινή κατάσταση της τοπικής \`AenaonERP_Dev\`.**
+
+| Acceptance gate | Διασταύρωση / εκκρεμότητα |
+| --- | --- |
+| Αρχιτεκτονική / απομόνωση | Tenant-scoped ιστορικό και σύνθετο FK \`(TenantId, PriceListId)\`. Απαιτούνται πραγματικά role tests στην τοπική εγκατάσταση. |
+| SQL / ιστορικό | Additive \`PriceListAuditEntries\`, immutable trigger και transactional writes ελέγχθηκαν σε source review. Το \`Down\` καταστρέφει το ιστορικό και **δεν** εγκρίνεται ως ασφαλές rollback. |
+| Overlap / concurrency | \`Serializable\` + tenant SQL application lock + optimistic price/profile checks. Προστέθηκε regression test με **δύο ανεξάρτητα DbContexts/SQL connections** που γράφουν ταυτόχρονα τιμή ίδιου rank, καθώς και έλεγχος απαγόρευσης SQL \`DELETE\` στο audit. Η επιτυχία τους πρέπει να επιβεβαιωθεί από το CI του νέου PR. |
+| Αυτόματοι έλεγχοι | Το GitHub \`main\` CI [#43617602547](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43617602547) ολοκληρώθηκε με επιτυχία σε Ubuntu/Windows και με isolated SQL Server 2022. Δεν αντικαθιστά τους νέους regression tests ή τοπικό acceptance. |
+| Εγκατάσταση | Τελευταίο **αναφερθέν** dry-run: 9 applied / 1 pending. Νέο preview, επιθεώρηση **παραγόμενου** SQL script, επιβεβαιωμένο backup και ρητή έγκριση **πριν από οποιοδήποτε apply**. |
+| Λειτουργικός έλεγχος | Owner/Member, create/update/activate/deactivate, add/update/remove price, duplicate/no-op/conflict, Blazor/CLI, 320/375/390/768/1366/1920px, Light/Dark, keyboard-only/zoom: **εκκρεμούν στη Development εγκατάσταση**. |
+
+### Πρωτόκολλο αποδοχής χωρίς αυτόματες εγγραφές
+
+1. Συγχρονίστε το εγκεκριμένο \`main\` και ελέγξτε \`dotnet --list-sdks\`, \`git status\`, \`dotnet restore AenaonERP.slnx --locked-mode\`.
+2. Ελέγξτε \`dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database --dry-run\`. Επιβεβαιώστε τη **σωστή** βάση και τις πραγματικές εφαρμοσμένες/εκκρεμείς migrations. Το preview δεν πραγματοποιεί αλλαγές.
+3. Ελέγξτε τον πραγματικό SQL script της 10ης migration, τον στόχο \`dbo.PriceListAuditEntries\`, σύνθετο FK, index, checks, \`CREATE TRIGGER\` και \`Down\`, καθώς και permissions/backup. Απαγορεύεται να θεωρηθεί το static source review ισοδύναμο με έλεγχο του παραγόμενου script.
+4. Μόνο με **ξεχωριστή ρητή έγκριση** και επιβεβαιωμένο backup επιτρέπεται το documented \`--migrate-database --apply --confirm-database AenaonERP_Dev\`. Καμία migration δεν εφαρμόζεται ως μέρος του παρόντος review.
+5. Επιβεβαιώστε μετά το apply \`10 applied / 0 pending\`, table, index, trigger και συνέπεια προηγούμενων τιμών. Χρησιμοποιήστε **απομονωμένα δοκιμαστικά** δεδομένα και αποδεκτό tenant για τις λειτουργικές δοκιμές, όχι παραγωγικά δεδομένα.
+6. Ελέγξτε ένα νέο event για κάθε επιτυχή αλλαγή, κανένα event για no-op/απόρριψη, σωστό actor/source/UTC, rollback ολόκληρης αποτυχημένης συναλλαγής και αδυναμία cross-tenant ανάγνωσης/εγγραφής.
+7. Επαληθεύστε οπτικά το πραγματικό Blazor και CLI. Κρατήστε screenshots/αποτέλεσμα/ημερομηνία ανά viewport και keyboard-only σενάριο. Ο έλεγχος με συνθετικά HTML/CSS fixtures **δεν** αντικαθιστά το πραγματικό UI.
+8. Καταγράψτε επιτυχία ή blocker σε κάθε gate. Η τελική σήμανση είναι **«υλοποιημένο, όχι πλήρως αποδεκτό»** μέχρι να κλείσουν όλα τα παραπάνω.
+
+{% hint style="warning" %}
+Η αλλαγή μόνο του κώδικα εφαρμογής **δεν επαναφέρει** τη SQL migration. Μετά από apply, ο πίνακας ιστορικού περιέχει πραγματικές εγγραφές που θα χαθούν με \`Down\`. Για rollback απαιτείται εγκεκριμένο σχέδιο αποκατάστασης και δοκιμασμένο backup· δεν εγκρίνεται αυτόματη διαγραφή του audit.
+{% endhint %}
