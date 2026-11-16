@@ -10,7 +10,7 @@ Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες ε�
 
 **Catalog & Pricing 9.5C.5: IMPLEMENTED — NOT FULLY ACCEPTED.** Εκκρεμούν πραγματικά authenticated Development browser, Owner/Member, SQL persistence, tenant/store, viewport/light/dark/keyboard/zoom και concurrency acceptance tests. Ακολουθήστε τον [επικαιροποιημένο κατάλογο τεκμηρίων](docs/59-acceptance-evidence-and-test-protocol.md).
 
-Το [**9.6A.0 — Menu Management Architecture & UX**](docs/58-menu-management-architecture.md) είναι **αυστηρά design-only**. Καμία υλοποίηση/SQL migration/POS/δημοσίευση μενού πριν από τα επιτυχή gates και ρητή έγκριση για 9.6A.1. Το live AENAON GitBook έχει παρωχημένες αναφορές (PR #50/#51) και απαιτεί ξεχωριστή ελεγχόμενη ενημέρωση.
+Το [**9.6A.0 — Menu Management Architecture & UX**](docs/58-menu-management-architecture.md) είναι **DESIGN APPROVED (10/10 αποφάσεις owner)**, αλλά αυστηρά design-only. Καμία υλοποίηση/SQL migration/POS/δημοσίευση μενού πριν από τα επιτυχή gates και ξεχωριστή ρητή έγκριση για 9.6A.1. Το live AENAON GitBook έχει παρωχημένες αναφορές (PR #50/#51) και απαιτεί ξεχωριστή ελεγχόμενη ενημέρωση.
 
 ## Βήμα 9.5C.4 — Εμπορικά scopes και immutable price snapshot (PR #59 merged)
 
@@ -523,7 +523,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Catalog & Pricing Final Acceptance — 9.5C.5 (σε εξέλιξη)](docs/57-catalog-pricing-final-acceptance.md)
 - [9.5C.5 Evidence — main PR #60 και πραγματικό QA πρωτόκολλο](docs/59-acceptance-evidence-and-test-protocol.md)
 - [Menu Management 9.6A.0 — Αρχιτεκτονική και UX, μόνο σχεδιασμός](docs/58-menu-management-architecture.md)
-- [Menu Management 9.6A.0 — Τελικό design review, 6 εγκρίσεις και ανοικτές πολιτικές](docs/60-menu-management-final-design-review.md)
+- [Menu Management 9.6A.0 — Τελικό design review: 10/10 εγκεκριμένες UX/functional αποφάσεις και πολιτικές](docs/60-menu-management-final-design-review.md)
 - [Κατάσταση έργου και χάρτης τεκμηρίωσης](docs/00-current-state-and-roadmap.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
 
