@@ -1,6 +1,6 @@
 # AENAON ERP — Κατάσταση και χάρτης τεκμηρίωσης
 
-**Αποτύπωση:** 15/11/2026 · **Κατάσταση:** τα PR #52–#56 έγιναν merge, με τελευταίο `main` commit `724bf341020f107fa66e497c55b55f0b560ad245` και επιτυχές [GitHub CI #43617602547](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43617602547). Το 9.5C.2 έχει γίνει αποδεκτό από τον χειριστή. Για το 9.5C.3 ο χειριστής επιβεβαίωσε μέσω SSMS **10 applied / 0 pending**, ενεργό audit trigger και έξι σωστά Web audit events. Ανέφερε επιτυχή human-style acceptance, χωρίς να έχει μεταφερθεί εδώ η πλήρης αναφορά/screenshots. Η διόρθωση sorting και οι mobile βελτιώσεις περιλαμβάνονται πλέον στο `main`. Ξεκίνησε ανεξάρτητο code review και στοχευμένη συμπλήρωση regression για δύο ταυτόχρονες SQL εγγραφές και SQL audit DELETE· **δεν** εκτελέστηκε migration ή δοκιμή στην τοπική βάση.
+**Αποτύπωση:** 15/11/2026 · **Verified main:** `493f7b2ff61066e817c0d0cba1d120266f9b9117`, μετά τα squash-merged PR #57/#58, με επιτυχές [CI #43723379229](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43723379229) (Ubuntu/Windows, isolated SQL). Για το 9.5C.3 ο χειριστής ανέφερε επιτυχές human-style acceptance και είχε επιβεβαιώσει τοπικό schema **10 applied / 0 pending**· χωρίς ανεξάρτητο browser report ή νέα SQL σύνδεση εδώ. **Το 9.5C.4 υλοποιείται μόνο σε feature branch και δεν έχει γίνει merge/accept.**
 
 {% hint style="info" %}
 Τα manuals ανά βήμα διατηρούνται **ως ιστορική τεκμηρίωση**. Για την τρέχουσα κατάσταση προτιμήστε το [root README](../README.md), αυτόν τον χάρτη και τον ίδιο τον κώδικα του `main`. Τα παλαιότερα «δεν υπάρχει ακόμη» αφορούν τη συγκεκριμένη έκδοση του βήματος.
@@ -19,6 +19,7 @@
 | Catalog & Pricing audit | [9.5C.1 — Catalog & Pricing Gap Analysis](51-catalog-pricing-gap-analysis.md): σχεδιασμός και κριτήρια, χωρίς SQL changes |
 | Πρόσθετα πεδία καταλόγου | [9.5C.2 — Barcode και αναλυτική περιγραφή](52-catalog-item-details.md): Domain, SQL, Blazor, CLI, tests και 9η migration (Development) | 
 | Ιστορικό/ακεραιότητα τιμών | [9.5C.3 — Pricing Integrity & History](53-pricing-integrity-history.md): durable audit, overlap guard, Blazor/CLI, 10η migration (merged code· local schema 10/0 verified by operator) |
+| Εμπορικά scopes & snapshot | [9.5C.4 — Commercial Readiness (feature branch / NOT ACCEPTED)](56-pricing-scopes-commercial-snapshot.md): διατήρηση priority, απόφαση αναβολής customer groups, versioned in-memory snapshot χωρίς SQL migration |
 | Sorting τιμοκαταλόγου | [Διόρθωση ταξινόμησης ειδών](54-price-list-item-sorting.md): φυσική σειρά κωδικών, όλες οι ορατές στήλες, SQL paging, CLI, χωρίς νέα migration |
 | Mobile Back Office | [Responsive UX](55-mobile-backoffice-responsive.md): dashboard, κατάλογος, τιμοκατάλογοι, καρτέλες/ιστορικό και native mobile sorting· frontend-only |
 | Μελλοντικά | [Περιβαλλοντικά τέλη — design](47-environmental-fees-fiscal-design.md), [Excel/bulk — αναβολή](48-bulk-actions-and-excel-import-plan.md) |
@@ -43,6 +44,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - ΦΠΑ/φορολογικός υπολογισμός, έκδοση/διαβίβαση myDATA/IMPACT, εγκεκριμένοι φορολογικοί χαρακτηρισμοί. Τα 254 fiscal review observations καταγράφηκαν ως **Pending**, όχι ως approved.
 - Τιμή δεσμευμένη σε παραγγελία (immutable snapshot), εκπτώσεις και ιστορικό παραστατικών.
 - **9.5C.2 — Αποδεκτό από χειριστή**: προαιρετικό barcode και αναλυτική περιγραφή, [Manual 52](52-catalog-item-details.md). Η τοπική 9η migration και το λειτουργικό acceptance ολοκληρώθηκαν.
+- **9.5C.4 — Σε feature branch, όχι αποδεκτό:** versioned in-memory snapshot και διατήρηση υφιστάμενων εμπορικών scopes. Δεν υπάρχει SQL order snapshot, customer groups, φορολογική σύνδεση ή νέα migration.
 - **9.5C.3 — Τοπικό schema και βασικό audit ελεγμένα:** audit/history, overlap integrity και [Manual 53](53-pricing-integrity-history.md). Ο χειριστής αναφέρει επιτυχή human-style δοκιμή· λεπτομερής έκθεση/screenshots δεν έχουν επιθεωρηθεί ανεξάρτητα. **Sorting τιμοκαταλόγου:** [Manual 54](54-price-list-item-sorting.md), βελτίωση χωρίς νέα migration. **9.5C.4–9.5C.5:** commercial scopes/immutable snapshot contract και τελικό acceptance, σύμφωνα με το [Manual 51](51-catalog-pricing-gap-analysis.md).
 - Το **9.6A — Μενού εστίασης** αρχίζει μόνο μετά την ολοκλήρωση και αποδοχή των παραπάνω.
 - Excel imports και μαζικές εργασίες: **αναβλημένα**.
