@@ -523,6 +523,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Catalog & Pricing Final Acceptance — 9.5C.5 (σε εξέλιξη)](docs/57-catalog-pricing-final-acceptance.md)
 - [9.5C.5 Evidence — main PR #60 και πραγματικό QA πρωτόκολλο](docs/59-acceptance-evidence-and-test-protocol.md)
 - [Menu Management 9.6A.0 — Αρχιτεκτονική και UX, μόνο σχεδιασμός](docs/58-menu-management-architecture.md)
+- [Menu Management 9.6A.0 — Τελικό design review, 6 εγκρίσεις και ανοικτές πολιτικές](docs/60-menu-management-final-design-review.md)
 - [Κατάσταση έργου και χάρτης τεκμηρίωσης](docs/00-current-state-and-roadmap.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
 
