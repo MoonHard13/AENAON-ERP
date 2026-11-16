@@ -27,6 +27,7 @@
 | Final acceptance | [9.5C.5 — Matrix και εκκρεμείς πραγματικοί έλεγχοι](57-catalog-pricing-final-acceptance.md): ανασκόπηση source/CI, SQL sort regression και εκκρεμής human-style αποδοχή |
 | **9.5C.5 evidence** | [Επικαιροποιημένο status PR #60, πραγματικό manual test protocol και blockers](59-acceptance-evidence-and-test-protocol.md): διαθέσιμο στο docs-only design PR, δεν τεκμηριώνει εκτελεσμένο Dev acceptance |
 | **9.6A.0 Menu Architecture & UX** | [Design-only functional/SQL/Blazor/CLI specification](58-menu-management-architecture.md): καμία υλοποίηση, migration, POS ή δημοσίευση πριν από πλήρη 9.5C.5 acceptance + έγκριση |
+| **9.6A.0 Final Design Review** | [Manual 60](60-menu-management-final-design-review.md): 6 ιδιοκτησιακά εγκεκριμένες αποφάσεις, 4 ανοικτές πολιτικές (permissions, pricing, modifiers, timezone), implementation **όχι εγκεκριμένο** |
 | Sorting τιμοκαταλόγου | [Διόρθωση ταξινόμησης ειδών](54-price-list-item-sorting.md): φυσική σειρά κωδικών, όλες οι ορατές στήλες, SQL paging, CLI, χωρίς νέα migration |
 | Mobile Back Office | [Responsive UX](55-mobile-backoffice-responsive.md): dashboard, κατάλογος, τιμοκατάλογοι, καρτέλες/ιστορικό και native mobile sorting· frontend-only |
 | Μελλοντικά | [Περιβαλλοντικά τέλη — design](47-environmental-fees-fiscal-design.md), [Excel/bulk — αναβολή](48-bulk-actions-and-excel-import-plan.md) |
