@@ -1,8 +1,8 @@
 # AENAON ERP — 9.5C.5: Τελικός έλεγχος αποδοχής Catalog & Pricing
 
-**Κατάσταση (16/11/2026): IMPLEMENTED / BASELINE CI PASSED / REAL HUMAN-STYLE TESTING NOT VERIFIED / NOT FULLY ACCEPTED.**
+**Κατάσταση (16/11/2026): IMPLEMENTED / PR #60 CI PASSED / REAL HUMAN-STYLE TESTING NOT VERIFIED / NOT FULLY ACCEPTED.**
 
-**Πηγή ελέγχου:** `main` commit `8668f4732966f8a5728b68ec1f56a0a882134a7b` ([merged PR #59](https://github.com/MoonHard13/AENAON-ERP/pull/59)). **Baseline CI:** [run #43823668569](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43823668569). Οι διορθώσεις του 9.5C.5 ελέγχονται σε ξεχωριστό PR, **δεν** είναι διαθέσιμες στο παραπάνω baseline `main` έως το merge.
+**Πηγή ελέγχου:** `main` commit `8668f4732966f8a5728b68ec1f56a0a882134a7b` ([merged PR #59](https://github.com/MoonHard13/AENAON-ERP/pull/59)). **Baseline CI:** [run #43823668569](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43823668569). **PR #60 CI:** [run #43825052940](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43825052940), success σε Ubuntu/Windows. Οι διορθώσεις του 9.5C.5 ελέγχονται σε ξεχωριστό PR, **δεν** είναι διαθέσιμες στο παραπάνω baseline `main` έως το merge.
 
 ## Σκοπός και όρια
 
@@ -20,7 +20,7 @@
 2. Επιβεβαίωση merged PR #59, αυθεντικού main commit και GitHub Actions jobs (Windows/Ubuntu).
 3. Ανάγνωση πραγματικών CI logs: **Windows: Domain 108/108, Application 137/137, Infrastructure 42/42, API 224/224. Ubuntu: ίδιοι αριθμοί και SQL Server 2022 isolated integration 1/1.** Το μοναδικό SQL test εκτελεί μεγάλο σύνολο εσωτερικών SQL assertions.
 4. Εντοπίστηκε η χρήση `OrderBy(x => x.Code)` στην κεντρική λίστα τιμοκαταλόγων. Η απλή αλφαβητική σειρά δεν ικανοποιεί αριθμητικούς κωδικούς `1, 2, 10`.
-5. Στο branch 9.5C.5 προετοιμάστηκε natural SQL sorting πριν από `Skip/Take`, με regression assertion για κωδικούς `1,2,10`, δύο σελίδες και tenant isolation. **Η επιτυχία της νέας δοκιμής εξαρτάται από το CI του νέου PR**.
+5. Στο branch 9.5C.5 προετοιμάστηκε natural SQL sorting πριν από `Skip/Take`, με regression assertion για κωδικούς `1,2,10`, δύο σελίδες και tenant isolation. **Το CI του PR #60 εκτέλεσε επιτυχώς τη νέα SQL δοκιμή** ([Ubuntu job](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43825052940)).
 6. Διορθώθηκαν τα παρωχημένα «feature branch» / «not merged» στοιχεία για το 9.5C.4 σε README, roadmap, requirements και Manual 56.
 
 ## Matrix αποδοχής
@@ -42,7 +42,7 @@
 | Ακρίβεια 4 δεκαδικών, αρνητικές τιμές, EUR | PASS (source/CI) | NOT VERIFIED |
 | VAT-inclusive / exclusive, Scope Store/Channel | PASS (source/CI) | NOT VERIFIED |
 | Ημερομηνίες ισχύος, αρχικά/τελικά όρια | PASS (source/CI) | NOT VERIFIED |
-| Φυσική σειρά κωδικών **στη λίστα τιμοκαταλόγων** | FAIL στο baseline; FIX IMPLEMENTED στο PR 9.5C.5 | NOT VERIFIED |
+| Φυσική σειρά κωδικών **στη λίστα τιμοκαταλόγων** | FAIL στο baseline· PASS στο PR #60 isolated SQL regression | NOT VERIFIED |
 | Sort ειδών μέσα σε τιμοκατάλογο / SQL paging | PASS (source/CI) | NOT VERIFIED |
 | Precedence Store+Channel → Store+All → All+Channel → All+All | PASS (source/CI) | NOT VERIFIED |
 | Ενεργά/ανενεργά, missing price και ambiguity fail-closed | PASS (source/CI) | NOT VERIFIED |
@@ -115,6 +115,6 @@ dotnet publish src/Aenaon.Api --configuration Release --no-restore --self-contai
 
 **Αλλαγές 9.5C.5:** φυσική σειρά ανάγνωσης SQL στην κεντρική λίστα και SQL regression test, συν τεκμηρίωση. **0 νέες migrations, 0 database writes κατά τη δημιουργία του PR, 0 νέα packages.** Rollback του κώδικα με revert του PR μετά από review, χωρίς schema rollback.
 
-**Απομένουν:** επιτυχές CI στο νέο PR, ανεξάρτητη δοκιμή πραγματικού GUI/SQL, κανονική αναφορά με screenshots και έγκριση του ιδιοκτήτη. Ακόμη και αν περάσουν όλα τα αυτοματοποιημένα tests, ο χαρακτηρισμός παραμένει **IMPLEMENTED, NOT FULLY ACCEPTED** έως να κλείσουν τα mandatory E2E/security/UI gates.
+**Απομένουν:** ανεξάρτητη δοκιμή πραγματικού GUI/Development SQL, κανονική αναφορά με screenshots και έγκριση του ιδιοκτήτη. Το CI #43825052940 για τον κώδικα/SQL regression του PR #60 πέρασε σε Ubuntu και Windows. Ακόμη και αν περάσουν όλα τα αυτοματοποιημένα tests, ο χαρακτηρισμός παραμένει **IMPLEMENTED, NOT FULLY ACCEPTED** έως να κλείσουν τα mandatory E2E/security/UI gates.
 
 **Κριτήριο εξόδου:** όλες οι απαιτούμενες δοκιμές PASS με πραγματικά τεκμήρια, καμία ανοιχτή κρίσιμη/σοβαρή δυσλειτουργία, επιβεβαιωμένα migration/permissions/isolation, συμπληρωμένα manuals και ρητή έγκριση. Μόνο τότε επιτρέπεται να προγραμματιστεί το 9.6A — Μενού εστίασης.
