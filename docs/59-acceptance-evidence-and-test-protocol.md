@@ -10,6 +10,10 @@
 Το πράσινο CI και η ύπαρξη unit/integration tests **δεν** αποτελούν ανθρώπινη αποδοχή. Δεν υπήρξε πρόσβαση στον πραγματικό Development browser, στα διαπιστευτήρια Owner/Member ή στην AenaonERP_Dev σε αυτόν τον έλεγχο. Δεν κατασκευάστηκαν screenshots ή SQL evidence και δεν εκτελέστηκε καμία εντολή μεταβολής δεδομένων.
 {% endhint %}
 
+## Ρητή αποδοχή ιδιοκτήτη
+
+**Απόφαση ιδιοκτήτη (16/11/2026):** Ο ιδιοκτήτης δήλωσε ρητά **«accept 9.5C.5»**. Καταγράφεται ως **OWNER ACCEPTED — WITH UNVERIFIED E2E/SQL GATES**, όχι ως δήλωση ότι εκτελέστηκαν οι ελλείπουσες δοκιμές. Τα Browser/Development SQL/Owner–Member/Mobile/Keyboard/Zoom/Concurrency gates παραμένουν **NOT VERIFIED**· η πλήρης τεχνική αποδοχή και η υλοποίηση 9.6A.1 εξακολουθούν να απαιτούν τεκμήρια και ξεχωριστή ρητή έγκριση. Καμία εξουσιοδότηση για merge, migration ή Menu implementation δεν δόθηκε.
+
 ## Σκοπός και σχέση με το Manual 57
 
 Η σελίδα συμπληρώνει το [Manual 57](57-catalog-pricing-final-acceptance.md), το οποίο δημιουργήθηκε πριν από το merge του PR #60. Διατηρεί την ιστορική διάκριση αρχικού baseline και PR, αλλά διορθώνει τη **σημερινή** κατάσταση του main. Το [Menu 9.6A.0 Design](58-menu-management-architecture.md) είναι design-only έως να κλείσει η αποδοχή.
