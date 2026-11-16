@@ -1,6 +1,6 @@
 # AENAON ERP — 9.5C.4: Εμπορικά scopes και αμετάβλητη εικόνα τιμής
 
-**Κατάσταση:** Feature branch σε review, όχι διαθέσιμη λειτουργία παραγγελίας. **Baseline:** main commit `493f7b2ff61066e817c0d0cba1d120266f9b9117` (15/11/2026).
+**Κατάσταση 16/11/2026:** Υλοποιημένο στο `main` μετά το merged [PR #59](https://github.com/MoonHard13/AENAON-ERP/pull/59), [CI #43823668569](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43823668569) SUCCESS. Αρχικό baseline ανάπτυξης: `493f7b2ff61066e817c0d0cba1d120266f9b9117` (15/11/2026). Δεν είναι λειτουργία παραγγελίας και δεν έχει γίνει πλήρης human-style αποδοχή.
 
 ## Σκοπός
 
@@ -118,8 +118,8 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --resolve-price --
 - [x] Απόφαση αναβολής customer groups.
 - [x] Αμετάβλητο, versioned contract και authorized read-only factory.
 - [x] Χωρίς νέα SQL migration, φορολογικό κώδικα ή ενεργοποίηση POS.
-- [ ] CI για το συγκεκριμένο PR: restore, format, Release build, unit/SQL/API/CLI και publish.
+- [x] CI για το συγκεκριμένο PR και το merged main: restore, format, Release build, unit/SQL/API/CLI και publish ([main run #43823668569](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43823668569)).
 - [ ] Πραγματικός browser, screenshots, responsive, Light/Dark, πληκτρολόγιο.
 - [ ] Review και ρητή αποδοχή από τον χειριστή.
 
-**Κατάσταση:** IMPLEMENTED — NOT FULLY ACCEPTED, μέχρι επιτυχή checks και έγκριση. Επόμενο βήμα μόνο μετά την αποδοχή: **9.5C.5 — Catalog & Pricing Final Acceptance**.
+**Κατάσταση:** IMPLEMENTED + MERGED + CI PASSED — **HUMAN-STYLE TESTING NOT VERIFIED / NOT FULLY ACCEPTED**. Το επόμενο [9.5C.5 — Catalog & Pricing Final Acceptance](57-catalog-pricing-final-acceptance.md) εξετάζει ολόκληρο το εμπορικό υποσύστημα. Δεν επιτρέπεται προώθηση σε Menu/POS χωρίς τα τελικά gates.
