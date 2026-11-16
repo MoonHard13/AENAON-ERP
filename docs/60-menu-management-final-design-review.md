@@ -2,10 +2,10 @@
 
 **Ημερομηνία:** 16/11/2026  
 **Source of truth:** GitHub `main` `3af56b94d0758f59386f6437be5330ff681b0b53` (merged PR #60), τεχνικό [Manual 58](58-menu-management-architecture.md) και [Manual 59](59-acceptance-evidence-and-test-protocol.md).  
-**Κατάσταση:** ΕΓΚΕΚΡΙΜΕΝΟΣ ΒΑΣΙΚΟΣ ΣΧΕΔΙΑΣΜΟΣ / ΕΚΚΡΕΜΟΥΝ ΟΡΙΣΜΕΝΕΣ ΠΟΛΙΤΙΚΕΣ / DESIGN ONLY — **καμία άδεια υλοποίησης**.
+**Κατάσταση:** **9.6A.0 DESIGN APPROVED — 10/10 αποφάσεις owner**, design-only. **Καμία άδεια υλοποίησης, SQL migration ή merge**.
 
 {% hint style="warning" %}
-Η ρητή δήλωση «accept 9.5C.5» αποτελεί owner acceptance με **NOT VERIFIED** πραγματικά Browser/Development SQL/Owner–Member/Mobile/Keyboard/Concurrency gates. Η δήλωση έγκρισης έξι σχεδιαστικών αποφάσεων δεν εγκρίνει migration, ανάπτυξη 9.6A.1, δημοσίευση σε GitBook ή merge του PR #61.
+Η ρητή δήλωση «accept 9.5C.5» αποτελεί owner acceptance με **NOT VERIFIED** πραγματικά Browser/Development SQL/Owner–Member/Mobile/Keyboard/Concurrency gates. Στις 16/11/2026 εγκρίθηκαν τόσο οι έξι UX/functional αποφάσεις όσο και οι τέσσερις πολιτικές DEC-01..DEC-04. Αυτές οι **10/10 σχεδιαστικές εγκρίσεις** δεν εγκρίνουν migration, ανάπτυξη 9.6A.1, δημοσίευση σε GitBook ή merge του PR #61.
 {% endhint %}
 
 ## 1. Ρητώς εγκεκριμένες αποφάσεις του ιδιοκτήτη
@@ -44,11 +44,11 @@
 5. Η υπάρχουσα Blazor υλοποίηση χρησιμοποιεί κυρίως Static SSR + antiforgery POST. Στο πρώτο Builder διατηρούνται τα υπάρχοντα conventions: server-validated writes, μικρό progressive-enhancement JavaScript μόνο όπου χρειάζεται για drag/drop, με πλήρη fallback σε βελάκια και αριθμητική θέση. Δεν απαιτείται νέο interactive framework ή εξάρτηση χωρίς λόγο.
 6. Το MenuCategory δεν είναι CatalogCategory· η παρουσίαση διαχωρίζεται από τα ERP master records. Remove από Menu **δεν** διαγράφει CatalogItem. Οι referential constraints δεν αντικαθιστούν τη server-side authorization.
 
-## 3. Ανοικτές αποφάσεις προς επιβεβαίωση — προτεινόμενες ασφαλείς προεπιλογές
+## 3. Εγκεκριμένες πολιτικές DEC-01 έως DEC-04 — owner sign-off 16/11/2026
 
-Οι παρακάτω επιλογές **δεν έχουν ακόμη εγκριθεί ρητά** και δεν πρέπει να παρουσιάζονται ως τελειωμένο policy.
+Ο ιδιοκτήτης δήλωσε ρητά **«Εγκρίνω και τις 4»**, σε απάντηση στις συγκεκριμένες πολιτικές DEC-01..DEC-04 του final design review. Όλες είναι **APPROVED ως απαιτήσεις σχεδιασμού**. Δεν έχουν ακόμη υλοποιηθεί ή ελεγχθεί στην εφαρμογή.
 
-| ID | Θέμα | Ασφαλής προτεινόμενη προεπιλογή | Επίδραση |
+| ID | Θέμα | Εγκεκριμένη πολιτική σχεδιασμού | Επίδραση |
 | --- | --- | --- | --- |
 | DEC-01 | Δικαιώματα Store/Channel publishing | Για v1 μόνο Tenant Owner κάνει create/edit/publish· Member μόνο read. Ο Owner επιλέγει ρητά και ελέγχεται σε κάθε Store/Channel target. Delegated publisher μετά από χωριστή policy design | Απαραίτητη πριν από δημοσίευση |
 | DEC-02 | Αποτυχία τιμολόγησης στο Preview/Publish | Fail-closed: `Missing`/`Ambiguous`/`ItemUnavailable` επισημαίνονται και δεν επιτρέπουν δημοσίευση ενός **ορατού, πωλήσιμου** είδους στο συγκεκριμένο target. Καμία σιωπηλή παράλειψη χωρίς εμφανή preflight report | Απαραίτητη πριν από δημοσίευση |
@@ -136,7 +136,7 @@
 - [x] Έξι βασικές UX/functional αποφάσεις εγκρίθηκαν από τον ιδιοκτήτη.
 - [x] Επιβεβαιώθηκε το GitHub main και το ανοικτό docs-only PR.
 - [x] Καταγράφηκαν οι εξαρτήσεις Catalog/Pricing, τα security risks, τα models και UX wireframes.
-- [ ] Εγκρίθηκαν οι DEC-01..DEC-04 πολιτικές ή διορθώθηκαν οι προεπιλογές τους.
+- [x] **Εγκρίθηκαν ρητά οι πολιτικές DEC-01..DEC-04** (Owner-only, fail-closed pricing, ERP-linked charged modifiers, explicit Store timezone/UTC/DST).
 - [ ] Ολοκληρώθηκαν/τεκμηριώθηκαν τα εκκρεμή υποχρεωτικά πραγματικά 9.5C.5 E2E/SQL checks.
 - [ ] Δόθηκε ξεχωριστή ρητή έγκριση έναρξης 9.6A.1 και σχετικού SQL migration plan.
 - [ ] Αποφασίστηκε χωριστά το merge του docs PR #61.
@@ -144,4 +144,4 @@
 
 **Troubleshooting για σχεδιασμό:** Αν ζητηθεί feature Publish/Modifiers στο 9.6A.1, ελέγξτε το scope και μεταφέρετέ το στο αντίστοιχο επόμενο βήμα· αν ζητηθεί τιμή μενού διαφορετική από ERP PriceList, απορρίψτε το ως μη εγκεκριμένη διπλή τιμολόγηση και ζητήστε νέα εμπορική/φορολογική προδιαγραφή.
 
-**Συμπέρασμα:** Οι έξι αποφάσεις είναι approved, ο τελικός τεχνικός σχεδιασμός είναι review-ready, αλλά το implementation gate **παραμένει κλειστό**.
+**Συμπέρασμα:** Το **9.6A.0 — Menu Management Architecture & UX είναι DESIGN APPROVED (10/10 owner approvals)**. Η υλοποίηση δεν έχει ξεκινήσει και το 9.6A.1 implementation gate **παραμένει κλειστό** μέχρι τα απαραίτητα πραγματικά E2E/SQL τεκμήρια και ξεχωριστή ρητή έγκριση.
