@@ -2,7 +2,7 @@
 
 **Κατάσταση (16/11/2026): IMPLEMENTED / PR #60 CI PASSED / REAL HUMAN-STYLE TESTING NOT VERIFIED / NOT FULLY ACCEPTED.**
 
-**Πηγή ελέγχου:** `main` commit `8668f4732966f8a5728b68ec1f56a0a882134a7b` ([merged PR #59](https://github.com/MoonHard13/AENAON-ERP/pull/59)). **Baseline CI:** [run #43823668569](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43823668569). **PR #60 CI:** [run #43825052940](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43825052940), success σε Ubuntu/Windows. Οι διορθώσεις του 9.5C.5 ελέγχονται σε ξεχωριστό PR, **δεν** είναι διαθέσιμες στο παραπάνω baseline `main` έως το merge.
+**Τρέχουσα επαλήθευση (16/11/2026):** Το [PR #60](https://github.com/MoonHard13/AENAON-ERP/pull/60) έχει **συγχωνευθεί** στο `main` commit `3af56b94d0758f59386f6437be5330ff681b0b53` και το [main CI #43836751173](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43836751173) είναι επιτυχές σε Ubuntu/Windows, μαζί με isolated SQL. Το ακόλουθο checklist **συντάχθηκε ιστορικά** επάνω στο προ-merge `main` `8668f4732966f8a5728b68ec1f56a0a882134a7b` και την επιθεώρηση του PR #60, οπότε οι σχετικές αναφορές σε «baseline» διαβάζονται ως τότε, όχι ως τωρινή κατάσταση. Η ολοκληρωμένη αποδοχή εξακολουθεί να απαιτεί πραγματικό browser και SQL evidence. [Σημερινός συγκεντρωτικός επανέλεγχος και οδηγίες](59-acceptance-evidence-and-test-protocol.md).
 
 ## Σκοπός και όρια
 
@@ -115,6 +115,6 @@ dotnet publish src/Aenaon.Api --configuration Release --no-restore --self-contai
 
 **Αλλαγές 9.5C.5:** φυσική σειρά ανάγνωσης SQL στην κεντρική λίστα και SQL regression test, συν τεκμηρίωση. **0 νέες migrations, 0 database writes κατά τη δημιουργία του PR, 0 νέα packages.** Rollback του κώδικα με revert του PR μετά από review, χωρίς schema rollback.
 
-**Απομένουν:** ανεξάρτητη δοκιμή πραγματικού GUI/Development SQL, κανονική αναφορά με screenshots και έγκριση του ιδιοκτήτη. Το CI #43825052940 για τον κώδικα/SQL regression του PR #60 πέρασε σε Ubuntu και Windows. Ακόμη και αν περάσουν όλα τα αυτοματοποιημένα tests, ο χαρακτηρισμός παραμένει **IMPLEMENTED, NOT FULLY ACCEPTED** έως να κλείσουν τα mandatory E2E/security/UI gates.
+**Απομένουν:** ανεξάρτητη δοκιμή πραγματικού GUI/Development SQL, κανονική αναφορά με screenshots και έγκριση του ιδιοκτήτη. Το CI #43825052940 για τον κώδικα/SQL regression του PR #60 πέρασε σε Ubuntu και Windows· επιπλέον πέρασε το τελικό [main CI #43836751173](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43836751173) μετά το merge. Ακόμη και αν περάσουν όλα τα αυτοματοποιημένα tests, ο χαρακτηρισμός παραμένει **IMPLEMENTED, NOT FULLY ACCEPTED** έως να κλείσουν τα mandatory E2E/security/UI gates.
 
 **Κριτήριο εξόδου:** όλες οι απαιτούμενες δοκιμές PASS με πραγματικά τεκμήρια, καμία ανοιχτή κρίσιμη/σοβαρή δυσλειτουργία, επιβεβαιωμένα migration/permissions/isolation, συμπληρωμένα manuals και ρητή έγκριση. Μόνο τότε επιτρέπεται να προγραμματιστεί το 9.6A — Μενού εστίασης.
