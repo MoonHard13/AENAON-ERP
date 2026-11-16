@@ -4,6 +4,8 @@ Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες ε�
 
 ## Τρέχον checkpoint — 16/11/2026: 9.5C.5 → 9.6A.0
 
+**Απόφαση ιδιοκτήτη (16/11/2026):** Ο ιδιοκτήτης δήλωσε ρητά **«accept 9.5C.5»**. Καταγράφεται ως **OWNER ACCEPTED — WITH UNVERIFIED E2E/SQL GATES**, όχι ως δήλωση ότι εκτελέστηκαν οι ελλείπουσες δοκιμές. Τα Browser/Development SQL/Owner–Member/Mobile/Keyboard/Zoom/Concurrency gates παραμένουν **NOT VERIFIED**· η πλήρης τεχνική αποδοχή και η υλοποίηση 9.6A.1 εξακολουθούν να απαιτούν τεκμήρια και ξεχωριστή ρητή έγκριση. Καμία εξουσιοδότηση για merge, migration ή Menu implementation δεν δόθηκε.
+
 Το [PR #60](https://github.com/MoonHard13/AENAON-ERP/pull/60) **έγινε merge** στο `main` commit `3af56b94d0758f59386f6437be5330ff681b0b53`. Το [τελευταίο main CI #43836751173](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43836751173) ολοκληρώθηκε επιτυχώς σε Windows/Ubuntu με isolated SQL Server 2022. Η φυσική SQL ταξινόμηση κωδικών τιμοκαταλόγων (1, 2, 10) περιλαμβάνεται πλέον στο main.
 
 **Catalog & Pricing 9.5C.5: IMPLEMENTED — NOT FULLY ACCEPTED.** Εκκρεμούν πραγματικά authenticated Development browser, Owner/Member, SQL persistence, tenant/store, viewport/light/dark/keyboard/zoom και concurrency acceptance tests. Ακολουθήστε τον [επικαιροποιημένο κατάλογο τεκμηρίων](docs/59-acceptance-evidence-and-test-protocol.md).
