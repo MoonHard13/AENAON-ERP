@@ -58,7 +58,7 @@
 
 - **Draft:** μεταβάλλεται μόνο με Manage, διατηρεί RowVersion/ETag. Δεν είναι ορατό σε καταναλωτές published menus.
 - **Preview:** read-only υλικό του draft σε επιλεγμένο Store/Channel/DateTime, με εκτεταμένο preflight report, χωρίς δημιουργία εμπορικών πράξεων.
-- **Publish:** server-side validation της **ολόκληρης** επιλεγμένης έκδοσης και των επιλεγμένων targets· σε SQL transaction δημιουργείται immutable MenuVersion με πλήρη resolved presentation/modifiers/availability, AuditEntry και publication intent ανά target. Κάθε επιτυχής δημοσίευση αυξάνει μονοτονικά τον VersionNumber και δεν αλλάζει προηγούμενες εκδόσεις.
+- **Publish:** server-side validation της **ολόκληρης** επιλεγμένης έκδοσης και των επιλεγμένων targets· σε SQL transaction δημιουργείται immutable MenuVersion με πλήρη resolved presentation/modifiers/availability, MenuAuditEntry και publication intent ανά target. Κάθε επιτυχής δημοσίευση αυξάνει μονοτονικά τον VersionNumber και δεν αλλάζει προηγούμενες εκδόσεις.
 - **Schedule:** δημιουργεί προγραμματισμένη ενέργεια με idempotency key, author, UTC activation, target Store/Channel, expected draft revision. Ο worker πριν ενεργοποιήσει **επαναλαμβάνει** authorization policy, target/price/availability validation και CAS του publication pointer. Σε αστοχία στόχος παραμένει στην προηγούμενη ασφαλή έκδοση, audit με reason· δεν γίνεται σιωπηλή μερική ενεργοποίηση.
 - **Selective publishing:** ο Publisher επιλέγει ρητά Store και Channel, με αναλυτική προεπισκόπηση ανά target. Το αποτέλεσμα είναι atomic *ανά target*· για multi-target αίτημα προτείνεται all-or-nothing στη φάση commit ή explicit per-target batch με εμφανή status, ποτέ σιωπηλή επιτυχία.
 - **Rollback:** επιλέγεται προηγούμενη immutable MenuVersion, κλωνοποιείται ως **νέο Draft/Version N+1** και επαναπερνά validation/Publish. Δεν επιτρέπεται destructive update παλιάς έκδοσης ούτε "γυρισμός" παλαιού publication pointer χωρίς νέο audited publication event.
@@ -80,19 +80,19 @@
 | MenuDraft | TenantId, MenuId, DraftRevision, EditedUtc, RowVersion | Mutable authoring workspace |
 | MenuCategoryDraft | TenantId, MenuId, CategoryId, Position, Name, Color, Visible | Ανήκει αποκλειστικά σε MenuDraft |
 | MenuItemDraft | TenantId, MenuId, MenuCategoryId, MenuItemId, CatalogItemId, Position, overrides | Σύνθετο FK σε CatalogItem ίδιου Tenant |
-| MenuAvailabilityRule | TenantId, RuleId, TargetType/TargetId, StoreId, Channel, weekday/time/date, deny | Scope/ιδιοκτησία από parent |
+| MenuAvailabilityRule | TenantId, MenuId, RuleId, MenuCategoryId?/MenuItemId?, StoreId, Channel, weekday/time/date, deny | Typed composite FK προς Menu/Category/Item (όχι polymorphic TargetType/TargetId) |
 | ModifierGroup / ModifierOption | TenantId, GroupId, Revision, OptionId, limits, linked CatalogItemId όταν χρεώσιμο | Shared library |
 | MenuItemModifierAssignment | TenantId, MenuItemId, GroupId, override subset/limits/order | Πλήρης snapshot κατά το publish |
 | MenuVersion + VersionCategory/Item/Modifier | TenantId, MenuId, VersionId, VersionNumber, ContentHash, CapturedUtc, immutable resolved graph | Append-only published data |
 | MenuDeployment / MenuPublication | TenantId, MenuId, StoreId, Channel, VersionId, effective UTC, State, RowVersion, OperationId | Μία ενεργή έκδοση *ανά Menu/Store/Channel*, όχι ένα Menu ανά Store/Channel |
-| MenuPublicationAudit | TenantId, EventId, actor, intent, target, before/after, time, correlation, outcome | Append-only auditable history |
+| MenuAuditEntry | TenantId, EventId, actor, operation (draft edit/reorder/remove/publish/schedule/unpublish/rollback), target, before/after, time, correlation, outcome | Append-only audit όλων των μεταβολών |
 | MenuOperationReceipt | TenantId, OperationId, RequestHash, Result, CapturedUtc | Duplicate request/idempotency protection |
 
 ### Ακεραιότητα SQL
 
 1. Σύνθετα FK **(TenantId, MenuId)**, **(TenantId, CatalogItemId)**, **(TenantId, StoreId)**, όπως στο υπάρχον Catalog/Pricing. Όλα τα keys και unique constraints είναι Tenant-scoped. Καμία απλή FK που επιτρέπει cross-tenant αναφορά.
 2. Unique Menu(TenantId, Code), MenuVersion(TenantId, MenuId, VersionNumber), current target key MenuDeployment(TenantId, MenuId, StoreId, Channel), MenuOperationReceipt(TenantId, OperationId), one item-position per draft container after save.
-3. CHECK constraints για όχι κενά IDs, επιτρεπτούς enums/χρώματα (π.χ. safe HEX), position >= 0, Min/Max, date ordering, active channel value. Referential Restrict αντί cascade στο Catalog, PriceLists και immutable history.
+3. CHECK constraints για όχι κενά IDs, επιτρεπτούς enums/χρώματα (π.χ. safe HEX), position >= 0, Min/Max, date ordering, active channel value. Για διαθεσιμότητα, τα προαιρετικά MenuCategoryId/MenuItemId χρησιμοποιούν **typed composite FKs** με TenantId και MenuId, με CHECK ότι το scope είναι ακριβώς Menu ή Category ή Item· κανένα polymorphic unvalidated TargetId. Referential Restrict αντί cascade στο Catalog, PriceLists και immutable history.
 4. RowVersion σε draft και deployment, expected-version CAS· transactional publish με σαφή isolation/locking strategy (ανά Menu+Target), bounded retries μόνο για αναγνωρισμένα transient deadlocks. Ισοτιμία και duplicate publish απαιτούν *ίδιο* OperationId/RequestHash, αλλιώς conflict.
 5. SQL indexes για Menu(TenantId, Archived, DisplayOrder, MenuId), Category/Item(TenantId, MenuId, Position, Id), deployments(TenantId, StoreId, Channel, effective) και history(TenantId, MenuId, CreatedUtc). SQL-side deterministic paging/sorting πριν Skip/Take, όχι N+1.
 6. Immutable versions δεν δέχονται UPDATE/DELETE από application roles. Audit append-only, ασφαλής retention policy· ποτέ destructive rollback σε αληθινό history. Row level scope ελέγχεται υποχρεωτικά στην Application/queries· το FK είναι πρόσθετη ασφάλεια, όχι υποκατάστατο authorization.
@@ -109,7 +109,7 @@ Tenant ── CatalogCategory ── CatalogItem
           │                                  └── ModifierAssignment → Group
           ├── MenuVersion ── immutable version tree
           ├── MenuDeployment ── Store + Channel + Version
-          └── MenuPublicationAudit / OperationReceipt
+          └── MenuAuditEntry / OperationReceipt
 ~~~
 
 ## 5. Όρια ανά επίπεδο
