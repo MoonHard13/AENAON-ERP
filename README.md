@@ -2,6 +2,14 @@
 
 Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες επιχειρήσεις εστίασης. Διαθέτει Development Back Office και υποστήριξη προϊόντων/υπηρεσιών· το POS και η εφαρμογή σερβιτόρων είναι **μελλοντικές λειτουργίες**, όχι διαθέσιμο προϊόν.
 
+## Τρέχον checkpoint — 16/11/2026: 9.5C.5 → 9.6A.0
+
+Το [PR #60](https://github.com/MoonHard13/AENAON-ERP/pull/60) **έγινε merge** στο `main` commit `3af56b94d0758f59386f6437be5330ff681b0b53`. Το [τελευταίο main CI #43836751173](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43836751173) ολοκληρώθηκε επιτυχώς σε Windows/Ubuntu με isolated SQL Server 2022. Η φυσική SQL ταξινόμηση κωδικών τιμοκαταλόγων (1, 2, 10) περιλαμβάνεται πλέον στο main.
+
+**Catalog & Pricing 9.5C.5: IMPLEMENTED — NOT FULLY ACCEPTED.** Εκκρεμούν πραγματικά authenticated Development browser, Owner/Member, SQL persistence, tenant/store, viewport/light/dark/keyboard/zoom και concurrency acceptance tests. Ακολουθήστε τον [επικαιροποιημένο κατάλογο τεκμηρίων](docs/59-acceptance-evidence-and-test-protocol.md).
+
+Το [**9.6A.0 — Menu Management Architecture & UX**](docs/58-menu-management-architecture.md) είναι **αυστηρά design-only**. Καμία υλοποίηση/SQL migration/POS/δημοσίευση μενού πριν από τα επιτυχή gates και ρητή έγκριση για 9.6A.1. Το live AENAON GitBook έχει παρωχημένες αναφορές (PR #50/#51) και απαιτεί ξεχωριστή ελεγχόμενη ενημέρωση.
+
 ## Βήμα 9.5C.4 — Εμπορικά scopes και immutable price snapshot (PR #59 merged)
 
 Το [PR #59](https://github.com/MoonHard13/AENAON-ERP/pull/59) συγχωνεύθηκε στο `main` στις 16/11/2026. Το `CommercialPriceSnapshot` v1 και η εξουσιοδοτημένη read-only `PreviewSnapshotAsync` υλοποιούνται στον κώδικα, με επιτυχές [main CI #43823668569](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43823668569). **Το snapshot παραμένει μόνο στη μνήμη**, όχι εγγραφή SQL ή δέσμευση παραγγελίας. Δεν εισήχθη νέα migration, Order/POS, customer-group pricing ή φορολογικός υπολογισμός. [Manual 56](docs/56-pricing-scopes-commercial-snapshot.md).
@@ -511,6 +519,8 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Blazor προεπισκόπηση τιμής](docs/50-price-preview-blazor.md)
 - [Εμπορικά scopes & immutable snapshot — 9.5C.4 (merged PR #59)](docs/56-pricing-scopes-commercial-snapshot.md)
 - [Catalog & Pricing Final Acceptance — 9.5C.5 (σε εξέλιξη)](docs/57-catalog-pricing-final-acceptance.md)
+- [9.5C.5 Evidence — main PR #60 και πραγματικό QA πρωτόκολλο](docs/59-acceptance-evidence-and-test-protocol.md)
+- [Menu Management 9.6A.0 — Αρχιτεκτονική και UX, μόνο σχεδιασμός](docs/58-menu-management-architecture.md)
 - [Κατάσταση έργου και χάρτης τεκμηρίωσης](docs/00-current-state-and-roadmap.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
 
