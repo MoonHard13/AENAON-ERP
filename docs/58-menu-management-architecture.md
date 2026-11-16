@@ -15,7 +15,7 @@
 
 ## Τελικό design review και αποδοχές — 16/11/2026
 
-Ο ιδιοκτήτης **ενέκρινε τις έξι βασικές απαιτήσεις**: τριστήλο desktop builder, πολλαπλά ενεργά μενού, κοινόχρηστα Modifier Groups, Draft → Preview → Publish, ενιαίο ERP Catalog & Pricing και responsive mobile tabs. Η σχετική αναλυτική απόφαση και οι **τέσσερις εκκρεμείς πολιτικές DEC-01..DEC-04** βρίσκονται στο [Manual 60 — Final Design Review](60-menu-management-final-design-review.md). Η έγκριση **δεν** επιτρέπει υλοποίηση, migration ή merge.
+Ο ιδιοκτήτης **ενέκρινε τις έξι βασικές απαιτήσεις** (τριστήλο desktop builder, πολλαπλά ενεργά μενού, κοινόχρηστα Modifier Groups, Draft → Preview → Publish, ενιαίο ERP Catalog & Pricing, responsive mobile tabs) **και τις τέσσερις πολιτικές DEC-01..DEC-04** (Owner-only permissions, fail-closed prices, ERP-linked χρεώσιμα modifiers, explicit Store timezone/UTC/DST). Αναλυτική τελική απόφαση: [Manual 60 — Final Design Review](60-menu-management-final-design-review.md). **9.6A.0 DESIGN APPROVED (10/10)**, αλλά η έγκριση **δεν** επιτρέπει υλοποίηση, migration ή merge.
 
 ## 1. Σκοπός, αρχές και όρια
 
