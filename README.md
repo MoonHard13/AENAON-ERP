@@ -2,9 +2,11 @@
 
 Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες επιχειρήσεις εστίασης. Διαθέτει Development Back Office και υποστήριξη προϊόντων/υπηρεσιών· το POS και η εφαρμογή σερβιτόρων είναι **μελλοντικές λειτουργίες**, όχι διαθέσιμο προϊόν.
 
-## Βήμα 9.5C.4 — Εμπορικά scopes και immutable price snapshot (feature branch)
+## Βήμα 9.5C.4 — Εμπορικά scopes και immutable price snapshot (PR #59 merged)
 
-Στο feature branch `feature/step-9-5c-4-pricing-scopes-readiness` εξετάζονται και διατηρούνται τα εμπορικά scopes Tenant/Store/Channel/Date, ενώ προστίθεται αμετάβλητο, versioned Domain contract `CommercialPriceSnapshot` και ασφαλής read-only προεπισκόπηση μέσω της υπάρχουσας υπηρεσίας. **Δεν** προστίθεται SQL migration, Order/POS, customer-group pricing ή φορολογικός υπολογισμός. Δεν αποτελεί ακόμη διαθέσιμη λειτουργία του εγκεκριμένου `main`, ούτε δεσμεύει τιμή σε SQL. [Manual 56](docs/56-pricing-scopes-commercial-snapshot.md). Έπεται CI, human-style acceptance και ξεχωριστή έγκριση.
+Το [PR #59](https://github.com/MoonHard13/AENAON-ERP/pull/59) συγχωνεύθηκε στο `main` στις 16/11/2026. Το `CommercialPriceSnapshot` v1 και η εξουσιοδοτημένη read-only `PreviewSnapshotAsync` υλοποιούνται στον κώδικα, με επιτυχές [main CI #43823668569](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43823668569). **Το snapshot παραμένει μόνο στη μνήμη**, όχι εγγραφή SQL ή δέσμευση παραγγελίας. Δεν εισήχθη νέα migration, Order/POS, customer-group pricing ή φορολογικός υπολογισμός. [Manual 56](docs/56-pricing-scopes-commercial-snapshot.md).
+
+**9.5C.5 — Catalog & Pricing Final Acceptance:** ενεργός έλεγχος χωρίς πλήρη αποδοχή. Η επιθεώρηση και οι επιδιορθώσεις καταγράφονται στο [Manual 57](docs/57-catalog-pricing-final-acceptance.md). Οι πραγματικές δοκιμές Development application/mobile/keyboard/SQL persistence απαιτούν επιπλέον τεκμήρια πριν από το 9.6A.
 
 ## Υποχρεωτική συμβατότητα ΑΑΔΕ myDATA / IMPACT
 
@@ -174,14 +176,14 @@ Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες ε�
 
 Το [Manual 54](docs/54-price-list-item-sorting.md) περιγράφει τις προσβάσιμες, αμφίδρομες επικεφαλίδες **Κωδικός / Περιγραφή / Είδος / Τιμή μονάδας / Διαχείριση** στη σελίδα επεξεργασίας τιμοκαταλόγου, φυσική αριθμητική σειρά (`1,2,…,10`) και SQL sorting πριν από την σελιδοποίηση. Η επιλογή διατηρείται σε αναζήτηση, σελίδες, αποθήκευση και αφαίρεση τιμής, και υποστηρίζεται από κοινό service και CLI (`--action items --sort ... [--descending]`). **Καμία νέα migration** και καμία αλλαγή στις τιμές, την επίλυση ή τις δημοσιονομικές/φορολογικές ροές.
 
-## Τρέχον στάδιο — 15/11/2026, ανασκόπηση αποδοχής 9.5C.3
+## Ιστορική αποτύπωση — 15/11/2026, ανασκόπηση αποδοχής 9.5C.3
 
 **Το PR #53 (9.5C.3 — Pricing Integrity & History) έγινε merge στο `main`**, με επιτυχές Linux/Windows CI και απομονωμένο SQL Server 2022. Το πιο πρόσφατο `main` (`724bf341020f`, PR #56) πέρασε επίσης [CI #43617602547](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43617602547). Η [ανεξάρτητη ανασκόπηση 9.5C.3](docs/53-pricing-integrity-history.md#ανεξάρτητη-ανασκόπηση-αποδοχής--15112026) περιλαμβάνει πρόσθετα concurrent SQL/audit regression tests και σαφές πρωτόκολλο αποδοχής, χωρίς νέα migration. Ο χειριστής επιβεβαίωσε την 10η migration, ενεργό audit trigger και έξι πραγματικά Web audit events και ανέφερε επιτυχή human-style tests. Η πλήρης αναφορά/screenshots της ανεξάρτητης οπτικής αποδοχής δεν είναι διαθέσιμα εδώ. Η read-only προεπισκόπηση τιμής παραμένει χωριστή λειτουργία από την επεξεργασία τιμοκαταλόγων. Το AENAON ERP υποστηρίζει σε **Development** HTTPS Login/Dashboard, tenant-scoped κατηγορίες/προϊόντα/υπηρεσίες, CRUD και sorting καταλόγου, εμπορικά πεδία, διαχείριση πολλαπλών τιμοκαταλόγων και read-only επίλυση/προεπισκόπηση τιμής.
 
 - **Σχήμα:** Στο `main` υπάρχουν **10 EF Core migrations**, τελευταία `20261114163000_PriceListAuditHistory`. Ο χειριστής επιβεβαίωσε `AenaonERP_Dev`: **10 εφαρμοσμένες / 0 εκκρεμείς**, καθώς και audit table, ενεργό trigger, trusted constraints και index μέσω SSMS. Η migration **δεν πρέπει να εκτελεστεί ξανά**. Άλλα περιβάλλοντα χρειάζονται ανεξάρτητο backup/SQL review/έγκριση. Η βελτίωση sorting δεν προσθέτει migration.
 - **Δικαιώματα:** Owner/Manage για μεταβολές, Owner/Member με Read για προβολή, πάντα με Tenant/Store έλεγχο.
-- **Όχι ακόμη:** production POS, Android APK, offline συγχρονισμός, τιμολόγηση παραγγελιών, έκδοση/αποστολή παραστατικών, εγκεκριμένοι φορολογικοί κανόνες myDATA/IMPACT ή immutable price snapshots.
-- **Επόμενο προτεινόμενο βήμα:** ολοκλήρωση review, CI και SQL/οπτικής αποδοχής του 9.5C.3, έπειτα 9.5C.4–9.5C.5. Το **9.6A — Μενού εστίασης** έπεται της ολοκλήρωσης/αποδοχής του catalog & pricing. Excel / bulk παραμένουν αναβλημένα.
+- **Όχι ακόμη:** production POS, Android APK, offline συγχρονισμός, τιμολόγηση παραγγελιών, έκδοση/αποστολή παραστατικών, εγκεκριμένοι φορολογικοί κανόνες myDATA/IMPACT ή **αποθηκευμένα** immutable price snapshots παραγγελιών.
+- **Επόμενο προτεινόμενο βήμα:** ολοκλήρωση του [9.5C.5 acceptance](docs/57-catalog-pricing-final-acceptance.md), πραγματικών browser/SQL δοκιμών και έγκρισης. Το **9.6A — Μενού εστίασης** έπεται της ολοκλήρωσης/αποδοχής του catalog & pricing. Excel / bulk παραμένουν αναβλημένα.
 
 Η πιο πρόσφατη σύνοψη και η διάκριση ιστορικών manuals: [Κατάσταση και χάρτης τεκμηρίωσης](docs/00-current-state-and-roadmap.md).
 
@@ -507,7 +509,8 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Excel / μαζικές εργασίες — αναβολή](docs/48-bulk-actions-and-excel-import-plan.md)
 - [Read-only επίλυση τιμής](docs/49-price-resolution-foundation.md)
 - [Blazor προεπισκόπηση τιμής](docs/50-price-preview-blazor.md)
-- [Εμπορικά scopes & immutable snapshot — 9.5C.4 (υπό review)](docs/56-pricing-scopes-commercial-snapshot.md)
+- [Εμπορικά scopes & immutable snapshot — 9.5C.4 (merged PR #59)](docs/56-pricing-scopes-commercial-snapshot.md)
+- [Catalog & Pricing Final Acceptance — 9.5C.5 (σε εξέλιξη)](docs/57-catalog-pricing-final-acceptance.md)
 - [Κατάσταση έργου και χάρτης τεκμηρίωσης](docs/00-current-state-and-roadmap.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
 
