@@ -4,6 +4,10 @@
 
 **Τρέχουσα επαλήθευση (16/11/2026):** Το [PR #60](https://github.com/MoonHard13/AENAON-ERP/pull/60) έχει **συγχωνευθεί** στο `main` commit `3af56b94d0758f59386f6437be5330ff681b0b53` και το [main CI #43836751173](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43836751173) είναι επιτυχές σε Ubuntu/Windows, μαζί με isolated SQL. Το ακόλουθο checklist **συντάχθηκε ιστορικά** επάνω στο προ-merge `main` `8668f4732966f8a5728b68ec1f56a0a882134a7b` και την επιθεώρηση του PR #60, οπότε οι σχετικές αναφορές σε «baseline» διαβάζονται ως τότε, όχι ως τωρινή κατάσταση. Η ολοκληρωμένη αποδοχή εξακολουθεί να απαιτεί πραγματικό browser και SQL evidence. [Σημερινός συγκεντρωτικός επανέλεγχος και οδηγίες](59-acceptance-evidence-and-test-protocol.md).
 
+## Ρητή αποδοχή από ιδιοκτήτη — 16/11/2026
+
+**Απόφαση ιδιοκτήτη (16/11/2026):** Ο ιδιοκτήτης δήλωσε ρητά **«accept 9.5C.5»**. Καταγράφεται ως **OWNER ACCEPTED — WITH UNVERIFIED E2E/SQL GATES**, όχι ως δήλωση ότι εκτελέστηκαν οι ελλείπουσες δοκιμές. Τα Browser/Development SQL/Owner–Member/Mobile/Keyboard/Zoom/Concurrency gates παραμένουν **NOT VERIFIED**· η πλήρης τεχνική αποδοχή και η υλοποίηση 9.6A.1 εξακολουθούν να απαιτούν τεκμήρια και ξεχωριστή ρητή έγκριση. Καμία εξουσιοδότηση για merge, migration ή Menu implementation δεν δόθηκε.
+
 ## Σκοπός και όρια
 
 Τεκμηριωμένος έλεγχος του Development Catalog & Pricing πριν από οποιαδήποτε εργασία στο Μενού/POS. Περιλαμβάνονται κατηγορίες, προϊόντα, υπηρεσίες, εμπορικά πεδία, τιμοκατάλογοι, scopes, προεπισκόπηση, ιστορικό, permissions, SQL και responsive UI.
