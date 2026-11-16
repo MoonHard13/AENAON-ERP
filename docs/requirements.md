@@ -305,7 +305,7 @@
 - Το παραδοτέο απαιτεί automated tests, SQL Server migration verification και ελληνικό manual [53](53-pricing-integrity-history.md), πριν την αποδοχή.
 - Τα ιστορικά αποτελέσματα δεν είναι φορολογική πιστοποίηση ή snapshot παραγγελίας· επιβάλλεται το [myDATA/IMPACT gate](18-mydata-impact-compatibility.md).
 
-## Step 9.5C.4 — Εμπορικά scopes και μελλοντική δέσμευση τιμής (υπό review)
+## Step 9.5C.4 — Εμπορικά scopes και μελλοντική δέσμευση τιμής (merged PR #59, CI passed)
 
 - Διατηρείται το υλοποιημένο precedence `store-channel-v1`: Store+Channel, Store+All, AllStores+Channel, AllStores+All. Ισοβαθμία σημαίνει `Ambiguous`, ποτέ επιλογή αυθαίρετης τιμής.
 - **Αναβολή Customer Groups:** δεν υπάρχει ακόμη εγκεκριμένο tenant-safe customer/group μοντέλο ή σύμβαση precedence. Απαιτείται νέα επιχειρησιακή απόφαση πριν αλλάξει το query ή το σχήμα.

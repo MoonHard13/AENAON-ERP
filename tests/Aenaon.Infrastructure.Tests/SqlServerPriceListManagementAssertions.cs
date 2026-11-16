@@ -38,6 +38,31 @@ internal static class SqlServerPriceListManagementAssertions
                 ValidFrom: new DateOnly(2026, 11, 13)), token);
         Assert.AreEqual(PriceListStatus.Duplicate, duplicate.Status);
 
+        // Επαλήθευση φυσικής σειράς στην κεντρική λίστα πριν από τη SQL σελιδοποίηση.
+        foreach (string code in new[] { "10", "2", "1" })
+        {
+            PriceListResult numbered = await store.ApplyAsync(tenant,
+                new PriceListChange(PriceListAction.Create, Code: code,
+                    Name: "Αριθμητικός τιμοκατάλογος " + code,
+                    ValidFrom: new DateOnly(2026, 11, 13)), token);
+            Assert.AreEqual(PriceListStatus.Saved, numbered.Status);
+        }
+
+        PriceListPage naturalPage = await store.ListAsync(
+            tenant, null, true, 1, 25, token);
+        PriceListPage naturalFirst = await store.ListAsync(
+            tenant, null, true, 1, 2, token);
+        PriceListPage naturalSecond = await store.ListAsync(
+            tenant, null, true, 2, 2, token);
+        CollectionAssert.AreEqual(new[] { "1", "2", "10" },
+            naturalPage.Rows.Take(3).Select(x => x.Code).ToArray());
+        CollectionAssert.AreEqual(new[] { "1", "2" },
+            naturalFirst.Rows.Select(x => x.Code).ToArray());
+        Assert.AreEqual("10", naturalSecond.Rows[0].Code);
+        Assert.IsTrue(naturalFirst.HasMore);
+        Assert.IsTrue((await store.ListAsync(foreignTenant, null, true, 1, 25, token))
+            .Rows.All(x => x.Code is not ("1" or "2" or "10")));
+
         // Οι αναφορές από διαφορετικό Tenant απορρίπτονται πριν την εγγραφή.
         PriceListResult foreign = await store.SetPricesAsync(tenant, created.Id.Value,
             [new PriceListPriceChange(foreignItemId, 50m)], token);

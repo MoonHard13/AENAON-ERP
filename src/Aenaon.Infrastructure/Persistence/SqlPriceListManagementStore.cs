@@ -25,13 +25,26 @@ public sealed class SqlPriceListManagementStore(AenaonDbContext context) : IPric
             query = query.Where(x => x.Code.StartsWith(search) || x.Name.StartsWith(search));
         }
 
-        List<PriceListSummary> rows = await query
-            .OrderBy(x => x.Code).ThenBy(x => x.Id)
+        // Η φυσική ταξινόμηση εκτελείται στη SQL πριν από τη σελιδοποίηση.
+        // Τα αριθμητικά codes προηγούνται των αλφαριθμητικών, με σταθερό Id.
+        var ordered = query.Select(list => new
+        {
+            List = list,
+            IsTextCode = list.Code == "" || EF.Functions.Like(list.Code, "%[^0-9]%")
+        }).OrderBy(x => x.IsTextCode)
+            .ThenBy(x => x.IsTextCode ? 0L : x.List.Code.Length > 18
+                ? long.MaxValue : Convert.ToInt64(x.List.Code))
+            .ThenBy(x => x.IsTextCode ? 0 : x.List.Code.Length > 18
+                ? x.List.Code.Length : 0)
+            .ThenBy(x => x.List.Code).ThenBy(x => x.List.Id);
+
+        List<PriceListSummary> rows = await ordered
             .Skip((page - 1) * pageSize).Take(pageSize + 1)
-            .Select(x => new PriceListSummary(x.Id, x.Code, x.Name, x.StoreId,
-                x.Channel, x.PricesIncludeVat, x.ValidFrom, x.ValidUntil, x.IsActive,
+            .Select(x => new PriceListSummary(x.List.Id, x.List.Code, x.List.Name, x.List.StoreId,
+                x.List.Channel, x.List.PricesIncludeVat, x.List.ValidFrom, x.List.ValidUntil,
+                x.List.IsActive,
                 context.PriceListItems.Count(y => y.TenantId == tenantId &&
-                    y.PriceListId == x.Id)))
+                    y.PriceListId == x.List.Id)))
             .ToListAsync(token);
         bool more = rows.Count > pageSize;
         if (more)
