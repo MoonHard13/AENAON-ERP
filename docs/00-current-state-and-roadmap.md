@@ -27,7 +27,7 @@
 | Final acceptance | [9.5C.5 — Matrix και εκκρεμείς πραγματικοί έλεγχοι](57-catalog-pricing-final-acceptance.md): ανασκόπηση source/CI, SQL sort regression και εκκρεμής human-style αποδοχή |
 | **9.5C.5 evidence** | [Επικαιροποιημένο status PR #60, πραγματικό manual test protocol και blockers](59-acceptance-evidence-and-test-protocol.md): διαθέσιμο στο docs-only design PR, δεν τεκμηριώνει εκτελεσμένο Dev acceptance |
 | **9.6A.0 Menu Architecture & UX** | [Design-only functional/SQL/Blazor/CLI specification](58-menu-management-architecture.md): καμία υλοποίηση, migration, POS ή δημοσίευση πριν από πλήρη 9.5C.5 acceptance + έγκριση |
-| **9.6A.0 Final Design Review** | [Manual 60](60-menu-management-final-design-review.md): 6 ιδιοκτησιακά εγκεκριμένες αποφάσεις, 4 ανοικτές πολιτικές (permissions, pricing, modifiers, timezone), implementation **όχι εγκεκριμένο** |
+| **9.6A.0 Final Design Review** | [Manual 60](60-menu-management-final-design-review.md): **DESIGN APPROVED 10/10** (6 UX/functional + 4 πολιτικές DEC-01..04: permissions, fail-closed pricing, χρεώσιμα modifiers, timezone). Implementation/merge **όχι εγκεκριμένα** |
 | Sorting τιμοκαταλόγου | [Διόρθωση ταξινόμησης ειδών](54-price-list-item-sorting.md): φυσική σειρά κωδικών, όλες οι ορατές στήλες, SQL paging, CLI, χωρίς νέα migration |
 | Mobile Back Office | [Responsive UX](55-mobile-backoffice-responsive.md): dashboard, κατάλογος, τιμοκατάλογοι, καρτέλες/ιστορικό και native mobile sorting· frontend-only |
 | Μελλοντικά | [Περιβαλλοντικά τέλη — design](47-environmental-fees-fiscal-design.md), [Excel/bulk — αναβολή](48-bulk-actions-and-excel-import-plan.md) |
@@ -54,7 +54,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - **9.5C.2 — Αποδεκτό από χειριστή**: προαιρετικό barcode και αναλυτική περιγραφή, [Manual 52](52-catalog-item-details.md). Η τοπική 9η migration και το λειτουργικό acceptance ολοκληρώθηκαν.
 - **9.5C.4 — Merged PR #59, όχι πλήρες human-style acceptance:** versioned in-memory snapshot και διατήρηση υφιστάμενων scopes. Δεν υπάρχει SQL order snapshot, customer groups, φορολογική σύνδεση ή νέα migration.
 - **9.5C.3 — Ιστορικά αναφερθέν τοπικό schema και βασικό audit:** audit/history, overlap integrity και [Manual 53](53-pricing-integrity-history.md). Ο χειριστής αναφέρει επιτυχή human-style δοκιμή· λεπτομερής έκθεση/screenshots δεν έχουν επιθεωρηθεί ανεξάρτητα. **Sorting τιμοκαταλόγου:** [Manual 54](54-price-list-item-sorting.md), βελτίωση χωρίς νέα migration. **9.5C.4–9.5C.5:** commercial scopes/immutable snapshot contract και τελικό acceptance, σύμφωνα με το [Manual 51](51-catalog-pricing-gap-analysis.md).
-- Το **9.6A.0 — Menu Architecture & UX** βρίσκεται μόνο σε **φάση σχεδιασμού** (Manual 58). **Η υλοποίηση 9.6A.1** αποκλείεται πριν από ολοκληρωμένη 9.5C.5 human-style αποδοχή, επιβεβαιωμένο Development SQL και ρητή έγκριση.
+- Το **9.6A.0 — Menu Architecture & UX** είναι **εγκεκριμένο ως σχεδιασμός (10/10 owner decisions)**, χωρίς κώδικα ή migration (Manuals 58/60). **Η υλοποίηση 9.6A.1** αποκλείεται πριν από ολοκληρωμένη 9.5C.5 human-style αποδοχή, επιβεβαιωμένο Development SQL και ξεχωριστή ρητή έγκριση.
 - Excel imports και μαζικές εργασίες: **αναβλημένα**.
 - Οπτική αποδοχή της σελίδας preview σε Light/Dark, mobile και keyboard-only: **εκκρεμής**.
 
