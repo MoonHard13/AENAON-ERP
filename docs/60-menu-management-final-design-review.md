@@ -57,7 +57,7 @@
 
 ### Τεχνικά defaults που προτείνονται για 9.6A.1
 
-- **Draft global ανά Tenant**, συνδεδεμένο με πολλά stores με μελλοντικά explicit deployments. Δεν δημιουργούνται Store-specific αντίγραφα κάθε προϊόντος ή per-store overrides στο πρώτο implementation slice.
+- **Ένα ανεξάρτητο MenuDraft ανά Menu μέσα στον Tenant**, με στόχευση πολλών Stores μέσω μελλοντικών explicit deployments. Δεν δημιουργούνται Store-specific αντίγραφα κάθε προϊόντος ή per-store overrides στο πρώτο implementation slice.
 - **Επίπεδες MenuCategories** στην πρώτη έκδοση. Ανεξάρτητες από CatalogCategories, με σειρά, χρώμα και ορατότητα. Ενδεχόμενο nesting μόνο με νέα requirement και δοκιμές.
 - Το ίδιο CatalogItem επιτρέπεται σε *διαφορετικά* μενού. Σε μία MenuCategory προτείνεται μία μόνο ενεργή θέση ανά CatalogItem, για αποτροπή ακούσιων duplicates.
 - **Ταυτόχρονα μενού** δεν συγχωνεύονται και δεν υπονοείται menu-priority. Προβάλλονται ξεχωριστά με deterministic DisplayOrder + Id.
