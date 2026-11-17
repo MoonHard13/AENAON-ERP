@@ -32,7 +32,7 @@ public static class MenuDraftManageCommand
                 continue;
             }
             if (key is not ("--username" or "--tenant-id" or "--confirm-database" or
-                "--action" or "--menu-id" or "--store-id" or "--category-id" or "--item-id" or
+                "--action" or "--menu-id" or "--store-id" or "--category-id" or "--parent-category-id" or "--item-id" or
                 "--catalog-item-id" or "--expected-revision" or "--position" or
                 "--name" or "--code" or "--name-override" or "--visible" or
                 "--request-id" or "--search") || i >= args.Length ||
@@ -61,6 +61,7 @@ public static class MenuDraftManageCommand
 
         Guid? menuId = null;
         Guid? categoryId = null;
+        Guid? parentCategoryId = null;
         Guid? itemId = null;
         Guid? catalogItemId = null;
         Guid? requestId = null;
@@ -68,6 +69,7 @@ public static class MenuDraftManageCommand
         if (!TryOptionalGuid(values, "--store-id", out storeId) ||
             !TryOptionalGuid(values, "--menu-id", out menuId) ||
             !TryOptionalGuid(values, "--category-id", out categoryId) ||
+            !TryOptionalGuid(values, "--parent-category-id", out parentCategoryId) ||
             !TryOptionalGuid(values, "--item-id", out itemId) ||
             !TryOptionalGuid(values, "--catalog-item-id", out catalogItemId) ||
             !TryOptionalGuid(values, "--request-id", out requestId))
@@ -118,8 +120,13 @@ public static class MenuDraftManageCommand
 
         if (actionName == "ensure-store-default" &&
             (!storeId.HasValue || menuId.HasValue || revision.HasValue ||
-             categoryId.HasValue || itemId.HasValue || catalogItemId.HasValue ||
+             categoryId.HasValue || parentCategoryId.HasValue || itemId.HasValue || catalogItemId.HasValue ||
              position.HasValue || visible.HasValue))
+        {
+            valid = false;
+        }
+
+        if (parentCategoryId.HasValue && actionName != "add-category")
         {
             valid = false;
         }
@@ -137,7 +144,7 @@ public static class MenuDraftManageCommand
                 "Χρήση: --manage-menus --username NAME --tenant-id GUID --confirm-database NAME " +
                 "--action list|details|catalog|create-menu|import-catalog|ensure-store-default|update-menu|add-category|update-category|" +
                 "move-category|remove-category|add-item|rename-item|move-item|remove-item " +
-                "[--store-id GUID] [--menu-id GUID] [--category-id GUID] [--item-id GUID] [--catalog-item-id GUID] " +
+                "[--store-id GUID] [--menu-id GUID] [--category-id GUID] [--parent-category-id GUID] [--item-id GUID] [--catalog-item-id GUID] " +
                 "[--code CODE] [--name NAME] [--name-override TEXT] [--expected-revision N] " +
                 "[--position N] [--visible true|false] [--request-id GUID] [--search PREFIX] " +
                 "(--dry-run | --apply). Απαιτείται διαδραστικό τερματικό.");
@@ -206,7 +213,7 @@ public static class MenuDraftManageCommand
                     foreach (MenuDraftCategoryRecord category in details.Categories)
                     {
                         await output.WriteLineAsync(
-                            $"{category.CategoryId:D} | #{category.Position} | {category.Name} | Visible={category.IsVisible}");
+                            $"{category.CategoryId:D} | Parent={category.ParentCategoryId?.ToString("D") ?? "ROOT"} | #{category.Position} | {category.Name} | Visible={category.IsVisible}");
                         foreach (MenuDraftItemRecord item in details.Items.Where(x =>
                             x.CategoryId == category.CategoryId))
                         {
@@ -214,6 +221,12 @@ public static class MenuDraftManageCommand
                                 $"  {item.ItemId:D} | #{item.Position} | {item.CatalogCode} | " +
                                 $"{item.NameOverride ?? item.CatalogName} | Active={item.IsCatalogActive}");
                         }
+                    }
+                    foreach (MenuDraftItemRecord rootItem in details.Items.Where(x => x.CategoryId is null))
+                    {
+                        await output.WriteLineAsync(
+                            $"ROOT ITEM {rootItem.ItemId:D} | #{rootItem.Position} | {rootItem.CatalogCode} | " +
+                            $"{rootItem.NameOverride ?? rootItem.CatalogName} | Active={rootItem.IsCatalogActive}");
                     }
                 }
                 else
@@ -257,7 +270,7 @@ public static class MenuDraftManageCommand
             var command = new MenuDraftCommand(action, operation, menuId, revision,
                 categoryId, itemId, catalogItemId, values.GetValueOrDefault("--code"),
                 values.GetValueOrDefault("--name"), values.GetValueOrDefault("--name-override"),
-                position, visible, storeId);
+                position, visible, storeId, parentCategoryId);
 
             if (dryRun)
             {
