@@ -22,7 +22,7 @@ internal static class SqlServerSchemaAssertions
 
         var preview = await manager.ExecuteAsync(false, null, cancellationToken);
         Assert.AreEqual(DatabaseSchemaStatus.Ready, preview.Status);
-        Assert.HasCount(10, preview.PendingMigrations!);
+        Assert.HasCount(11, preview.PendingMigrations!);
         Assert.HasCount(0, preview.AppliedMigrations!);
         await AssertUserTableCountAsync(connection, 0, cancellationToken);
 
@@ -39,9 +39,9 @@ internal static class SqlServerSchemaAssertions
 
         var applied = await manager.ExecuteAsync(true, "AenaonERP_CI", cancellationToken);
         Assert.AreEqual(DatabaseSchemaStatus.Updated, applied.Status);
-        Assert.HasCount(10, applied.AppliedMigrations!);
+        Assert.HasCount(11, applied.AppliedMigrations!);
         Assert.HasCount(0, applied.PendingMigrations!);
-        await AssertUserTableCountAsync(connection, 20, cancellationToken);
+        await AssertUserTableCountAsync(connection, 25, cancellationToken);
 
         var options = AenaonDbContextOptions.Create(connectionString, true);
         await using var context = new AenaonDbContext(options);
@@ -88,6 +88,7 @@ internal static class SqlServerSchemaAssertions
         Assert.AreEqual(4, await context.Stores.CountAsync(cancellationToken));
 
         await SqlServerCatalogAssertions.RunAsync(connection, context, first.Id, second.Id, cancellationToken);
+        await SqlServerMenuDraftAssertions.RunAsync(context, first.Id, second.Id, cancellationToken);
         await SqlServerPriceListAssertions.RunAsync(context, first.Id, second.Id, cancellationToken);
         await SqlServerPriceListManagementAssertions.RunAsync(context, first.Id, second.Id, cancellationToken);
         await SqlServerStalePriceConcurrencyAssertions.RunAsync(context, first.Id, cancellationToken);
