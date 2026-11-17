@@ -152,6 +152,55 @@ public sealed class MenuBuilderUiTests
     }
 
     [TestMethod]
+    public async Task Owner_CanSubmitRootItemRenameMoveAndRemoveWithoutCategory()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.MenuDrafts.RootItem = true;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}"));
+        Assert.Contains("value=\"rename-item\"", html);
+        Assert.Contains("value=\"move-item\"", html);
+        Assert.Contains("value=\"remove-item\"", html);
+
+        string token = Token(html);
+        Guid rootId = SessionMenuDraftFixture.SecondaryProductId;
+        foreach ((string action, MenuDraftAction parsed) in new[]
+        {
+            ("rename-item", MenuDraftAction.RenameItem),
+            ("move-item", MenuDraftAction.MoveItem),
+            ("remove-item", MenuDraftAction.RemoveItem)
+        })
+        {
+            var form = new Dictionary<string, string>
+            {
+                ["tenantId"] = Tenant.ToString("D"),
+                ["requestId"] = Guid.NewGuid().ToString("D"),
+                ["menuId"] = SessionMenuDraftFixture.MenuId.ToString("D"),
+                ["itemId"] = rootId.ToString("D"),
+                ["action"] = action,
+                ["expectedRevision"] = "1"
+            };
+            if (parsed == MenuDraftAction.MoveItem)
+            {
+                form["targetPosition"] = "1";
+            }
+            if (parsed == MenuDraftAction.RenameItem)
+            {
+                form["nameOverride"] = "Μετονομασμένο";
+            }
+
+            using var saved = await PostAsync(client, token, form);
+            Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
+            Assert.AreEqual(parsed, factory.MenuDrafts.LastCommand?.Action);
+            Assert.IsNull(factory.MenuDrafts.LastCommand?.CategoryId);
+            Assert.Contains("tab=items", saved.Headers.Location?.OriginalString ?? "");
+        }
+    }
+
+    [TestMethod]
     public async Task Owner_CanReorderBothLevelsAndRemoveEmptyCategory()
     {
         await using var factory = new SessionApiFactory();
