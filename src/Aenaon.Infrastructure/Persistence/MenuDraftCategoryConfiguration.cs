@@ -1,4 +1,5 @@
 using Aenaon.Domain.Menus;
+using Aenaon.Domain.Catalog;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -19,8 +20,15 @@ internal sealed class MenuDraftCategoryConfiguration : IEntityTypeConfiguration<
         builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.Name).HasMaxLength(MenuDraftCategory.MaxNameLength).IsRequired();
         builder.Property(x => x.IsVisible).IsRequired();
+        builder.Property(x => x.CatalogCategoryId).IsRequired(false);
         builder.Property(x => x.Position).IsRequired();
         builder.HasIndex(x => new { x.TenantId, x.MenuId, x.Position, x.Id });
+        builder.HasIndex(x => new { x.TenantId, x.MenuId, x.CatalogCategoryId })
+            .IsUnique().HasFilter("[CatalogCategoryId] IS NOT NULL");
+        builder.HasOne<CatalogCategory>().WithMany()
+            .HasForeignKey(x => new { x.TenantId, x.CatalogCategoryId })
+            .HasPrincipalKey(x => new { x.TenantId, x.Id })
+            .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<MenuDraft>().WithMany()
             .HasForeignKey(x => new { x.TenantId, x.MenuId })
             .HasPrincipalKey(x => new { x.TenantId, x.MenuId })
