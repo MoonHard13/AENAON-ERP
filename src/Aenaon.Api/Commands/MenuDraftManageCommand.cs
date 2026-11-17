@@ -55,7 +55,7 @@ public static class MenuDraftManageCommand
             Guid.TryParse(values.GetValueOrDefault("--tenant-id"), out tenantId) &&
             tenantId != Guid.Empty &&
             actionName is ("list" or "details" or "catalog" or
-                "create-menu" or "update-menu" or "add-category" or "update-category" or
+                "create-menu" or "import-catalog" or "update-menu" or "add-category" or "update-category" or
                 "move-category" or "remove-category" or "add-item" or "rename-item" or
                 "move-item" or "remove-item");
 
@@ -125,7 +125,7 @@ public static class MenuDraftManageCommand
         {
             await error.WriteLineAsync(
                 "Χρήση: --manage-menus --username NAME --tenant-id GUID --confirm-database NAME " +
-                "--action list|details|catalog|create-menu|update-menu|add-category|update-category|" +
+                "--action list|details|catalog|create-menu|import-catalog|update-menu|add-category|update-category|" +
                 "move-category|remove-category|add-item|rename-item|move-item|remove-item " +
                 "[--menu-id GUID] [--category-id GUID] [--item-id GUID] [--catalog-item-id GUID] " +
                 "[--code CODE] [--name NAME] [--name-override TEXT] [--expected-revision N] " +
@@ -228,6 +228,7 @@ public static class MenuDraftManageCommand
             MenuDraftAction action = actionName switch
             {
                 "create-menu" => MenuDraftAction.CreateMenu,
+                "import-catalog" => MenuDraftAction.ImportCatalogContents,
                 "update-menu" => MenuDraftAction.UpdateMenu,
                 "add-category" => MenuDraftAction.AddCategory,
                 "update-category" => MenuDraftAction.UpdateCategory,
@@ -249,6 +250,10 @@ public static class MenuDraftManageCommand
             if (dryRun)
             {
                 await output.WriteLineAsync($"ΠΡΟΕΠΙΣΚΟΠΗΣΗ ΧΩΡΙΣ SQL WRITE | {actionName} | Tenant {tenantId:D}");
+                if (action is MenuDraftAction.CreateMenu or MenuDraftAction.ImportCatalogContents)
+                {
+                    await output.WriteLineAsync("Η εφαρμογή θα εισαγάγει τις ενεργές κατηγορίες ΜΑΖΙ με τα ενεργά είδη ERP, χωρίς αλλαγή του καταλόγου ή τιμών.");
+                }
                 await output.WriteLineAsync("Ο έλεγχος αναφοράς/σύγκρουσης θα εκτελεστεί μόνο κατά την εφαρμογή.");
                 return 0;
             }
