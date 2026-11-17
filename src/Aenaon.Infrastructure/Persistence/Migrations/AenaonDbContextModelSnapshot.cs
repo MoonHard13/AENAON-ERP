@@ -1033,6 +1033,13 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     .OnDelete(DeleteBehavior.Restrict)
                     .IsRequired();
 
+                b.HasOne("Aenaon.Domain.Menus.MenuDraft", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "MenuId")
+                    .HasPrincipalKey("TenantId", "MenuId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
                 b.HasOne("Aenaon.Domain.Menus.MenuDraftCategory", null)
                     .WithMany()
                     .HasForeignKey("TenantId", "MenuId", "MenuCategoryId")
