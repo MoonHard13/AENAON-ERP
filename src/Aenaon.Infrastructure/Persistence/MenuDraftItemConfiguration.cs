@@ -29,6 +29,11 @@ internal sealed class MenuDraftItemConfiguration : IEntityTypeConfiguration<Menu
             .HasForeignKey(x => new { x.TenantId, x.MenuId, x.MenuCategoryId })
             .HasPrincipalKey(x => new { x.TenantId, x.MenuId, x.Id })
             .OnDelete(DeleteBehavior.Restrict);
+        // Τα είδη ρίζας δεν έχουν MenuCategoryId, επομένως χρειάζονται αυτοτελές FK προς το μενού.
+        builder.HasOne<MenuDraft>().WithMany()
+            .HasForeignKey(x => new { x.TenantId, x.MenuId })
+            .HasPrincipalKey(x => new { x.TenantId, x.MenuId })
+            .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<CatalogItem>().WithMany()
             .HasForeignKey(x => new { x.TenantId, x.CatalogItemId })
             .HasPrincipalKey(x => new { x.TenantId, x.Id })
