@@ -1,6 +1,7 @@
 using System.Data;
 using Aenaon.Application.Tenancy;
 using Aenaon.Domain.Tenancy;
+using Aenaon.Domain.Menus;
 using Aenaon.Infrastructure.Database;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -84,9 +85,20 @@ public sealed class SqlInitialBusinessStore(string? connectionString, bool isDev
 
             logger.LogInformation("Initial business creation started");
             context.Tenants.Add(tenant);
+
+            // Το αρχικό κατάστημα αποκτά ένα Draft προεπιλεγμένο μενού
+            // στην ίδια ατομική συναλλαγή με την αρχικοποίηση της επιχείρησης.
+            Store firstStore = tenant.Stores[0];
+            RestaurantMenu defaultMenu = RestaurantMenu.Create(
+                tenant.Id, "DEFAULT-" + firstStore.Code, "Προεπιλεγμένο Μενού");
+            context.RestaurantMenus.Add(defaultMenu);
+            context.MenuDrafts.Add(MenuDraft.Create(tenant.Id, defaultMenu.Id,
+                DateTime.UtcNow));
+            context.StoreDefaultMenus.Add(new StoreDefaultMenu(tenant.Id,
+                firstStore.Id, defaultMenu.Id));
             await context.SaveChangesAsync(timeout.Token);
             await transaction.CommitAsync(timeout.Token);
-            logger.LogInformation("Initial business created: {TenantId}, {StoreId}", tenant.Id, tenant.Stores[0].Id);
+            logger.LogInformation("Initial business and default draft menu created: {TenantId}, {StoreId}, {MenuId}", tenant.Id, tenant.Stores[0].Id, defaultMenu.Id);
             return new(InitialBusinessStatus.Created, tenant.Id, tenant.Stores[0].Id, settings.InitialCatalog);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
