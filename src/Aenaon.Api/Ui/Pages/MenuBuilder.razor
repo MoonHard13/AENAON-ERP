@@ -1,0 +1,568 @@
+@page "/menus"
+@attribute [Authorize]
+@attribute [StreamRendering]
+@layout MainLayout
+@using Aenaon.Application.Menus
+@using Aenaon.Domain.Tenancy
+@using Aenaon.Domain.Exceptions
+@inject IHttpContextAccessor HttpContextAccessor
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject TenantWorkspaceResolver WorkspaceResolver
+@inject WorkspacePreferenceService Preference
+@inject MenuDraftManagementService Menus
+@inject ILogger<MenuBuilder> Logger
+
+<PageTitle>Διαχείριση Μενού | Aenaon ERP</PageTitle>
+<main class="dashboard">
+    <BackOfficeSidebar ActivePage="menus" TenantId="@TenantId" StoreId="@StoreId" />
+    <div class="dashboard__content">
+        <BackOfficeTopbar ActivePage="menus" PageTitle="Διαχείριση Μενού"
+                          UserName="@_userName" Workspace="@_workspace"
+                          CsrfToken="@_csrfToken" TenantId="@TenantId" StoreId="@StoreId" />
+
+        <div class="dashboard__body catalog-page menu-builder">
+            @if (_loading)
+            {
+                <section class="surface-card catalog-loading" role="status" aria-busy="true">
+                    <span class="catalog-loading__indicator" aria-hidden="true"></span>
+                    <span>Φόρτωση προσχεδίων μενού…</span>
+                </section>
+            }
+            else if (_workspace is null || _error == "database")
+            {
+                <div class="form-alert" role="alert">
+                    Δεν ήταν δυνατή η φόρτωση μενού. Ελέγξτε τη σύνδεση και το ενημερωμένο Development schema.
+                </div>
+            }
+            else if (_workspace.Status is not (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores))
+            {
+                <div class="workspace-alert" role="alert">Επιλέξτε έγκυρη επιχείρηση και κατάστημα.</div>
+                <a href="/dashboard" class="button button--outline">Επιλογή επιχείρησης</a>
+            }
+            else if (_error is not null || _data is null)
+            {
+                <div class="form-alert" role="alert">Δεν έχετε πρόσβαση στα συγκεκριμένα μενού.</div>
+            }
+            else
+            {
+                @if (!string.IsNullOrEmpty(Message))
+                {
+                    <div class="@(Result == "saved" ? "catalog-success" : "form-alert")"
+                         role="@(Result == "saved" ? "status" : "alert")">@Message</div>
+                }
+
+                <section class="surface-card menu-builder__surface">
+                    <header class="menu-builder__header">
+                        <div>
+                            <span class="menu-builder__eyebrow">ΕΣΤΙΑΣΗ · ΑΣΦΑΛΗΣ ΔΙΑΧΕΙΡΙΣΗ</span>
+                            <h1>Διαχείριση Μενού</h1>
+                            <p>Τα προσχέδια δεν εμφανίζονται σε POS, παραγγελίες ή δημοσιευμένα μενού.</p>
+                        </div>
+                        <div class="menu-builder__header-actions">
+                            <span class="catalog-status catalog-status--active">DRAFT ONLY</span>
+                            @if (!CanManage)
+                            {
+                                <span class="catalog-readonly">Μόνο ανάγνωση</span>
+                            }
+                        </div>
+                    </header>
+
+                    <div class="menu-builder__controls">
+                        <form method="get" action="/menus" class="menu-builder__selector">
+                            <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
+                            @if (_workspace.Store is { } store)
+                            {
+                                <input type="hidden" name="storeId" value="@store.StoreId" />
+                            }
+                            <label for="menu-picker">Μενού</label>
+                            <select id="menu-picker" name="menuId" accesskey="m"
+                                    aria-label="Επιλογή μενού (Alt + M)">
+                                @if (_data.Menus.Count == 0)
+                                {
+                                    <option value="">Δεν υπάρχουν μενού</option>
+                                }
+                                @foreach (MenuDraftSummary menu in _data.Menus)
+                                {
+                                    <option value="@menu.MenuId" selected="@(menu.MenuId == _data.Details?.Menu.MenuId)">
+                                        @menu.Code — @menu.Name
+                                    </option>
+                                }
+                            </select>
+                            <button type="submit" class="button button--outline">Επιλογή</button>
+                        </form>
+                        @if (CanManage && _csrfToken is not null)
+                        {
+                            <details class="menu-builder__new-menu">
+                                <summary class="button button--primary"><AppIcon Name="plus" /> Νέο μενού</summary>
+                                <form method="post" action="/ui/menus/draft" class="menu-builder__inline-form"
+                                      data-menu-save="true">
+                                    <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                         StoreId="@_workspace.Store?.StoreId"
+                                                         CsrfToken="@_csrfToken" />
+                                    <input type="hidden" name="action" value="create-menu" />
+                                    <label for="menu-new-code">Κωδικός (μοναδικός)</label>
+                                    <input id="menu-new-code" name="code" maxlength="40" required
+                                           placeholder="MAIN" autocomplete="off" />
+                                    <label for="menu-new-name">Όνομα</label>
+                                    <input id="menu-new-name" name="name" maxlength="160" required
+                                           placeholder="Κυρίως Μενού" autocomplete="off" />
+                                    <button type="submit" class="button button--primary">Δημιουργία προσχεδίου</button>
+                                </form>
+                            </details>
+                        }
+                    </div>
+
+                    @if (_data.Details is not { } details)
+                    {
+                        <div class="catalog-empty">
+                            <strong>Δεν έχει επιλεγεί μενού.</strong>
+                            <p>@(CanManage ? "Δημιουργήστε νέο μενού για να οργανώσετε τις κατηγορίες και τα είδη." :
+                                "Δεν υπάρχουν διαθέσιμα προσχέδια στην επιχείρηση.")</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="menu-builder__current">
+                            <div>
+                                <strong>@details.Menu.Name</strong>
+                                <span class="catalog-code">@details.Menu.Code</span>
+                                <small>Αναθεώρηση @details.Menu.Revision</small>
+                            </div>
+                            @if (CanManage && _csrfToken is not null)
+                            {
+                                <details>
+                                    <summary class="menu-builder__text-action">Μετονομασία</summary>
+                                    <form method="post" action="/ui/menus/draft"
+                                          class="menu-builder__inline-form" data-menu-save="true">
+                                        <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                             StoreId="@_workspace.Store?.StoreId"
+                                                             MenuId="@details.Menu.MenuId"
+                                                             Revision="@details.Menu.Revision"
+                                                             CsrfToken="@_csrfToken" />
+                                        <input type="hidden" name="action" value="update-menu" />
+                                        <label for="menu-rename">Όνομα μενού</label>
+                                        <input id="menu-rename" name="name" maxlength="160" required
+                                               value="@details.Menu.Name" />
+                                        <button type="submit" class="button button--primary">Αποθήκευση ονόματος</button>
+                                    </form>
+                                </details>
+                            }
+                        </div>
+
+                        <nav class="menu-builder__mobile-tabs" aria-label="Πλοήγηση δημιουργού μενού">
+                            <a href="@Url(details.Menu.MenuId, SelectedCategory?.CategoryId, "categories")"
+                               aria-current="@(SelectedTab == "categories" ? "page" : null)"
+                               class="@(SelectedTab == "categories" ? "is-active" : "")">Κατηγορίες</a>
+                            <a href="@Url(details.Menu.MenuId, SelectedCategory?.CategoryId, "items")"
+                               aria-current="@(SelectedTab == "items" ? "page" : null)"
+                               class="@(SelectedTab == "items" ? "is-active" : "")">Είδη</a>
+                            <a href="@Url(details.Menu.MenuId, SelectedCategory?.CategoryId, "catalog")"
+                               aria-current="@(SelectedTab == "catalog" ? "page" : null)"
+                               class="@(SelectedTab == "catalog" ? "is-active" : "")">Κατάλογος ERP</a>
+                        </nav>
+
+                        <div class="menu-builder__grid" data-mobile-tab="@SelectedTab">
+                            <section class="menu-builder__column menu-builder__column--categories"
+                                     aria-labelledby="menu-categories-title">
+                                <header class="menu-builder__column-header">
+                                    <h2 id="menu-categories-title">Κατηγορίες μενού</h2>
+                                    <small>@details.Categories.Count κατηγορίες</small>
+                                </header>
+                                @if (details.Categories.Count == 0)
+                                {
+                                    <div class="menu-builder__empty">Δεν υπάρχουν κατηγορίες.</div>
+                                }
+                                @foreach (MenuDraftCategoryRecord category in details.Categories)
+                                {
+                                    <article class="menu-builder__entry @(SelectedCategory?.CategoryId == category.CategoryId ? "is-selected" : "")">
+                                        <a class="menu-builder__entry-title" href="@Url(details.Menu.MenuId, category.CategoryId, "items")"
+                                           aria-current="@(SelectedCategory?.CategoryId == category.CategoryId ? "true" : null)">
+                                            <span class="menu-builder__position">@category.Position.</span>
+                                            <span>@category.Name</span>
+                                        </a>
+                                        @if (!category.IsVisible)
+                                        {
+                                            <span class="menu-builder__warning">Κρυφή</span>
+                                        }
+                                        @if (CanManage && _csrfToken is not null)
+                                        {
+                                            <div class="menu-builder__entry-actions">
+                                                @foreach (int target in CategoryMoves(category.Position, details.Categories.Count))
+                                                {
+                                                    <form method="post" action="/ui/menus/draft">
+                                                        <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                                             StoreId="@_workspace.Store?.StoreId"
+                                                                             MenuId="@details.Menu.MenuId"
+                                                                             CategoryId="@category.CategoryId"
+                                                                             Revision="@details.Menu.Revision"
+                                                                             CsrfToken="@_csrfToken" />
+                                                        <input type="hidden" name="action" value="move-category" />
+                                                        <input type="hidden" name="targetPosition" value="@target" />
+                                                        <button type="submit" class="menu-builder__move"
+                                                                aria-label="Μετακίνηση @category.Name @(target < category.Position ? "πάνω" : "κάτω")">
+                                                            @(target < category.Position ? "↑" : "↓")
+                                                        </button>
+                                                    </form>
+                                                }
+                                                <details>
+                                                    <summary class="menu-builder__text-action">Επεξεργασία</summary>
+                                                    <form method="post" action="/ui/menus/draft" class="menu-builder__inline-form"
+                                                          data-menu-save="true">
+                                                        <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                                             StoreId="@_workspace.Store?.StoreId"
+                                                                             MenuId="@details.Menu.MenuId"
+                                                                             CategoryId="@category.CategoryId"
+                                                                             Revision="@details.Menu.Revision"
+                                                                             CsrfToken="@_csrfToken" />
+                                                        <input type="hidden" name="action" value="update-category" />
+                                                        <label for="@($"menu-category-name-{category.CategoryId:N}")">Όνομα</label>
+                                                        <input id="@($"menu-category-name-{category.CategoryId:N}")"
+                                                               name="name" maxlength="160" required value="@category.Name" />
+                                                        <label for="@($"menu-category-visible-{category.CategoryId:N}")">Ορατότητα</label>
+                                                        <select id="@($"menu-category-visible-{category.CategoryId:N}")" name="isVisible">
+                                                            <option value="true" selected="@category.IsVisible">Ορατή</option>
+                                                            <option value="false" selected="@(!category.IsVisible)">Κρυφή</option>
+                                                        </select>
+                                                        <button class="button button--primary" type="submit">Αποθήκευση</button>
+                                                    </form>
+                                                </details>
+                                                @if (!details.Items.Any(x => x.CategoryId == category.CategoryId))
+                                                {
+                                                    <details>
+                                                        <summary class="menu-builder__text-action menu-builder__text-action--danger">Αφαίρεση</summary>
+                                                        <form method="post" action="/ui/menus/draft" class="menu-builder__inline-form">
+                                                            <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                                                 StoreId="@_workspace.Store?.StoreId"
+                                                                                 MenuId="@details.Menu.MenuId"
+                                                                                 CategoryId="@category.CategoryId"
+                                                                                 Revision="@details.Menu.Revision"
+                                                                                 CsrfToken="@_csrfToken" />
+                                                            <input type="hidden" name="action" value="remove-category" />
+                                                            <strong>Επιβεβαίωση αφαίρεσης άδειας κατηγορίας</strong>
+                                                            <button type="submit" class="button button--outline">Επιβεβαίωση</button>
+                                                        </form>
+                                                    </details>
+                                                }
+                                            </div>
+                                        }
+                                    </article>
+                                }
+                                @if (CanManage && _csrfToken is not null)
+                                {
+                                    <form method="post" action="/ui/menus/draft"
+                                          class="menu-builder__inline-form menu-builder__add" data-menu-save="true">
+                                        <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                             StoreId="@_workspace.Store?.StoreId"
+                                                             MenuId="@details.Menu.MenuId"
+                                                             Revision="@details.Menu.Revision"
+                                                             CsrfToken="@_csrfToken" />
+                                        <input type="hidden" name="action" value="add-category" />
+                                        <label for="menu-category-new">Νέα κατηγορία</label>
+                                        <input id="menu-category-new" name="name" maxlength="160" required
+                                               placeholder="π.χ. Ορεκτικά" />
+                                        <button type="submit" class="button button--primary">+ Προσθήκη</button>
+                                    </form>
+                                }
+                            </section>
+
+                            <section class="menu-builder__column menu-builder__column--items"
+                                     aria-labelledby="menu-items-title">
+                                <header class="menu-builder__column-header">
+                                    <h2 id="menu-items-title">Είδη μενού</h2>
+                                    <small>@(SelectedCategory?.Name ?? "Επιλέξτε κατηγορία")</small>
+                                </header>
+                                @if (SelectedCategory is not { } selectedCategory)
+                                {
+                                    <div class="menu-builder__empty">Δημιουργήστε ή επιλέξτε μια κατηγορία.</div>
+                                }
+                                else
+                                {
+                                    var categoryItems = details.Items.Where(x =>
+                                        x.CategoryId == selectedCategory.CategoryId)
+                                        .OrderBy(x => x.Position).ToList();
+                                    @if (categoryItems.Count == 0)
+                                    {
+                                        <div class="menu-builder__empty">Η κατηγορία είναι κενή. Επιλέξτε ένα είδος από τον Κατάλογο ERP.</div>
+                                    }
+                                    @foreach (MenuDraftItemRecord item in categoryItems)
+                                    {
+                                        <article class="menu-builder__entry">
+                                            <div class="menu-builder__entry-title">
+                                                <span class="menu-builder__position">@item.Position.</span>
+                                                <span>@(item.NameOverride ?? item.CatalogName)</span>
+                                            </div>
+                                            <small class="menu-builder__subtext">@item.CatalogCode · @item.CatalogName</small>
+                                            @if (!item.IsCatalogActive)
+                                            {
+                                                <span class="menu-builder__warning">Ανενεργό ERP είδος</span>
+                                            }
+                                            @if (CanManage && _csrfToken is not null)
+                                            {
+                                                <div class="menu-builder__entry-actions">
+                                                    @foreach (int target in CategoryMoves(item.Position, categoryItems.Count))
+                                                    {
+                                                        <form method="post" action="/ui/menus/draft">
+                                                            <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                                                 StoreId="@_workspace.Store?.StoreId"
+                                                                                 MenuId="@details.Menu.MenuId"
+                                                                                 CategoryId="@selectedCategory.CategoryId"
+                                                                                 Revision="@details.Menu.Revision"
+                                                                                 CsrfToken="@_csrfToken" />
+                                                            <input type="hidden" name="action" value="move-item" />
+                                                            <input type="hidden" name="itemId" value="@item.ItemId" />
+                                                            <input type="hidden" name="targetPosition" value="@target" />
+                                                            <button type="submit" class="menu-builder__move"
+                                                                    aria-label="Μετακίνηση @(item.NameOverride ?? item.CatalogName) @(target < item.Position ? "πάνω" : "κάτω")">
+                                                                @(target < item.Position ? "↑" : "↓")
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                    <details>
+                                                        <summary class="menu-builder__text-action">Όνομα</summary>
+                                                        <form method="post" action="/ui/menus/draft"
+                                                              class="menu-builder__inline-form" data-menu-save="true">
+                                                            <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                                                 StoreId="@_workspace.Store?.StoreId"
+                                                                                 MenuId="@details.Menu.MenuId"
+                                                                                 CategoryId="@selectedCategory.CategoryId"
+                                                                                 Revision="@details.Menu.Revision"
+                                                                                 CsrfToken="@_csrfToken" />
+                                                            <input type="hidden" name="action" value="rename-item" />
+                                                            <input type="hidden" name="itemId" value="@item.ItemId" />
+                                                            <label for="@($"menu-name-{item.ItemId:N}")">Όνομα παρουσίασης (προαιρετικό)</label>
+                                                            <input id="@($"menu-name-{item.ItemId:N}")" name="nameOverride"
+                                                                   maxlength="200" value="@item.NameOverride" />
+                                                            <button type="submit" class="button button--primary">Αποθήκευση</button>
+                                                        </form>
+                                                    </details>
+                                                    <details>
+                                                        <summary class="menu-builder__text-action menu-builder__text-action--danger">Αφαίρεση</summary>
+                                                        <form method="post" action="/ui/menus/draft"
+                                                              class="menu-builder__inline-form">
+                                                            <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                                                 StoreId="@_workspace.Store?.StoreId"
+                                                                                 MenuId="@details.Menu.MenuId"
+                                                                                 CategoryId="@selectedCategory.CategoryId"
+                                                                                 Revision="@details.Menu.Revision"
+                                                                                 CsrfToken="@_csrfToken" />
+                                                            <input type="hidden" name="action" value="remove-item" />
+                                                            <input type="hidden" name="itemId" value="@item.ItemId" />
+                                                            <strong>Μόνο αφαίρεση από το μενού — όχι διαγραφή από ERP Catalog.</strong>
+                                                            <button class="button button--outline" type="submit">Επιβεβαίωση</button>
+                                                        </form>
+                                                    </details>
+                                                </div>
+                                            }
+                                        </article>
+                                    }
+                                }
+                            </section>
+
+                            <section class="menu-builder__column menu-builder__column--catalog"
+                                     aria-labelledby="menu-catalog-title">
+                                <header class="menu-builder__column-header">
+                                    <h2 id="menu-catalog-title">Κατάλογος ERP</h2>
+                                    <small>Μόνο ενεργά είδη · έως 50</small>
+                                </header>
+                                <form method="get" action="/menus" class="menu-builder__search" role="search">
+                                    <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
+                                    @if (_workspace.Store is { } store)
+                                    {
+                                        <input type="hidden" name="storeId" value="@store.StoreId" />
+                                    }
+                                    <input type="hidden" name="menuId" value="@details.Menu.MenuId" />
+                                    @if (SelectedCategory is { } category)
+                                    {
+                                        <input type="hidden" name="categoryId" value="@category.CategoryId" />
+                                    }
+                                    <input type="hidden" name="tab" value="catalog" />
+                                    <label for="menu-catalog-search">Αναζήτηση είδους ή κωδικού</label>
+                                    <div class="menu-builder__search-fields">
+                                        <input id="menu-catalog-search" name="search" maxlength="80" type="search"
+                                               value="@Search" placeholder="Αρχή κωδικού ή ονόματος…" />
+                                        <button type="submit" class="button button--outline" accesskey="f">
+                                            <AppIcon Name="search" /> Αναζήτηση
+                                        </button>
+                                    </div>
+                                </form>
+                                @if (_data.Catalog.Count == 0)
+                                {
+                                    <div class="menu-builder__empty">Δεν βρέθηκαν ενεργά είδη καταλόγου.</div>
+                                }
+                                @foreach (MenuCatalogOption item in _data.Catalog)
+                                {
+                                    <article class="menu-builder__catalog-entry">
+                                        <div>
+                                            <strong>@item.Name</strong>
+                                            <small>@item.Code</small>
+                                        </div>
+                                        @if (CanManage && _csrfToken is not null &&
+                                            SelectedCategory is { } category &&
+                                            !details.Items.Any(x => x.CategoryId == category.CategoryId &&
+                                                x.CatalogItemId == item.CatalogItemId))
+                                        {
+                                            <form method="post" action="/ui/menus/draft">
+                                                <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                                     StoreId="@_workspace.Store?.StoreId"
+                                                                     MenuId="@details.Menu.MenuId"
+                                                                     CategoryId="@category.CategoryId"
+                                                                     Revision="@details.Menu.Revision"
+                                                                     CsrfToken="@_csrfToken" />
+                                                <input type="hidden" name="action" value="add-item" />
+                                                <input type="hidden" name="catalogItemId" value="@item.CatalogItemId" />
+                                                <button class="menu-builder__add-item" type="submit"
+                                                        title="Προσθήκη στον επιλεγμένο κατάλογο">
+                                                    <span aria-hidden="true">+</span>
+                                                    <span class="visually-hidden">Προσθήκη @item.Name</span>
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (details.Items.Any(x => x.CategoryId == SelectedCategory?.CategoryId &&
+                                                    x.CatalogItemId == item.CatalogItemId))
+                                        {
+                                            <span class="menu-builder__already">Προστέθηκε</span>
+                                        }
+                                    </article>
+                                }
+                            </section>
+                        </div>
+                        <div class="menu-builder__footnote">
+                            Η αποθήκευση γίνεται σε κάθε ενέργεια. Συντόμευση Ctrl+S μέσα σε φόρμα ·
+                            αλλαγή σειράς με ↑/↓ και πληκτρολόγιο. Δεν υπάρχουν Publish, Modifiers ή POS στο 9.6A.1.
+                        </div>
+                    }
+                </section>
+            }
+        </div>
+        <footer class="dashboard__footer">© @DateTime.UtcNow.Year Aenaon ERP · by MoonHard
+            <span>Built with .NET &amp; Blazor</span>
+        </footer>
+    </div>
+</main>
+
+@code {
+    [SupplyParameterFromQuery(Name = "tenantId")] public Guid? TenantId { get; set; }
+    [SupplyParameterFromQuery(Name = "storeId")] public Guid? StoreId { get; set; }
+    [SupplyParameterFromQuery(Name = "menuId")] public Guid? MenuId { get; set; }
+    [SupplyParameterFromQuery(Name = "categoryId")] public Guid? CategoryId { get; set; }
+    [SupplyParameterFromQuery(Name = "search")] public string? Search { get; set; }
+    [SupplyParameterFromQuery(Name = "tab")] public string? Tab { get; set; }
+    [SupplyParameterFromQuery(Name = "result")] public string? Result { get; set; }
+
+    private TenantWorkspaceSnapshot? _workspace;
+    private MenuDraftReadResult? _data;
+    private string? _csrfToken;
+    private string _userName = "Χρήστης";
+    private string? _error;
+    private bool _loading = true;
+
+    private bool CanManage => _workspace?.Tenant?.Role == TenantMembershipRole.Owner &&
+        _workspace.Status is (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores);
+
+    private MenuDraftCategoryRecord? SelectedCategory =>
+        _data?.Details?.Categories.FirstOrDefault(x => x.CategoryId == CategoryId) ??
+        _data?.Details?.Categories.FirstOrDefault();
+
+    private string SelectedTab => Tab is "items" or "catalog" ? Tab : "categories";
+
+    private string? Message => Result switch
+    {
+        "saved" => "Το προσχέδιο αποθηκεύτηκε επιτυχώς.",
+        "duplicate" => "Η καταχώριση υπάρχει ήδη σε αυτό το μενού ή η τιμή κωδικού χρησιμοποιείται.",
+        "conflict" => "Το προσχέδιο άλλαξε από άλλη συνεδρία. Φορτώστε ξανά τη σελίδα και επανελέγξτε τις αλλαγές σας.",
+        "missing" => "Η επιλεγμένη εγγραφή δεν βρέθηκε. Ελέγξτε την τρέχουσα κατάσταση.",
+        "invalid" => "Τα στοιχεία δεν είναι έγκυρα ή η κατηγορία περιέχει είδη.",
+        _ => null
+    };
+
+    private static IEnumerable<int> CategoryMoves(int position, int count)
+    {
+        if (position > 1) yield return position - 1;
+        if (position < count) yield return position + 1;
+    }
+
+    private string Url(Guid? menuId = null, Guid? categoryId = null,
+        string tab = "categories")
+    {
+        string url = $"/menus?tenantId={_workspace!.Tenant!.TenantId:D}";
+        if (_workspace.Store is { } store)
+        {
+            url += $"&storeId={store.StoreId:D}";
+        }
+        if (menuId.HasValue)
+        {
+            url += $"&menuId={menuId.Value:D}";
+        }
+        if (categoryId.HasValue)
+        {
+            url += $"&categoryId={categoryId.Value:D}";
+        }
+        if (!string.IsNullOrWhiteSpace(Search) && Search.Length <= 80)
+        {
+            url += $"&search={Uri.EscapeDataString(Search.Trim())}";
+        }
+        return url + $"&tab={tab}";
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _workspace = null;
+        _data = null;
+        _error = null;
+        _loading = true;
+        HttpContext? context = HttpContextAccessor.HttpContext;
+        if (context?.Request.IsHttps != true ||
+            context.User.Identity?.IsAuthenticated != true ||
+            !Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid userId) ||
+            userId == Guid.Empty)
+        {
+            _error = "database";
+            _loading = false;
+            return;
+        }
+
+        _userName = context.User.Identity.Name ?? "Χρήστης";
+        _csrfToken = Antiforgery.GetAndStoreTokens(context).RequestToken;
+        context.Response.Headers.CacheControl = "no-store";
+
+        try
+        {
+            Guid? tenant = TenantId;
+            Guid? store = StoreId;
+            if (!tenant.HasValue && !store.HasValue &&
+                Preference.TryRead(context, userId, out Guid rememberedTenant, out Guid? rememberedStore))
+            {
+                tenant = rememberedTenant;
+                store = rememberedStore;
+            }
+            _workspace = await WorkspaceResolver.ResolveAsync(userId, tenant, store,
+                context.RequestAborted);
+            if (_workspace.Status is TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores)
+            {
+                _data = await Menus.ReadAsync(userId, _workspace.Tenant!.TenantId,
+                    MenuId, Search, context.RequestAborted);
+                if (!_data.IsAuthorized)
+                {
+                    _error = "access";
+                }
+            }
+        }
+        catch (DomainRuleException)
+        {
+            _error = "query";
+        }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Menu Builder loading failed");
+            _error = "database";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}
