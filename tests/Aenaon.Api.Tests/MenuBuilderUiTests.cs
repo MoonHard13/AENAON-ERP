@@ -47,7 +47,6 @@ public sealed class MenuBuilderUiTests
         Assert.Contains("name=\"__RequestVerificationToken\"", html);
         Assert.Contains("action=\"/ui/menus/draft\"", html);
         Assert.Contains("value=\"update-category\"", html);
-        Assert.Contains("value=\"move-category\"", html);
         Assert.Contains("name=\"isVisible\"", html);
         Assert.DoesNotContain("name=\"unitPrice\"", html);
     }
@@ -73,6 +72,30 @@ public sealed class MenuBuilderUiTests
         Assert.DoesNotContain("menu-builder__tile--category", html);
         Assert.DoesNotContain("menu-builder__mobile-tabs", html);
         Assert.DoesNotContain("name=\"unitPrice\"", html);
+    }
+
+    [TestMethod]
+    public async Task Owner_CanReorderBothLevelsAndRemoveEmptyCategory()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.MenuDrafts.ExtraCategory = true;
+        factory.MenuDrafts.ExtraItem = true;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string categories = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}&tab=categories"));
+        Assert.Contains("value=\"move-category\"", categories);
+        Assert.Contains("value=\"remove-category\"", categories);
+        Assert.Contains("Κρυφή", categories);
+
+        string items = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}" +
+            $"&categoryId={SessionMenuDraftFixture.CategoryId:D}&tab=items"));
+        Assert.Contains("value=\"move-item\"", items);
+        Assert.Contains("value=\"remove-item\"", items);
+        Assert.Contains("menu-builder__tile--item", items);
+        Assert.DoesNotContain("menu-builder__tile--category", items);
     }
 
     [TestMethod]
