@@ -802,6 +802,7 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                 b.HasKey("Id");
                 b.HasAlternateKey("TenantId", "MenuId", "Id");
                 b.HasIndex("TenantId", "MenuId", "Position", "Id");
+                b.HasIndex("TenantId", "CatalogCategoryId");
                 b.HasIndex("TenantId", "MenuId", "CatalogCategoryId").IsUnique()
                     .HasFilter("[CatalogCategoryId] IS NOT NULL");
                 b.ToTable("MenuDraftCategories", "dbo", t =>
