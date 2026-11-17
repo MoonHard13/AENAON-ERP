@@ -36,11 +36,22 @@ internal static class MenuCatalogSynchronizer
                 menuIds.Contains(x.MenuId))
             .Select(x => x.MenuId).ToListAsync(cancellationToken);
 
+        var parentCategories = source.ParentCategoryId is { } parentId
+            ? await context.MenuDraftCategories.AsNoTracking()
+                .Where(x => x.TenantId == tenantId && x.CatalogCategoryId == parentId &&
+                    menuIds.Contains(x.MenuId))
+                .Select(x => new { x.MenuId, x.Id })
+                .ToDictionaryAsync(x => x.MenuId, x => x.Id, cancellationToken)
+            : new Dictionary<Guid, Guid>();
+
         var positions = await context.MenuDraftCategories.AsNoTracking()
             .Where(x => x.TenantId == tenantId && menuIds.Contains(x.MenuId))
-            .GroupBy(x => x.MenuId)
-            .Select(g => new { MenuId = g.Key, Last = g.Max(x => x.Position) })
-            .ToDictionaryAsync(x => x.MenuId, x => x.Last, cancellationToken);
+            .GroupBy(x => new { x.MenuId, x.ParentCategoryId })
+            .Select(g => new { g.Key.MenuId, g.Key.ParentCategoryId,
+                Last = g.Max(x => x.Position) })
+            .ToListAsync(cancellationToken);
+        var siblingPositions = positions.ToDictionary(
+            x => (x.MenuId, x.ParentCategoryId), x => x.Last);
 
         var drafts = await context.MenuDrafts
             .Where(x => x.TenantId == tenantId && menuIds.Contains(x.MenuId))
@@ -50,10 +61,6 @@ internal static class MenuCatalogSynchronizer
             return false;
         }
 
-        Dictionary<Guid, string> paths = await CatalogCategoryPaths.ResolveAsync(context,
-            tenantId, [(source.Id, source.ParentCategoryId, source.Name)], cancellationToken);
-        string resolved = paths[source.Id].Length <= MenuDraftCategory.MaxNameLength
-            ? paths[source.Id] : source.Name;
         HashSet<Guid> linked = existingLinks.ToHashSet();
 
         foreach (Guid menuId in menuIds)
@@ -63,14 +70,16 @@ internal static class MenuCatalogSynchronizer
                 continue;
             }
 
-            int next = positions.GetValueOrDefault(menuId) + 1;
+            Guid? parent = parentCategories.TryGetValue(menuId, out Guid linkedParent)
+                ? linkedParent : null;
+            int next = siblingPositions.GetValueOrDefault((menuId, parent)) + 1;
             if (next > 10000)
             {
                 return false;
             }
 
             context.MenuDraftCategories.Add(MenuDraftCategory.Create(
-                tenantId, menuId, resolved, next, source.Id));
+                tenantId, menuId, source.Name, next, source.Id, parent));
             drafts[menuId].Touch(DateTime.UtcNow);
         }
 
