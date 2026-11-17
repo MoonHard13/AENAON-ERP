@@ -89,13 +89,8 @@ public sealed class SqlInitialBusinessStore(string? connectionString, bool isDev
             // Το αρχικό κατάστημα αποκτά ένα Draft προεπιλεγμένο μενού
             // στην ίδια ατομική συναλλαγή με την αρχικοποίηση της επιχείρησης.
             Store firstStore = tenant.Stores[0];
-            RestaurantMenu defaultMenu = RestaurantMenu.Create(
-                tenant.Id, "DEFAULT-" + firstStore.Code, "Προεπιλεγμένο Μενού");
-            context.RestaurantMenus.Add(defaultMenu);
-            context.MenuDrafts.Add(MenuDraft.Create(tenant.Id, defaultMenu.Id,
-                DateTime.UtcNow));
-            context.StoreDefaultMenus.Add(new StoreDefaultMenu(tenant.Id,
-                firstStore.Id, defaultMenu.Id));
+            RestaurantMenu defaultMenu = StoreDefaultMenuFactory.Add(
+                context, firstStore, DateTime.UtcNow);
             await context.SaveChangesAsync(timeout.Token);
             await transaction.CommitAsync(timeout.Token);
             logger.LogInformation("Initial business and default draft menu created: {TenantId}, {StoreId}, {MenuId}", tenant.Id, tenant.Stores[0].Id, defaultMenu.Id);
