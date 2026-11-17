@@ -335,5 +335,23 @@ internal static class SqlServerMenuDraftAssertions
         Assert.IsInstanceOfType<SqlException>(crossTenant.InnerException);
         Assert.AreEqual(547, ((SqlException)crossTenant.InnerException).Number);
         context.ChangeTracker.Clear();
+
+        // Το ανεξάρτητο FK απορρίπτει είδος ρίζας χωρίς υπαρκτό μενού.
+        context.MenuDraftItems.Add(MenuDraftItem.Create(menuTenantId,
+            Guid.NewGuid(), null, activeParent.Id, 1));
+        DbUpdateException orphanRoot = await Assert.ThrowsExactlyAsync<DbUpdateException>(
+            () => context.SaveChangesAsync(token));
+        Assert.IsInstanceOfType<SqlException>(orphanRoot.InnerException);
+        Assert.AreEqual(547, ((SqlException)orphanRoot.InnerException).Number);
+        context.ChangeTracker.Clear();
+
+        // Ο γονέας κατηγορίας πρέπει να ανήκει στο ίδιο Menu και Tenant.
+        context.MenuDraftCategories.Add(MenuDraftCategory.Create(menuTenantId,
+            fkMenu.Id, "Ασύνδετη υποκατηγορία", 1, parentCategoryId: foodId));
+        DbUpdateException crossMenuParentFk = await Assert.ThrowsExactlyAsync<DbUpdateException>(
+            () => context.SaveChangesAsync(token));
+        Assert.IsInstanceOfType<SqlException>(crossMenuParentFk.InnerException);
+        Assert.AreEqual(547, ((SqlException)crossMenuParentFk.InnerException).Number);
+        context.ChangeTracker.Clear();
     }
 }
