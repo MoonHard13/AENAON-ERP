@@ -16,7 +16,7 @@ public enum MenuDraftAction
     RenameItem = 8,
     MoveItem = 9,
     RemoveItem = 10,
-    ImportCatalogCategories = 11
+    ImportCatalogContents = 11
 }
 
 public enum MenuDraftStatus
@@ -131,7 +131,7 @@ public sealed class MenuDraftManagementService(
                 (command.CatalogItemId is not { } catalogId || catalogId == Guid.Empty)) ||
             (command.Action is MenuDraftAction.MoveItem or MenuDraftAction.MoveCategory &&
                 command.TargetPosition is not > 0) ||
-            (command.Action == MenuDraftAction.ImportCatalogCategories &&
+            (command.Action == MenuDraftAction.ImportCatalogContents &&
                 (command.CategoryId.HasValue || command.ItemId.HasValue ||
                  command.CatalogItemId.HasValue || command.TargetPosition.HasValue)) ||
             (command.Action is MenuDraftAction.UpdateCategory &&
