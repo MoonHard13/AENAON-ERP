@@ -3,15 +3,15 @@
 **Ημερομηνία σχεδιασμού:** 16/11/2026  
 **Βάση GitHub:** main @ 3af56b94d0758f59386f6437be5330ff681b0b53 (merged PR #60)  
 **Κατάσταση:** DESIGN ONLY — καμία υλοποίηση, migration, API, POS ή δημοσίευση μενού.  
-**Αποδοχή 9.5C.5:** IMPLEMENTED, NOT FULLY ACCEPTED· το πραγματικό Development browser/SQL acceptance παραμένει NOT VERIFIED. Βλέπε [Manual 57](57-catalog-pricing-final-acceptance.md) και [επανέλεγχο](59-acceptance-evidence-and-test-protocol.md).
+**Αποδοχή 9.5C.5:** OWNER ACCEPTED (17/11/2026)· ο ιδιοκτήτης αναφέρει επιτυχή πραγματικά Development E2E/SQL checks, **χωρίς ανεξάρτητη επανεκτέλεση εδώ**. Βλέπε [Manual 57](57-catalog-pricing-final-acceptance.md) και [επανέλεγχο](59-acceptance-evidence-and-test-protocol.md).
 
 {% hint style="warning" %}
-Το παρόν είναι προτεινόμενη αρχιτεκτονική προς έγκριση, **όχι περιγραφή διαθέσιμων λειτουργιών**. Απαγορεύονται αλλαγές schema, ενεργοποίηση Menu/POS ή μεταφορά σε production πριν ολοκληρωθεί το 9.5C.5 και δοθεί ρητή έγκριση. Τα φορολογικά δεδομένα παραμένουν εκτός ενεργής λειτουργίας.
+Το παρόν είναι προτεινόμενη αρχιτεκτονική προς έγκριση, **όχι περιγραφή διαθέσιμων λειτουργιών**. Απαγορεύονται αλλαγές schema, ενεργοποίηση Menu/POS ή μεταφορά σε production χωρίς **ξεχωριστή ρητή έγκριση** για 9.6A.1 και, όπου χρειάζεται, SQL review/backup/migration approval. Το 9.5C.5 έχει owner-accepted επιτυχείς πραγματικούς Dev ελέγχους, χωρίς ανεξάρτητο test report εδώ. Τα φορολογικά δεδομένα παραμένουν εκτός ενεργής λειτουργίας.
 {% endhint %}
 
 ## Απόφαση owner για το προηγούμενο στάδιο
 
-**Απόφαση ιδιοκτήτη (16/11/2026):** Ο ιδιοκτήτης δήλωσε ρητά **«accept 9.5C.5»**. Καταγράφεται ως **OWNER ACCEPTED — WITH UNVERIFIED E2E/SQL GATES**, όχι ως δήλωση ότι εκτελέστηκαν οι ελλείπουσες δοκιμές. Τα Browser/Development SQL/Owner–Member/Mobile/Keyboard/Zoom/Concurrency gates παραμένουν **NOT VERIFIED**· η πλήρης τεχνική αποδοχή και η υλοποίηση 9.6A.1 εξακολουθούν να απαιτούν τεκμήρια και ξεχωριστή ρητή έγκριση. Καμία εξουσιοδότηση για merge, migration ή Menu implementation δεν δόθηκε.
+**Αποδοχή ιδιοκτήτη (16–17/11/2026):** Στις 16/11 ο ιδιοκτήτης δήλωσε **«accept 9.5C.5»** και στις **17/11/2026** δήλωσε ρητά ότι **εκτέλεσε ο ίδιος τα πραγματικά Development E2E/SQL acceptance checks του 9.5C.5 και ήταν όλα εντάξει**. Κατάσταση: **9.5C.5 OWNER ACCEPTED — USER-ATTESTED DEVELOPMENT E2E/SQL PASS**. Η διαπίστωση προέρχεται από τον χειριστή και **δεν έχει επανεκτελεστεί ανεξάρτητα** σε αυτό το περιβάλλον· δεν δόθηκαν εδώ αναλυτικά αποτελέσματα ανά test case, SQL outputs, test logs ή screenshots. Τα ιστορικά `NOT VERIFIED` αφορούν **τον ανεξάρτητο έλεγχο που δεν έγινε εδώ**, όχι άρνηση της επιβεβαίωσης του ιδιοκτήτη. Παραμένει απαραίτητη **ξεχωριστή ρητή έγκριση** για έναρξη 9.6A.1, SQL migration, merge PR #61 ή δημοσίευση GitBook.
 
 ## Τελικό design review και αποδοχές — 16/11/2026
 
@@ -217,7 +217,7 @@ Test environments: synthetic Tenant A/Tenant B με τουλάχιστον δύ�
 
 ## 12. Προϋποθέσεις πριν από το 9.6A.1
 
-- Όλα τα υποχρεωτικά 9.5C.5 gates **PASS** με evidence: πραγματικός browser Owner/Member, Tenant/Store, SQL persistence, 320–1920, Light/Dark, keyboard/zoom, conflict/retry και μηδενικά σοβαρά defects· υπογραφή αποδοχής από τον ιδιοκτήτη.
+- **9.5C.5 owner gate:** ιδιοκτήτης δήλωσε επιτυχή πραγματικά Dev E2E/SQL checks και έδωσε αποδοχή στις 17/11/2026. **Independently verified gate:** δεν ελέγχθηκαν εδώ ανά-case artifacts, SQL outputs ή πραγματικός browser/SQL. Αν ζητηθεί ανεξάρτητο QA sign-off, απαιτείται σχετικό evidence. Η 9.6A.1 ξεκινά μόνο με ξεχωριστή ρητή έγκριση.
 - Επικαιροποίηση live GitBook τεκμηρίωσης (χωριστή change request και review· δεν αποτελεί SQL gate).
 - Αποδοχή σχεδίου Menu boundaries, draft identity/ordering, per-store permissions και time zone dependency.
 - Αποδοχή πρώτου implementation scope, change impact, backup/migration procedure. Κάθε migration απαιτεί **επιπλέον ρητή έγκριση εφαρμόγής** και σωστή βάση.
@@ -229,7 +229,7 @@ Test environments: synthetic Tenant A/Tenant B με τουλάχιστον δύ�
 
 ## 13. Checklist τεχνικού και troubleshooting σχεδιασμού
 
-- [ ] Επιβεβαίωση merged PR #60, current main CI και 9.5C.5 E2E evidence.
+- [x] Επιβεβαίωση merged PR #60 και επιτυχημένου main CI· owner-reported PASS 9.5C.5 E2E/SQL (17/11). Η ανεξάρτητη επαλήθευση των test artifacts παραμένει εκτός αυτής της καταγραφής.
 - [ ] Επιβεβαίωση Tenant/Store/channel matching και υπάρχουσας PriceResolutionPolicy.
 - [ ] Απόφαση timezone ανά Store, midnight/DST και target publication semantics.
 - [ ] Κανένα μυστικό, οικονομική τιμή ή μη εγκεκριμένος VAT κανόνας σε menu overrides.
