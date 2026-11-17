@@ -57,6 +57,7 @@ public static class MenuDraftManagementEndpoints
         MenuDraftAction action = actionText switch
         {
             "create-menu" => MenuDraftAction.CreateMenu,
+            "import-catalog" => MenuDraftAction.ImportCatalogContents,
             "update-menu" => MenuDraftAction.UpdateMenu,
             "add-category" => MenuDraftAction.AddCategory,
             "update-category" => MenuDraftAction.UpdateCategory,
@@ -133,6 +134,9 @@ public static class MenuDraftManagementEndpoints
                 MenuDraftStatus.Duplicate => "duplicate",
                 MenuDraftStatus.Conflict => "conflict",
                 MenuDraftStatus.Missing => "missing",
+                MenuDraftStatus.Invalid when result.Error == "menu.catalog.no_active_categories" => "empty-catalog",
+                MenuDraftStatus.Invalid when result.Error == "menu.catalog.import_limit" => "import-limit",
+                MenuDraftStatus.Duplicate when result.Error == "menu.catalog.import_not_empty" => "import-not-empty",
                 _ => "invalid"
             };
 
