@@ -38,6 +38,10 @@ internal sealed class SessionMenuDraftFixture : IMenuDraftStore
                 : []);
     }
 
+    public Task<Guid?> GetDefaultMenuIdAsync(Guid tenantId, Guid storeId,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<Guid?>(tenantId == Tenant ? MenuId : null);
+
     public Task<MenuDraftDetails?> GetAsync(Guid tenantId, Guid menuId,
         CancellationToken cancellationToken = default)
     {
