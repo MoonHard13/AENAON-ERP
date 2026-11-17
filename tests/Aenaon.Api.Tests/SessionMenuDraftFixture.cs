@@ -20,6 +20,8 @@ internal sealed class SessionMenuDraftFixture : IMenuDraftStore
     public bool EmptyCategory { get; set; }
     public bool ExtraCategory { get; set; }
     public bool ExtraItem { get; set; }
+    public bool NestedCategory { get; set; }
+    public bool RootItem { get; set; }
 
     public Task<MenuDraftMutationResult> ApplyAsync(Guid tenantId, Guid userId,
         MenuDraftCommand command, CancellationToken cancellationToken = default)
@@ -54,11 +56,18 @@ internal sealed class SessionMenuDraftFixture : IMenuDraftStore
             ? new(
                 new(MenuId, "MAIN", "Κυρίως", 1,
                     new DateTime(2026, 11, 17, 8, 0, 0, DateTimeKind.Utc)),
-                EmptyDraft ? [] : ExtraCategory
+                EmptyDraft ? [] : ExtraCategory || NestedCategory
                     ? [new MenuDraftCategoryRecord(CategoryId, "Ορεκτικά", 1, true),
-                        new MenuDraftCategoryRecord(SecondaryCategoryId, "Ποτά", 2, false)]
+                        new MenuDraftCategoryRecord(SecondaryCategoryId, "Ποτά",
+                            NestedCategory ? 1 : 2, false,
+                            NestedCategory ? CategoryId : null)]
                     : [new MenuDraftCategoryRecord(CategoryId, "Ορεκτικά", 1, true)],
-                EmptyDraft || EmptyCategory ? [] : ExtraItem
+                EmptyDraft ? [] : RootItem
+                    ? [new MenuDraftItemRecord(Guid.NewGuid(), CategoryId, ProductId,
+                            "SKU001", "Πίτσα", null, true, 1),
+                        new MenuDraftItemRecord(Guid.NewGuid(), null, SecondaryProductId,
+                            "SKU002", "Σαλάτα", null, true, 1)]
+                    : EmptyCategory ? [] : ExtraItem
                     ? [new MenuDraftItemRecord(Guid.NewGuid(), CategoryId, ProductId,
                             "SKU001", "Πίτσα", null, true, 1),
                         new MenuDraftItemRecord(Guid.NewGuid(), CategoryId, SecondaryProductId,
