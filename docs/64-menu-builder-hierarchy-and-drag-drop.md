@@ -109,7 +109,9 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-menus --u
 - [ ] Real E2E στις 320/375/390/768/1366/1920 px, Light/Dark, zoom και screenshots.
 - [ ] Independent SQL persistence check, owner acceptance, χωριστή έγκριση merge.
 
-**Κατάσταση έως πραγματικό browser/SQL έλεγχο:** **IMPLEMENTED, NOT FULLY ACCEPTED**.
+**Επαληθευμένο CI:** [GitHub Actions #44108994465](https://github.com/MoonHard13/AENAON-ERP/actions/runs/44108994465) **SUCCESS** σε Windows/Ubuntu, Release 0 warnings/errors, 536/536 non-SQL tests ανά λειτουργικό και Ubuntu isolated SQL Server 2022 1/1. Πρόκειται για δοκιμαστική SQL βάση CI, **όχι** την `AenaonERP_Dev`.
+
+**Κατάσταση έως πραγματικό Development browser/SQL έλεγχο και ρητή έγκριση migration:** **IMPLEMENTED, NOT FULLY ACCEPTED**.
 
 ## 8. Troubleshooting και Best Practices
 
