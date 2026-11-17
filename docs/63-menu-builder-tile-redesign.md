@@ -125,7 +125,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-menus --u
 
 ## 10. Status και αποδεικτικά
 
-Το πρώτο SSR regression test suite με fixtures **δεν** αποτελεί πραγματικό browser acceptance. Το πραγματικό βίντεο αναφοράς και αυθεντικό AENAON Development browser δεν ήταν προσβάσιμα στην παρούσα εκτέλεση· δεν υπάρχουν γνήσια screenshots προς δημοσίευση. Release build, GitHub Actions και περαιτέρω επαληθεύσεις αναφέρονται μόνο αφού εμφανιστούν πραγματικά αποτελέσματα.
+Το πρώτο SSR regression test suite με fixtures **δεν** αποτελεί πραγματικό browser acceptance. Το πραγματικό βίντεο αναφοράς και αυθεντικό AENAON Development browser δεν ήταν προσβάσιμα στην παρούσα εκτέλεση· δεν υπάρχουν γνήσια screenshots προς δημοσίευση. **CI evidence (17/11/2026):** GitHub Actions run [#44099925539](https://github.com/MoonHard13/AENAON-ERP/actions/runs/44099925539) **SUCCESS** σε Windows/Ubuntu: Release build 0 errors, 533/533 non-SQL tests ανά OS (Domain 112, Application 144, API 235, Infrastructure 42) και 1/1 isolated SQL Server test σε Ubuntu. Τα SSR tests χρησιμοποιούν fixtures και δεν αποδεικνύουν πραγματική browser αποδοχή.
 
 {% hint style="info" %}
 Κατάσταση: **implemented in draft branch, NOT FULLY ACCEPTED** μέχρι επιτυχή CI και προσωπική δοκιμή/έγκριση από τον ιδιοκτήτη.
