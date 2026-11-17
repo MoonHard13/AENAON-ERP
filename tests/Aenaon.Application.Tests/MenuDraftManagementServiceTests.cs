@@ -80,6 +80,36 @@ public sealed class MenuDraftManagementServiceTests
     }
 
     [TestMethod]
+    public async Task CatalogImport_RequiresOwnerMenuAndExpectedRevision()
+    {
+        var store = new FakeMenuStore();
+        MenuDraftManagementService owner = CreateService(TenantMembershipRole.Owner, store);
+        MenuDraftManagementService member = CreateService(TenantMembershipRole.Member, store);
+        Guid menuId = Guid.NewGuid();
+
+        MenuDraftMutationResult missingRevision = await owner.ApplyAsync(User, Tenant,
+            new(MenuDraftAction.ImportCatalogContents, Guid.NewGuid(), MenuId: menuId));
+        Assert.AreEqual(MenuDraftStatus.Invalid, missingRevision.Status);
+
+        MenuDraftMutationResult invalidExtra = await owner.ApplyAsync(User, Tenant,
+            new(MenuDraftAction.ImportCatalogContents, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: 1, CategoryId: Guid.NewGuid()));
+        Assert.AreEqual(MenuDraftStatus.Invalid, invalidExtra.Status);
+        Assert.AreEqual(0, store.ApplyCalls);
+
+        MenuDraftCommand import = new(MenuDraftAction.ImportCatalogContents,
+            Guid.NewGuid(), MenuId: menuId, ExpectedRevision: 1);
+        MenuDraftMutationResult denied = await member.ApplyAsync(User, Tenant, import);
+        Assert.AreEqual(MenuDraftStatus.Denied, denied.Status);
+        Assert.AreEqual(0, store.ApplyCalls);
+
+        MenuDraftMutationResult accepted = await owner.ApplyAsync(User, Tenant, import);
+        Assert.AreEqual(MenuDraftStatus.Saved, accepted.Status);
+        Assert.AreEqual(Tenant, store.LastTenant);
+        Assert.AreEqual(1, store.ApplyCalls);
+    }
+
+    [TestMethod]
     public async Task Cancellation_StopsBeforeDatabase()
     {
         var store = new FakeMenuStore();
