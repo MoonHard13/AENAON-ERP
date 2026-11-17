@@ -2,6 +2,10 @@
 
 Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες επιχειρήσεις εστίασης. Διαθέτει Development Back Office και υποστήριξη προϊόντων/υπηρεσιών· το POS και η εφαρμογή σερβιτόρων είναι **μελλοντικές λειτουργίες**, όχι διαθέσιμο προϊόν.
 
+## Step 9.6A.1 — Draft Menu Management (προτεινόμενο PR #62)
+
+Στο feature branch `feature/step-9-6a-1-menu-drafts` αναπτύσσεται, **όχι ακόμη στο main**, το draft Menu Builder: Tenant-scoped Menu/Category/Items, ERP Catalog linking, Owner/Member permissions, optimistic revision, idempotent writes, πραγματική SQL migration **ως αρχείο κώδικα** και CLI. Η υλοποίηση παραμένει **DRAFT PR — NOT FULLY ACCEPTED** μέχρι να περάσουν restore/format/build/integration/isolated SQL και πραγματικό authenticated browser UI testing. **Δεν εφαρμόστηκε migration** σε `AenaonERP_Dev` ή production, δεν έγινε merge, δεν επιτρέπεται Publish/POS/φόρος. [Manual 61](docs/61-draft-menu-management.md) · [PR #62](https://github.com/MoonHard13/AENAON-ERP/pull/62).
+
 ## Τρέχον checkpoint — 16/11/2026: 9.5C.5 → 9.6A.0
 
 **Αποδοχή ιδιοκτήτη (16–17/11/2026):** Στις 16/11 ο ιδιοκτήτης δήλωσε **«accept 9.5C.5»** και στις **17/11/2026** δήλωσε ρητά ότι **εκτέλεσε ο ίδιος τα πραγματικά Development E2E/SQL acceptance checks του 9.5C.5 και ήταν όλα εντάξει**. Κατάσταση: **9.5C.5 OWNER ACCEPTED — USER-ATTESTED DEVELOPMENT E2E/SQL PASS**. Η διαπίστωση προέρχεται από τον χειριστή και **δεν έχει επανεκτελεστεί ανεξάρτητα** σε αυτό το περιβάλλον· δεν δόθηκαν εδώ αναλυτικά αποτελέσματα ανά test case, SQL outputs, test logs ή screenshots. Τα ιστορικά `NOT VERIFIED` αφορούν **τον ανεξάρτητο έλεγχο που δεν έγινε εδώ**, όχι άρνηση της επιβεβαίωσης του ιδιοκτήτη. Παραμένει απαραίτητη **ξεχωριστή ρητή έγκριση** για έναρξη 9.6A.1, SQL migration, merge PR #61 ή δημοσίευση GitBook.
