@@ -792,6 +792,7 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("Aenaon.Domain.Menus.MenuDraftCategory", b =>
             {
                 b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
+                b.Property<Guid?>("CatalogCategoryId").HasColumnType("uniqueidentifier");
                 b.Property<bool>("IsVisible").HasColumnType("bit");
                 b.Property<Guid>("MenuId").HasColumnType("uniqueidentifier");
                 b.Property<string>("Name").IsRequired().HasMaxLength(160)
@@ -801,6 +802,8 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                 b.HasKey("Id");
                 b.HasAlternateKey("TenantId", "MenuId", "Id");
                 b.HasIndex("TenantId", "MenuId", "Position", "Id");
+                b.HasIndex("TenantId", "MenuId", "CatalogCategoryId").IsUnique()
+                    .HasFilter("[CatalogCategoryId] IS NOT NULL");
                 b.ToTable("MenuDraftCategories", "dbo", t =>
                     {
                         t.HasCheckConstraint("CK_MenuDraftCategories_Position", "[Position] BETWEEN 1 AND 10000");
@@ -826,6 +829,16 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     {
                         t.HasCheckConstraint("CK_MenuDraftItems_Position", "[Position] BETWEEN 1 AND 10000");
                     });
+            });
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Persistence.StoreDefaultMenu", b =>
+            {
+                b.Property<Guid>("TenantId").HasColumnType("uniqueidentifier");
+                b.Property<Guid>("StoreId").HasColumnType("uniqueidentifier");
+                b.Property<Guid>("MenuId").HasColumnType("uniqueidentifier");
+                b.HasKey("TenantId", "StoreId");
+                b.HasIndex("TenantId", "MenuId");
+                b.ToTable("StoreDefaultMenus", "dbo");
             });
 
         modelBuilder.Entity("Aenaon.Infrastructure.Persistence.MenuDraftOperationReceipt", b =>
@@ -985,6 +998,12 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("Aenaon.Domain.Menus.MenuDraftCategory", b =>
             {
+                b.HasOne("Aenaon.Domain.Catalog.CatalogCategory", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "CatalogCategoryId")
+                    .HasPrincipalKey("TenantId", "Id")
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 b.HasOne("Aenaon.Domain.Menus.MenuDraft", null)
                     .WithMany()
                     .HasForeignKey("TenantId", "MenuId")
@@ -1006,6 +1025,23 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     .WithMany()
                     .HasForeignKey("TenantId", "MenuId", "MenuCategoryId")
                     .HasPrincipalKey("TenantId", "MenuId", "Id")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Persistence.StoreDefaultMenu", b =>
+            {
+                b.HasOne("Aenaon.Domain.Tenancy.Store", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "StoreId")
+                    .HasPrincipalKey("TenantId", "Id")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.HasOne("Aenaon.Domain.Menus.RestaurantMenu", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "MenuId")
+                    .HasPrincipalKey("TenantId", "Id")
                     .OnDelete(DeleteBehavior.Restrict)
                     .IsRequired();
             });
