@@ -98,6 +98,13 @@ public partial class MenuBuilderHierarchyAndRootItems : Migration
             schema: "dbo", table: "MenuDraftItems",
             columns: new[] { "TenantId", "MenuId", "MenuCategoryId", "Position", "Id" });
         migrationBuilder.AddForeignKey(
+            name: "FK_MenuDraftItems_MenuDrafts_TenantId_MenuId",
+            schema: "dbo", table: "MenuDraftItems",
+            columns: new[] { "TenantId", "MenuId" },
+            principalSchema: "dbo", principalTable: "MenuDrafts",
+            principalColumns: new[] { "TenantId", "MenuId" },
+            onDelete: ReferentialAction.Restrict);
+        migrationBuilder.AddForeignKey(
             name: "FK_MenuDraftItems_MenuDraftCategories_TenantId_MenuId_MenuCategoryId",
             schema: "dbo", table: "MenuDraftItems",
             columns: new[] { "TenantId", "MenuId", "MenuCategoryId" },
@@ -109,6 +116,9 @@ public partial class MenuBuilderHierarchyAndRootItems : Migration
     /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
+        migrationBuilder.DropForeignKey(
+            "FK_MenuDraftItems_MenuDrafts_TenantId_MenuId",
+            "MenuDraftItems", "dbo");
         // Απαγορεύεται ασφαλής επαναφορά αν υπάρχουν είδη στη ρίζα.
         migrationBuilder.Sql("""
             IF EXISTS (SELECT 1 FROM dbo.MenuDraftItems WHERE MenuCategoryId IS NULL)
