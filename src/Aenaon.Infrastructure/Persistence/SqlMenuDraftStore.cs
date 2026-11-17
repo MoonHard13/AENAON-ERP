@@ -456,7 +456,7 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
             case MenuDraftAction.RemoveItem:
                 {
                     MenuDraftItem? item = await FindItemAsync(tenantId, menu.Id,
-                        command.CategoryId!.Value, command.ItemId!.Value, token);
+                        command.CategoryId, command.ItemId!.Value, token);
                     if (item is null)
                     {
                         return new(MenuDraftStatus.Missing);
