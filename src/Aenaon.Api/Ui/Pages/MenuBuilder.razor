@@ -566,7 +566,7 @@
             if (_workspace.Status is TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores)
             {
                 _data = await Menus.ReadAsync(userId, _workspace.Tenant!.TenantId,
-                    MenuId, Search, context.RequestAborted);
+                    MenuId, Search, context.RequestAborted, _workspace.Store?.StoreId);
                 if (!_data.IsAuthorized)
                 {
                     _error = "access";
