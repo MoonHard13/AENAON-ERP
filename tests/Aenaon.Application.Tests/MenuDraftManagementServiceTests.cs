@@ -150,6 +150,10 @@ public sealed class MenuDraftManagementServiceTests
             return Task.FromResult<IReadOnlyList<MenuDraftSummary>>([]);
         }
 
+        public Task<Guid?> GetDefaultMenuIdAsync(Guid tenantId, Guid storeId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<Guid?>(null);
+
         public Task<MenuDraftDetails?> GetAsync(Guid tenantId, Guid menuId,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<MenuDraftDetails?>(null);
