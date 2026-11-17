@@ -172,36 +172,39 @@
                             </section>
                         }
 
-                        <nav class="menu-builder__mobile-tabs" aria-label="Πλοήγηση δημιουργού μενού">
-                            <a href="@Url(details.Menu.MenuId, SelectedCategory?.CategoryId, "categories")"
-                               aria-current="@(SelectedTab == "categories" ? "page" : null)"
-                               class="@(SelectedTab == "categories" ? "is-active" : "")">Κατηγορίες</a>
-                            <a href="@Url(details.Menu.MenuId, SelectedCategory?.CategoryId, "items")"
-                               aria-current="@(SelectedTab == "items" ? "page" : null)"
-                               class="@(SelectedTab == "items" ? "is-active" : "")">Είδη</a>
-                            <a href="@Url(details.Menu.MenuId, SelectedCategory?.CategoryId, "catalog")"
-                               aria-current="@(SelectedTab == "catalog" ? "page" : null)"
-                               class="@(SelectedTab == "catalog" ? "is-active" : "")">Κατάλογος ERP</a>
+
+                        @* Ενιαία ροή πλοήγησης, αντί για τρεις ταυτόχρονες στήλες. *@
+                        <nav class="menu-builder__breadcrumbs" aria-label="Διαδρομή μενού">
+                            <a href="@Url(details.Menu.MenuId, null, "categories")" aria-current="@(SelectedTab == "categories" ? "page" : null)">
+                                <AppIcon Name="folder-tree" /> Κατηγορίες
+                            </a>
+                            @if (SelectedTab != "categories" && SelectedCategory is { } breadcrumbCategory)
+                            {
+                                <AppIcon Name="chevron" />
+                                <span aria-current="page">@breadcrumbCategory.Name</span>
+                            }
                         </nav>
 
-                        <div class="menu-builder__grid" data-mobile-tab="@SelectedTab">
-                            <section class="menu-builder__column menu-builder__column--categories"
-                                     aria-labelledby="menu-categories-title">
-                                <header class="menu-builder__column-header">
-                                    <h2 id="menu-categories-title">Κατηγορίες μενού</h2>
-                                    <small>@details.Categories.Count κατηγορίες</small>
+                        @if (SelectedTab == "categories" || SelectedCategory is null)
+                        {
+                            <section class="menu-builder__workspace" aria-labelledby="menu-categories-title">
+                                <header class="menu-builder__workspace-header">
+                                    <div>
+                                        <h2 id="menu-categories-title">Κατηγορίες μενού</h2>
+                                        <p>Επιλέξτε κατηγορία για να διαχειριστείτε τα είδη της.</p>
+                                    </div>
+                                    <span class="menu-builder__counter">@details.Categories.Count κατηγορίες · @details.Items.Count είδη</span>
                                 </header>
                                 @if (details.Categories.Count == 0)
                                 {
-                                    <div class="menu-builder__empty">Δεν υπάρχουν κατηγορίες.</div>
+                                    <div class="menu-builder__empty" role="status">Δεν υπάρχουν κατηγορίες σε αυτό το προσχέδιο.</div>
                                 }
-                                @foreach (MenuDraftCategoryRecord menuCategory in details.Categories)
-                                {
-                                    <article class="menu-builder__entry @(SelectedCategory?.CategoryId == menuCategory.CategoryId ? "is-selected" : "")">
-                                        <a class="menu-builder__entry-title" href="@Url(details.Menu.MenuId, menuCategory.CategoryId, "items")"
+                                <div class="menu-builder__tiles menu-builder__tiles--categories">
+                                    <article class="menu-builder__tile menu-builder__tile--category @(CategoryId == menuCategory.CategoryId ? "is-selected" : "")">
+                                        <a class="menu-builder__tile-link" href="@Url(details.Menu.MenuId, menuCategory.CategoryId, "items")"
                                            aria-current="@(SelectedCategory?.CategoryId == menuCategory.CategoryId ? "true" : null)">
-                                            <span class="menu-builder__position">@menuCategory.Position.</span>
-                                            <span>@menuCategory.Name</span>
+                                            <span class="menu-builder__tile-symbol" aria-hidden="true"><AppIcon Name="folder-tree" /></span>
+                                            <span class="menu-builder__tile-name">@menuCategory.Name</span><span class="menu-builder__tile-count">@(details.Items.Count(x => x.CategoryId == menuCategory.CategoryId)) είδη</span>
                                         </a>
                                         @if (!menuCategory.IsVisible)
                                         {
@@ -209,7 +212,7 @@
                                         }
                                         @if (CanManage && _csrfToken is not null)
                                         {
-                                            <div class="menu-builder__entry-actions">
+                                            <details class="menu-builder__tile-menu"><summary class="menu-builder__tile-more" aria-label="Ενέργειες κατηγορίας @menuCategory.Name" title="Ενέργειες κατηγορίας"><AppIcon Name="settings" /></summary><div class="menu-builder__entry-actions">
                                                 @foreach (int target in CategoryMoves(menuCategory.Position, details.Categories.Count))
                                                 {
                                                     <form method="post" action="/ui/menus/draft">
@@ -267,52 +270,62 @@
                                                     </details>
                                                 }
                                             </div>
+                                            </details>
                                         }
                                     </article>
                                 }
-                                @if (CanManage && _csrfToken is not null)
-                                {
-                                    <form method="post" action="/ui/menus/draft"
-                                          class="menu-builder__inline-form menu-builder__add" data-menu-save="true">
-                                        <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
-                                                             StoreId="@_workspace.Store?.StoreId"
-                                                             MenuId="@details.Menu.MenuId"
-                                                             Revision="@details.Menu.Revision"
-                                                             CsrfToken="@_csrfToken" />
-                                        <input type="hidden" name="action" value="add-category" />
-                                        <label for="menu-category-new">Νέα κατηγορία</label>
-                                        <input id="menu-category-new" name="name" maxlength="160" required
-                                               placeholder="π.χ. Ορεκτικά" />
-                                        <button type="submit" class="button button--primary">+ Προσθήκη</button>
-                                    </form>
-                                }
-                            </section>
-
-                            <section class="menu-builder__column menu-builder__column--items"
-                                     aria-labelledby="menu-items-title">
-                                <header class="menu-builder__column-header">
-                                    <h2 id="menu-items-title">Είδη μενού</h2>
-                                    <small>@(SelectedCategory?.Name ?? "Επιλέξτε κατηγορία")</small>
-                                </header>
-                                @if (SelectedCategory is not { } selectedCategory)
-                                {
-                                    <div class="menu-builder__empty">Δημιουργήστε ή επιλέξτε μια κατηγορία.</div>
-                                }
-                                else
-                                {
-                                    var categoryItems = details.Items.Where(x =>
-                                        x.CategoryId == selectedCategory.CategoryId)
-                                        .OrderBy(x => x.Position).ToList();
-                                    @if (categoryItems.Count == 0)
+                                    @if (CanManage && _csrfToken is not null)
                                     {
-                                        <div class="menu-builder__empty">Η κατηγορία είναι κενή. Επιλέξτε ένα είδος από τον Κατάλογο ERP.</div>
+                                        <details class="menu-builder__tile menu-builder__tile--create" id="menu-create-category">
+                                            <summary class="menu-builder__create-trigger" title="Προσθήκη κατηγορίας">
+                                                <span class="menu-builder__tile-symbol" aria-hidden="true"><AppIcon Name="plus" /></span>
+                                                <span>Νέα κατηγορία</span>
+                                            </summary>
+                                            <form method="post" action="/ui/menus/draft" class="menu-builder__inline-form" data-menu-save="true">
+                                                <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                                     StoreId="@_workspace.Store?.StoreId"
+                                                                     MenuId="@details.Menu.MenuId"
+                                                                     Revision="@details.Menu.Revision"
+                                                                     CsrfToken="@_csrfToken" />
+                                                <input type="hidden" name="action" value="add-category" />
+                                                <label for="menu-category-new">Όνομα νέας κατηγορίας</label>
+                                                <input id="menu-category-new" name="name" maxlength="160" required
+                                                       autocomplete="off" placeholder="π.χ. Ορεκτικά" />
+                                                <button type="submit" class="button button--primary"><AppIcon Name="check" /> Προσθήκη</button>
+                                            </form>
+                                        </details>
                                     }
-                                    @foreach (MenuDraftItemRecord item in categoryItems)
-                                    {
-                                        <article class="menu-builder__entry">
-                                            <div class="menu-builder__entry-title">
-                                                <span class="menu-builder__position">@item.Position.</span>
-                                                <span>@(item.NameOverride ?? item.CatalogName)</span>
+                                </div>
+                            </section>
+                        }
+                        else if (SelectedCategory is { } selectedCategory)
+                        {
+                            var categoryItems = details.Items.Where(x =>
+                                x.CategoryId == selectedCategory.CategoryId)
+                                .OrderBy(x => x.Position).ToList();
+                            <section class="menu-builder__workspace" aria-labelledby="menu-items-title">
+                                <header class="menu-builder__workspace-header">
+                                    <div>
+                                        <h2 id="menu-items-title">@selectedCategory.Name</h2>
+                                        <p>Είδη κατηγορίας · επιλέξτε το γρανάζι ενός πλακιδίου για επεξεργασία και σειρά.</p>
+                                    </div>
+                                    <div class="menu-builder__workspace-actions">
+                                        <span class="menu-builder__counter">@categoryItems.Count είδη</span>
+                                        <a class="menu-builder__compact-action" href="@Url(details.Menu.MenuId, selectedCategory.CategoryId, "catalog")"
+                                           title="Αναζήτηση και προσθήκη ενεργών ειδών από το ERP Catalog">
+                                            <AppIcon Name="plus" /> <span>Από ERP Catalog</span>
+                                        </a>
+                                    </div>
+                                </header>
+                                @if (categoryItems.Count == 0)
+                                {
+                                    <div class="menu-builder__empty" role="status">Δεν υπάρχουν είδη σε αυτή την κατηγορία. Χρησιμοποιήστε το ERP Catalog για χειροκίνητη προσθήκη.</div>
+                                }
+                                <div class="menu-builder__tiles menu-builder__tiles--items">
+                                        <article class="menu-builder__tile menu-builder__tile--item">
+                                            <div class="menu-builder__tile-main">
+                                                <span class="menu-builder__tile-symbol" aria-hidden="true"><AppIcon Name="catalog" /></span>
+                                                <span class="menu-builder__tile-name">@(item.NameOverride ?? item.CatalogName)</span>
                                             </div>
                                             <small class="menu-builder__subtext">@item.CatalogCode · @item.CatalogName</small>
                                             @if (!item.IsCatalogActive)
@@ -321,7 +334,7 @@
                                             }
                                             @if (CanManage && _csrfToken is not null)
                                             {
-                                                <div class="menu-builder__entry-actions">
+                                                <details class="menu-builder__tile-menu"><summary class="menu-builder__tile-more" aria-label="Ενέργειες είδους @(item.NameOverride ?? item.CatalogName)" title="Ενέργειες είδους"><AppIcon Name="settings" /></summary><div class="menu-builder__entry-actions">
                                                     @foreach (int target in CategoryMoves(item.Position, categoryItems.Count))
                                                     {
                                                         <form method="post" action="/ui/menus/draft">
@@ -375,12 +388,18 @@
                                                         </form>
                                                     </details>
                                                 </div>
+                                                </details>
                                             }
                                         </article>
                                     }
-                                }
-                            </section>
-
+                                </div>
+                                <details class="menu-builder__catalog-drawer" open="@(SelectedTab == "catalog")" id="menu-erp-catalog">
+                                    <summary class="menu-builder__drawer-trigger">
+                                        <AppIcon Name="catalog" />
+                                        <span>Επιπλέον είδη από ERP Catalog</span>
+                                        <small>Αναζήτηση και προσθήκη · χωρίς αλλαγή στον κεντρικό κατάλογο</small>
+                                        <AppIcon Name="chevron" />
+                                    </summary>
                             <section class="menu-builder__column menu-builder__column--catalog"
                                      aria-labelledby="menu-catalog-title">
                                 <header class="menu-builder__column-header">
@@ -448,7 +467,9 @@
                                     </article>
                                 }
                             </section>
-                        </div>
+                                </details>
+                            </section>
+                        }
                         <div class="menu-builder__footnote">
                             Η αποθήκευση γίνεται σε κάθε ενέργεια. Συντόμευση Ctrl+S μέσα σε φόρμα ·
                             αλλαγή σειράς με ↑/↓ και πληκτρολόγιο. Δεν υπάρχουν Publish, Modifiers ή POS στο 9.6A.1.
@@ -483,8 +504,9 @@
         _workspace.Status is (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores);
 
     private MenuDraftCategoryRecord? SelectedCategory =>
-        _data?.Details?.Categories.FirstOrDefault(x => x.CategoryId == CategoryId) ??
-        _data?.Details?.Categories.FirstOrDefault();
+        CategoryId.HasValue
+            ? _data?.Details?.Categories.FirstOrDefault(x => x.CategoryId == CategoryId.Value)
+            : null;
 
     private string SelectedTab => Tab is "items" or "catalog" ? Tab : "categories";
 
