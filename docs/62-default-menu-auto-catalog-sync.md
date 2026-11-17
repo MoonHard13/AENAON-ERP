@@ -73,6 +73,8 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-menus --u
 
 Η εφαρμογή δημιουργεί το προεπιλεγμένο μενού του συγκεκριμένου Store μαζί με τις ενεργές ERP κατηγορίες και τα ενεργά είδη της στιγμής εκείνης. **Δεν πειράζει παλιά QA/custom menus**.
 
+**Development evidence — 17/11/2026 (owner-provided CLI + SSMS):** Αφού επιβεβαιώθηκε εκ νέου `12 applied / 0 pending` και πέρασε το authenticated `ensure-store-default --dry-run`, ο Owner **ενέκρινε χωριστά** την εφαρμογή της εφάπαξ λειτουργίας στο `MAIN`/`AenaonERP_Dev`. Το `--apply` ολοκληρώθηκε με `Saved`, `EnsureStoreDefault`, MenuId `bf07e45c-cd99-4abe-8ca0-f82525dbe5a3` και `Revision=1`. Το SQL query με join σε `StoreDefaultMenus`, `RestaurantMenus`, `MenuDrafts`, `MenuDraftCategories`, `MenuDraftItems` επέστρεψε **μία γραμμή**: `DEFAULT-MAIN | Προεπιλεγμένο Μενού | 1 | 8 | 12`. Η καταγραφή είναι **υπόδειξη πραγματικής αποθήκευσης από τα στοιχεία του ιδιοκτήτη**, όχι ανεξάρτητη πρόσβαση reviewer στη Development SQL. **Δεν έχει ακόμη επιβεβαιωθεί** με πραγματική συνεδρία browser ότι νέες ERP κατηγορίες και είδη εμφανίζονται αυτόματα στο default menu· δεν έχει γίνει merge/Production change.
+
 Εάν κάποιο παλαιό μενού έχει ήδη χειροκίνητες κατηγορίες με `CatalogCategoryId = NULL`, οι νέες ERP κατηγορίες προστίθενται αυτόματα, αλλά νέα είδη σε παλιά, μη συσχετισμένη κατηγορία δεν αντιγράφονται χωρίς ασφαλή reconciliation. Αποφεύγουμε αυτόματο matching αποκλειστικά βάσει ονόματος.
 
 ## 6. Έλεγχοι πριν και μετά
