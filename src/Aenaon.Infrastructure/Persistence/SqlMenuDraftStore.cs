@@ -31,6 +31,13 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
                    draft.Revision, draft.EditedUtc))
             .Take(100).ToListAsync(cancellationToken);
 
+    public Task<Guid?> GetDefaultMenuIdAsync(Guid tenantId, Guid storeId,
+        CancellationToken cancellationToken = default) =>
+        context.StoreDefaultMenus.AsNoTracking()
+            .Where(x => x.TenantId == tenantId && x.StoreId == storeId)
+            .Select(x => (Guid?)x.MenuId)
+            .SingleOrDefaultAsync(cancellationToken);
+
     public async Task<MenuDraftDetails?> GetAsync(Guid tenantId, Guid menuId,
         CancellationToken cancellationToken = default)
     {
