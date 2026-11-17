@@ -131,12 +131,12 @@ public static class MenuDraftManagementEndpoints
             string state = result.Status switch
             {
                 MenuDraftStatus.Saved => "saved",
+                MenuDraftStatus.Duplicate when result.Error == "menu.catalog.import_not_empty" => "import-not-empty",
                 MenuDraftStatus.Duplicate => "duplicate",
                 MenuDraftStatus.Conflict => "conflict",
                 MenuDraftStatus.Missing => "missing",
                 MenuDraftStatus.Invalid when result.Error == "menu.catalog.no_active_categories" => "empty-catalog",
                 MenuDraftStatus.Invalid when result.Error == "menu.catalog.import_limit" => "import-limit",
-                MenuDraftStatus.Duplicate when result.Error == "menu.catalog.import_not_empty" => "import-not-empty",
                 _ => "invalid"
             };
 
