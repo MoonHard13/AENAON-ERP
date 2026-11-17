@@ -56,6 +56,12 @@ public sealed class MenuDraftDomainTests
         Assert.AreEqual(3, category.Position);
         Assert.IsFalse(category.IsVisible);
         Assert.AreEqual(menu, category.MenuId);
+        MenuDraftCategory child = MenuDraftCategory.Create(Tenant, menu,
+            "Υποκατηγορία", 1, parentCategoryId: category.Id);
+        Assert.AreEqual(category.Id, child.ParentCategoryId);
+        Assert.ThrowsExactly<DomainRuleException>(() =>
+            MenuDraftCategory.Create(Tenant, menu, "Άκυρη", 1,
+                parentCategoryId: Guid.Empty));
         Assert.ThrowsExactly<DomainRuleException>(() => category.SetPosition(0));
         Assert.ThrowsExactly<DomainRuleException>(() =>
             MenuDraftCategory.Create(Guid.Empty, menu, "Bad", 1));
@@ -73,6 +79,8 @@ public sealed class MenuDraftDomainTests
         MenuDraftItem item = MenuDraftItem.Create(Tenant, menu, category, catalog, 1, " Χωριάτικη ");
         Assert.AreEqual(catalog, item.CatalogItemId);
         Assert.AreEqual(category, item.MenuCategoryId);
+        MenuDraftItem root = MenuDraftItem.Create(Tenant, menu, null, catalog, 1);
+        Assert.IsNull(root.MenuCategoryId);
         Assert.AreEqual("Χωριάτικη", item.NameOverride);
         item.Rename(null);
         item.SetPosition(2);
