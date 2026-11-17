@@ -1,11 +1,11 @@
 # AENAON ERP — Manual 62: Αυτόματο προεπιλεγμένο μενού καταστήματος και συγχρονισμός ERP Catalog
 
-**Κατάσταση:** Υλοποίηση σε **Draft PR #62**, όχι στο `main`. **Δεν εγκρίθηκε ούτε εφαρμόστηκε η νέα 12η migration** `20261117130000_DefaultStoreMenuCatalogSync` σε καμία πραγματική βάση. Το πραγματικό UI/SQL acceptance παραμένει `NOT VERIFIED`.  
+**Κατάσταση:** Υλοποίηση σε **Draft PR #62**, όχι στο `main`. Η νέα 12η migration `20261117130000_DefaultStoreMenuCatalogSync` **αναφέρθηκε επιτυχώς εφαρμοσμένη στη Development `AenaonERP_Dev` στις 17/11/2026 (12 εφαρμοσμένες, 0 εκκρεμείς)**, κατόπιν ελέγχου SQL script, owner-attested νέου backup/VERIFYONLY και ρητής επιβεβαίωσης έγκρισης. **Δεν εφαρμόστηκε σε production.** Ξεχωριστό post-apply dry-run και Default Menu provisioning εκκρεμούν. Το πραγματικό UI/SQL acceptance παραμένει `NOT VERIFIED`.  
 **Σχετικό manual:** [61 — Draft Menu Management](61-draft-menu-management.md).  
 **Προέλευση απαίτησης:** Κατά τη δημιουργία καταστήματος να παράγεται προεπιλεγμένο μενού. Κατά τη δημιουργία νέας κατηγορίας ERP να εισάγεται χωρίς χειροκίνητο «Φόρτωση» στα μενού. Η προηγούμενη συμφωνία απαιτεί οι κατηγορίες να φέρνουν και τα είδη τους.
 
 {% hint style="warning" %}
-**ΜΗΝ εκτελέσετε `--migrate-database --apply` χωρίς νέο, ανεξάρτητο SQL script review, backup/restore plan, dry-run στην ακριβή βάση και ρητή εξουσιοδότηση της migration #12.** Η επιτυχημένη εφαρμογή της 11ης migration στις 17/11/2026 **δεν αποτελεί έγκριση** για τη 12η.
+**Η migration #12 έχει ήδη εκτελεστεί στη Development, σύμφωνα με τον χειριστή — ΜΗΝ την επανεκτελέσετε, ούτε να τρέξετε χειροκίνητα το μη-idempotent SQL script.** Για άλλη βάση απαιτείται ξεχωριστό SQL review, backup/recovery plan, dry-run και ρητή έγκριση. Το `RESTORE VERIFYONLY` δεν αντικαθιστά δοκιμαστικό restore σε απομονωμένη βάση.
 {% endhint %}
 
 ## 1. Σκοπός
@@ -46,9 +46,9 @@
 - **Όχι ανεξέλεγκτος επανασυγχρονισμός:** η δημιουργία νέων ERP κατηγοριών/ειδών συγχρονίζεται. Η μετονομασία, μεταφορά, απενεργοποίηση και εκ νέου ενεργοποίηση ERP δεδομένων **δεν** αναδιατάσσουν αυτόματα ειδικά παραμετροποιημένα μενού· χρειάζεται ξεχωριστή πολιτική συγχρονισμού.
 - **Όχι Publish/POS/fiscal:** εξακολουθούν να είναι ανενεργά.
 
-## 4. Βάση δεδομένων — προτεινόμενη νέα migration #12
+## 4. Βάση δεδομένων — Migration #12 (Development applied, owner-reported)
 
-`20261117130000_DefaultStoreMenuCatalogSync` (πηγαίος κώδικας μόνο, όχι εφαρμοσμένη):
+`20261117130000_DefaultStoreMenuCatalogSync` (πηγαίος κώδικας και owner-reported εφαρμογή στην `AenaonERP_Dev`, 12/0):
 
 | Αντικείμενο | Μεταβολή | Σκοπός |
 | --- | --- | --- |
@@ -61,13 +61,13 @@
 
 ## 5. Υφιστάμενο Development κατάστημα
 
-Η `AenaonERP_Dev` είχε ήδη κατάστημα πριν υλοποιηθεί η νέα λογική. Επομένως **η αρχική εντολή `--initialize-business` δεν επαναλαμβάνεται**. Μετά την έγκριση και εφαρμογή **της 12ης migration**, υπάρχει ειδική idempotent CLI λειτουργία που αναγνωρίζει υπάρχον default και δεν το διπλοδημιουργεί:
+Η `AenaonERP_Dev` είχε ήδη κατάστημα πριν υλοποιηθεί η νέα λογική. Επομένως **η αρχική εντολή `--initialize-business` δεν επαναλαμβάνεται**. Μετά την ήδη αναφερθείσα επιτυχή εφαρμογή **της 12ης migration**, υπάρχει ειδική idempotent CLI λειτουργία που αναγνωρίζει υπάρχον default και δεν το διπλοδημιουργεί:
 
 ~~~powershell
 # Μόνο προβολή (NO WRITE), με login Owner
 dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-menus --username admin --tenant-id "TENANT_GUID" --store-id "STORE_GUID" --confirm-database AenaonERP_Dev --action ensure-store-default --dry-run
 
-# ΜΟΝΟ ΑΦΟΥ εγκριθεί ρητά και η 12η migration και η εφάπαξ δημιουργία
+# ΜΟΝΟ ΑΦΟΥ εγκριθεί ξεχωριστά η εφάπαξ δημιουργία default menu (η 12η migration έχει ήδη αναφερθεί εφαρμοσμένη)
 dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-menus --username admin --tenant-id "TENANT_GUID" --store-id "STORE_GUID" --confirm-database AenaonERP_Dev --action ensure-store-default --apply
 ~~~
 
@@ -77,10 +77,10 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-menus --u
 
 ## 6. Έλεγχοι πριν και μετά
 
-1. **Pre-check:** ακριβής βάση, 11 applied / 1 pending για το feature branch (εφόσον μόνη νέα pending είναι η #12), αντίγραφο ασφαλείας, έλεγχος restore.
+1. **Pre-check:** έχει αναφερθεί επιτυχής migration #12 στη σωστή `AenaonERP_Dev` με 12 applied / 0 pending. Να επιβεβαιωθεί με **νέο read-only `--migrate-database --dry-run`** πριν από οτιδήποτε άλλο. Ο χειριστής επιβεβαίωσε νέο backup και RESTORE VERIFYONLY· πλήρης restore rehearsal δεν τεκμηριώθηκε.
 2. **SQL review:** νέος πίνακας και νέο nullable source FK. Δεν εγκρίνεται μόνο από επιτυχημένο `dotnet build`.
-3. **Explicit apply approval:** ζητείται ξεχωριστά από τον Owner. **Δεν έχει δοθεί στην παρούσα φάση.**
-4. **Post-check:** αναμενόμενο 12 applied / 0 pending μόνο **εάν** εγκριθεί και ολοκληρωθεί η migration.
+3. **Explicit apply approval:** ο Owner επιβεβαίωσε την έγκριση και έδωσε console evidence επιτυχούς εφαρμογής της migration #12. **Η εφάπαξ δημιουργία default menu αποτελεί ξεχωριστό write operation και δεν έχει εγκριθεί/εκτελεστεί ακόμη.**
+4. **Post-check:** ο χειριστής ανέφερε 12 applied / 0 pending κατά την εφαρμογή της migration, αλλά ο χωριστός read-only επανέλεγχος εκκρεμεί.
 5. **Real E2E:** αρχική νέα επιχείρηση/Store, αυτόματο default, νέα ERP category, νέα ERP item, άμεσο SSR/CLI/SQL persistence, idempotent retries, cross-Tenant, Owner/Member, concurrent changes, ανενεργά είδη, χειροκίνητες τροποποιήσεις και Store selection.
 6. **Visual QA:** 320/375/390/768/1366/1920, light/dark, keyboard-only, zoom, genuine screenshots και owner acceptance.
 
