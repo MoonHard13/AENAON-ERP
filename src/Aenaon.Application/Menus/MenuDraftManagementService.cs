@@ -1,6 +1,5 @@
 using Aenaon.Application.Tenancy;
 using Aenaon.Domain.Exceptions;
-using Microsoft.Extensions.Logging;
 
 namespace Aenaon.Application.Menus;
 
@@ -96,8 +95,7 @@ public interface IMenuDraftStore
 /// </summary>
 public sealed class MenuDraftManagementService(
     TenantAuthorizationService authorization,
-    IMenuDraftStore store,
-    ILogger<MenuDraftManagementService> logger)
+    IMenuDraftStore store)
 {
     public async Task<MenuDraftMutationResult> ApplyAsync(Guid userId, Guid tenantId,
         MenuDraftCommand command, CancellationToken cancellationToken = default)
@@ -107,8 +105,6 @@ public sealed class MenuDraftManagementService(
             userId, tenantId, null, TenantPermission.Manage, cancellationToken);
         if (access.Status != TenantAccessStatus.Granted)
         {
-            logger.LogWarning("Menu draft write denied for {UserId} {TenantId} {Action}",
-                userId, tenantId, command.Action);
             return new(MenuDraftStatus.Denied);
         }
 
@@ -144,23 +140,10 @@ public sealed class MenuDraftManagementService(
         {
             MenuDraftMutationResult result = await store.ApplyAsync(tenantId, userId,
                 command, cancellationToken);
-            if (result.Status == MenuDraftStatus.Saved)
-            {
-                logger.LogInformation(
-                    "Menu draft changed {UserId} {TenantId} {MenuId} {Action} {RequestId} {Revision}",
-                    userId, tenantId, result.MenuId, command.Action, command.RequestId, result.Revision);
-            }
-            else
-            {
-                logger.LogWarning("Menu draft change rejected {UserId} {TenantId} {Action} {Status} {Error}",
-                    userId, tenantId, command.Action, result.Status, result.Error);
-            }
             return result;
         }
         catch (DomainRuleException ex)
         {
-            logger.LogWarning("Menu draft input rejected {UserId} {TenantId} {Code}",
-                userId, tenantId, ex.Code);
             return new(MenuDraftStatus.Invalid, Error: ex.Code);
         }
     }
