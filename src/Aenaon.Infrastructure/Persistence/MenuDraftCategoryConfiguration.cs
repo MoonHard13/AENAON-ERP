@@ -1,5 +1,5 @@
-using Aenaon.Domain.Menus;
 using Aenaon.Domain.Catalog;
+using Aenaon.Domain.Menus;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
