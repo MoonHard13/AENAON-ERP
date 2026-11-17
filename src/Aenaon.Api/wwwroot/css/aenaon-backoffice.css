@@ -1806,3 +1806,31 @@ html {
 @media (prefers-reduced-motion: reduce) {
     .menu-builder__tile { transition: none; }
 }
+
+
+/* Drag & drop στην ιεραρχία μενού, με εναλλακτικό χειρισμό από το πληκτρολόγιο. */
+.menu-builder__items-header {
+    margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border);
+}
+.menu-builder__drag-form { display: none; }
+.menu-builder__drag-handle {
+    display: grid; place-items: center; position: absolute; bottom: 8px; right: 9px;
+    width: 40px; height: 40px; border: 1px solid var(--border);
+    border-radius: 9px; background: var(--surface-alt); color: var(--muted-strong);
+    cursor: grab; font-size: 24px; line-height: 1; touch-action: none;
+    user-select: none; z-index: 3;
+}
+.menu-builder__drag-handle:active { cursor: grabbing; }
+.menu-builder__drag-handle:focus-visible {
+    outline: 3px solid var(--positive); outline-offset: 2px;
+}
+.menu-builder__tile.is-hidden { opacity: .76; border-style: dashed; }
+.menu-builder__tile.is-dragging { opacity: .38; }
+.menu-builder__tile.is-drop-target {
+    outline: 3px dashed var(--positive); outline-offset: -3px;
+    background: var(--positive-soft);
+}
+.menu-builder__tiles--items { min-height: 14px; }
+@media (prefers-reduced-motion: reduce) {
+    .menu-builder__tile { transition: none; }
+}
