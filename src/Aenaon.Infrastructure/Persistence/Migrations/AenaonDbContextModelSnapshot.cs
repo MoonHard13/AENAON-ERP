@@ -754,6 +754,99 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                 b.ToTable("AspNetUserTokens", "dbo");
             });
 
+
+        modelBuilder.Entity("Aenaon.Domain.Menus.RestaurantMenu", b =>
+            {
+                b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
+                b.Property<string>("Code").IsRequired().HasMaxLength(40)
+                    .HasColumnType("nvarchar(40)").UseCollation("Greek_CI_AS");
+                b.Property<bool>("IsArchived").HasColumnType("bit");
+                b.Property<string>("Name").IsRequired().HasMaxLength(160)
+                    .HasColumnType("nvarchar(160)");
+                b.Property<Guid>("TenantId").HasColumnType("uniqueidentifier");
+                b.HasKey("Id");
+                b.HasAlternateKey("TenantId", "Id");
+                b.HasIndex("TenantId", "Code").IsUnique();
+                b.ToTable("RestaurantMenus", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_RestaurantMenus_TenantId", "[TenantId] <> '00000000-0000-0000-0000-000000000000'");
+                        t.HasCheckConstraint("CK_RestaurantMenus_Id", "[Id] <> '00000000-0000-0000-0000-000000000000'");
+                        t.HasCheckConstraint("CK_RestaurantMenus_Code", "LEN(LTRIM(RTRIM([Code]))) > 0");
+                        t.HasCheckConstraint("CK_RestaurantMenus_Name", "LEN(LTRIM(RTRIM([Name]))) > 0");
+                    });
+            });
+
+        modelBuilder.Entity("Aenaon.Domain.Menus.MenuDraft", b =>
+            {
+                b.Property<Guid>("TenantId").HasColumnType("uniqueidentifier");
+                b.Property<Guid>("MenuId").HasColumnType("uniqueidentifier");
+                b.Property<long>("Revision").IsConcurrencyToken().HasColumnType("bigint");
+                b.Property<DateTime>("EditedUtc").HasColumnType("datetime2");
+                b.HasKey("TenantId", "MenuId");
+                b.ToTable("MenuDrafts", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_MenuDrafts_Revision", "[Revision] >= 1");
+                    });
+            });
+
+        modelBuilder.Entity("Aenaon.Domain.Menus.MenuDraftCategory", b =>
+            {
+                b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
+                b.Property<bool>("IsVisible").HasColumnType("bit");
+                b.Property<Guid>("MenuId").HasColumnType("uniqueidentifier");
+                b.Property<string>("Name").IsRequired().HasMaxLength(160)
+                    .HasColumnType("nvarchar(160)");
+                b.Property<int>("Position").HasColumnType("int");
+                b.Property<Guid>("TenantId").HasColumnType("uniqueidentifier");
+                b.HasKey("Id");
+                b.HasAlternateKey("TenantId", "MenuId", "Id");
+                b.HasIndex("TenantId", "MenuId", "Position", "Id");
+                b.ToTable("MenuDraftCategories", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_MenuDraftCategories_Position", "[Position] BETWEEN 1 AND 10000");
+                        t.HasCheckConstraint("CK_MenuDraftCategories_Name", "LEN(LTRIM(RTRIM([Name]))) > 0");
+                    });
+            });
+
+        modelBuilder.Entity("Aenaon.Domain.Menus.MenuDraftItem", b =>
+            {
+                b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
+                b.Property<Guid>("CatalogItemId").HasColumnType("uniqueidentifier");
+                b.Property<Guid>("MenuCategoryId").HasColumnType("uniqueidentifier");
+                b.Property<Guid>("MenuId").HasColumnType("uniqueidentifier");
+                b.Property<string>("NameOverride").HasMaxLength(200)
+                    .HasColumnType("nvarchar(200)");
+                b.Property<int>("Position").HasColumnType("int");
+                b.Property<Guid>("TenantId").HasColumnType("uniqueidentifier");
+                b.HasKey("Id");
+                b.HasIndex("TenantId", "CatalogItemId");
+                b.HasIndex("TenantId", "MenuId", "MenuCategoryId", "CatalogItemId").IsUnique();
+                b.HasIndex("TenantId", "MenuId", "MenuCategoryId", "Position", "Id");
+                b.ToTable("MenuDraftItems", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_MenuDraftItems_Position", "[Position] BETWEEN 1 AND 10000");
+                    });
+            });
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Persistence.MenuDraftOperationReceipt", b =>
+            {
+                b.Property<Guid>("TenantId").HasColumnType("uniqueidentifier");
+                b.Property<Guid>("RequestId").HasColumnType("uniqueidentifier");
+                b.Property<Guid>("ActorUserId").HasColumnType("uniqueidentifier");
+                b.Property<Guid>("MenuId").HasColumnType("uniqueidentifier");
+                b.Property<DateTime>("OccurredUtc").HasColumnType("datetime2");
+                b.Property<Guid?>("RecordId").HasColumnType("uniqueidentifier");
+                b.Property<string>("RequestHash").IsRequired().HasMaxLength(64)
+                    .IsUnicode(false).HasColumnType("varchar(64)");
+                b.Property<long>("Revision").HasColumnType("bigint");
+                b.HasKey("TenantId", "RequestId");
+                b.HasIndex("TenantId", "MenuId", "OccurredUtc");
+                b.ToTable("MenuDraftOperationReceipts", "dbo", t =>
+                    {
+                        t.HasCheckConstraint("CK_MenuDraftReceipts_Revision", "[Revision] >= 1");
+                    });
+            });
+
         modelBuilder.Entity("Aenaon.Domain.Catalog.CatalogCategory", b =>
             {
                 b.HasOne("Aenaon.Domain.Catalog.CatalogCategory", null)
@@ -869,6 +962,63 @@ partial class AenaonDbContextModelSnapshot : ModelSnapshot
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
+
+
+        modelBuilder.Entity("Aenaon.Domain.Menus.RestaurantMenu", b =>
+            {
+                b.HasOne("Aenaon.Domain.Tenancy.Tenant", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("Aenaon.Domain.Menus.MenuDraft", b =>
+            {
+                b.HasOne("Aenaon.Domain.Menus.RestaurantMenu", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "MenuId")
+                    .HasPrincipalKey("TenantId", "Id")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("Aenaon.Domain.Menus.MenuDraftCategory", b =>
+            {
+                b.HasOne("Aenaon.Domain.Menus.MenuDraft", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "MenuId")
+                    .HasPrincipalKey("TenantId", "MenuId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("Aenaon.Domain.Menus.MenuDraftItem", b =>
+            {
+                b.HasOne("Aenaon.Domain.Catalog.CatalogItem", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "CatalogItemId")
+                    .HasPrincipalKey("TenantId", "Id")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.HasOne("Aenaon.Domain.Menus.MenuDraftCategory", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "MenuId", "MenuCategoryId")
+                    .HasPrincipalKey("TenantId", "MenuId", "Id")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
+
+        modelBuilder.Entity("Aenaon.Infrastructure.Persistence.MenuDraftOperationReceipt", b =>
+            {
+                b.HasOne("Aenaon.Domain.Menus.RestaurantMenu", null)
+                    .WithMany()
+                    .HasForeignKey("TenantId", "MenuId")
+                    .HasPrincipalKey("TenantId", "Id")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
 
         modelBuilder.Entity("Aenaon.Infrastructure.Fiscal.FiscalImportBatch", b =>
             {
