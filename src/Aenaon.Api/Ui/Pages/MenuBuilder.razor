@@ -106,7 +106,8 @@
                                     <label for="menu-new-name">Όνομα</label>
                                     <input id="menu-new-name" name="name" maxlength="160" required
                                            placeholder="Κυρίως Μενού" autocomplete="off" />
-                                    <button type="submit" class="button button--primary">Δημιουργία προσχεδίου</button>
+                                    <p class="menu-builder__hint">Θα προστεθούν αυτόματα όλες οι ενεργές κατηγορίες του ERP Catalog μαζί με τα ενεργά είδη τους, χωρίς αντιγραφή τιμών.</p>
+                                    <button type="submit" class="button button--primary">Δημιουργία μενού με είδη ERP</button>
                                 </form>
                             </details>
                         }
@@ -116,7 +117,7 @@
                     {
                         <div class="catalog-empty">
                             <strong>Δεν έχει επιλεγεί μενού.</strong>
-                            <p>@(CanManage ? "Δημιουργήστε νέο μενού για να οργανώσετε τις κατηγορίες και τα είδη." :
+                            <p>@(CanManage ? "Δημιουργήστε νέο μενού με αυτόματη μεταφορά ενεργών κατηγοριών και ειδών ERP." :
                                 "Δεν υπάρχουν διαθέσιμα προσχέδια στην επιχείρηση.")</p>
                         </div>
                     }
@@ -148,6 +149,28 @@
                                 </details>
                             }
                         </div>
+
+                        @if (CanManage && _csrfToken is not null &&
+                            details.Categories.Count == 0 && details.Items.Count == 0)
+                        {
+                            <section class="menu-builder__import" aria-label="Εισαγωγή από ERP Catalog">
+                                <div>
+                                    <strong>Το μενού δεν έχει ακόμη κατηγορίες και είδη.</strong>
+                                    <p>Φόρτωσε τις ενεργές κατηγορίες μαζί με τα ενεργά είδη τους από το ERP Catalog. Οι υπάρχουσες εγγραφές του ERP δεν αλλάζουν.</p>
+                                </div>
+                                <form method="post" action="/ui/menus/draft">
+                                    <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                         StoreId="@_workspace.Store?.StoreId"
+                                                         MenuId="@details.Menu.MenuId"
+                                                         Revision="@details.Menu.Revision"
+                                                         CsrfToken="@_csrfToken" />
+                                    <input type="hidden" name="action" value="import-catalog" />
+                                    <button type="submit" class="button button--primary">
+                                        <AppIcon Name="plus" /> Φόρτωση κατηγοριών και ειδών ERP
+                                    </button>
+                                </form>
+                            </section>
+                        }
 
                         <nav class="menu-builder__mobile-tabs" aria-label="Πλοήγηση δημιουργού μενού">
                             <a href="@Url(details.Menu.MenuId, SelectedCategory?.CategoryId, "categories")"
@@ -471,6 +494,9 @@
         "duplicate" => "Η καταχώριση υπάρχει ήδη σε αυτό το μενού ή η τιμή κωδικού χρησιμοποιείται.",
         "conflict" => "Το προσχέδιο άλλαξε από άλλη συνεδρία. Φορτώστε ξανά τη σελίδα και επανελέγξτε τις αλλαγές σας.",
         "missing" => "Η επιλεγμένη εγγραφή δεν βρέθηκε. Ελέγξτε την τρέχουσα κατάσταση.",
+        "empty-catalog" => "Ο ERP Catalog δεν έχει ενεργές κατηγορίες προς εισαγωγή.",
+        "import-limit" => "Ο κατάλογος ξεπερνά το ασφαλές όριο αυτόματης εισαγωγής. Δεν αποθηκεύτηκε μερικό μενού.",
+        "import-not-empty" => "Το μενού έχει ήδη κατηγορίες ή είδη. Η αυτόματη εισαγωγή επιτρέπεται μόνο σε κενό μενού.",
         "invalid" => "Τα στοιχεία δεν είναι έγκυρα ή η κατηγορία περιέχει είδη.",
         _ => null
     };
