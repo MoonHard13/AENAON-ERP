@@ -9,11 +9,15 @@ public sealed class MenuDraftItem
     {
     }
 
-    private MenuDraftItem(Guid tenantId, Guid menuId, Guid categoryId,
+    private MenuDraftItem(Guid tenantId, Guid menuId, Guid? categoryId,
         Guid catalogItemId, int position, string? nameOverride)
     {
         MenuText.Identity(tenantId, menuId, "μενού");
-        MenuText.Identity(tenantId, categoryId, "κατηγορία");
+        if (categoryId == Guid.Empty)
+        {
+            throw new Aenaon.Domain.Exceptions.DomainRuleException("menu.item.category.invalid",
+                "Η κατηγορία δεν είναι έγκυρη.");
+        }
         MenuText.Identity(tenantId, catalogItemId, "είδος καταλόγου");
         MenuText.Position(position);
 
@@ -44,7 +48,7 @@ public sealed class MenuDraftItem
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
     public Guid MenuId { get; private set; }
-    public Guid MenuCategoryId { get; private set; }
+    public Guid? MenuCategoryId { get; private set; }
     public Guid CatalogItemId { get; private set; }
     public int Position { get; private set; }
     public string? NameOverride { get; private set; }
