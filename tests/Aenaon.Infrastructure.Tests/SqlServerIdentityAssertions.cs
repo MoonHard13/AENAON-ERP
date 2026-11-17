@@ -40,7 +40,7 @@ internal static class SqlServerIdentityAssertions
         var preview = await schema.ExecuteAsync(false, null, cancellationToken);
         Assert.AreEqual(DatabaseSchemaStatus.Ready, preview.Status);
         Assert.HasCount(1, preview.AppliedMigrations!);
-        Assert.HasCount(11, preview.PendingMigrations!);
+        Assert.HasCount(12, preview.PendingMigrations!);
 
         // Παλαιότερα δεδομένα προετοιμάζονται στο schema της 6ης migration:
         // ο έλεγχος διασφαλίζει ότι η 7η δεν τα διαγράφει ή αλλάζει κωδικούς.
