@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Aenaon.Infrastructure.Persistence;
 
-/// <summary>Το είδος και η κατηγορία ανήκουν υποχρεωτικά στο ίδιο Tenant και στο ίδιο Menu.</summary>
+/// <summary>Το είδος ανήκει στο Tenant/Menu, με προαιρετική κατηγορία του ίδιου πεδίου.</summary>
 internal sealed class MenuDraftItemConfiguration : IEntityTypeConfiguration<MenuDraftItem>
 {
     public void Configure(EntityTypeBuilder<MenuDraftItem> builder)
