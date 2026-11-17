@@ -170,9 +170,8 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
 
                 menu = StoreDefaultMenuFactory.Add(
                     context, ownerStore, clock.GetUtcNow().UtcDateTime);
-                draft = await context.MenuDrafts.Local
-                    .Where(x => x.TenantId == tenantId && x.MenuId == menu.Id)
-                    .SingleAsync(cancellationToken);
+                draft = context.MenuDrafts.Local.Single(x =>
+                    x.TenantId == tenantId && x.MenuId == menu.Id);
 
                 MenuDraftStatus copied = await CopyCatalogContentsAsync(
                     tenantId, menu.Id, cancellationToken);
