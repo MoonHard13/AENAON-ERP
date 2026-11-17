@@ -340,7 +340,7 @@ internal static class SqlServerMenuDraftAssertions
             .Categories.Single(x => x.Name == "Ποτά").CategoryId;
         MenuDraftMutationResult subcategory = await store.ApplyAsync(menuTenantId, ownerId,
             new(MenuDraftAction.AddCategory, Guid.NewGuid(), MenuId: menuId,
-                ExpectedRevision: rootItem.Revision, Name: "Καφές",
+                ExpectedRevision: removedRoot.Revision, Name: "Καφές",
                 ParentCategoryId: drinksId), token);
         Assert.AreEqual(MenuDraftStatus.Saved, subcategory.Status);
         Assert.AreEqual(drinksId, (await store.GetAsync(menuTenantId, menuId, token))!
