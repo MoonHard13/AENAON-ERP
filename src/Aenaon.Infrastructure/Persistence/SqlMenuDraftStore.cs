@@ -8,6 +8,7 @@ using Aenaon.Domain.Menus;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
 
 namespace Aenaon.Infrastructure.Persistence;
 
