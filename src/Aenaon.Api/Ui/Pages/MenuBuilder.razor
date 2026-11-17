@@ -397,8 +397,8 @@
                                             <small>@item.Code</small>
                                         </div>
                                         @if (CanManage && _csrfToken is not null &&
-                                            SelectedCategory is { } category &&
-                                            !details.Items.Any(x => x.CategoryId == category.CategoryId &&
+                                            SelectedCategory is { } catalogCategory &&
+                                             !details.Items.Any(x => x.CategoryId == catalogCategory.CategoryId &&
                                                 x.CatalogItemId == item.CatalogItemId))
                                         {
                                             <form method="post" action="/ui/menus/draft">
