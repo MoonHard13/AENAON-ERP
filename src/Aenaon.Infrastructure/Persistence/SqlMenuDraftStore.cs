@@ -203,164 +203,164 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
                 return new(MenuDraftStatus.Saved, menu.Id);
 
             case MenuDraftAction.AddCategory:
-            {
-                int count = await context.MenuDraftCategories.CountAsync(x =>
-                    x.TenantId == tenantId && x.MenuId == menu.Id, token);
-                if (count >= 10000)
                 {
-                    return new(MenuDraftStatus.Invalid, Error: "menu.category.limit");
+                    int count = await context.MenuDraftCategories.CountAsync(x =>
+                        x.TenantId == tenantId && x.MenuId == menu.Id, token);
+                    if (count >= 10000)
+                    {
+                        return new(MenuDraftStatus.Invalid, Error: "menu.category.limit");
+                    }
+                    MenuDraftCategory category = MenuDraftCategory.Create(
+                        tenantId, menu.Id, command.Name, count + 1);
+                    context.MenuDraftCategories.Add(category);
+                    return new(MenuDraftStatus.Saved, category.Id);
                 }
-                MenuDraftCategory category = MenuDraftCategory.Create(
-                    tenantId, menu.Id, command.Name, count + 1);
-                context.MenuDraftCategories.Add(category);
-                return new(MenuDraftStatus.Saved, category.Id);
-            }
             case MenuDraftAction.UpdateCategory:
-            {
-                MenuDraftCategory? category = await FindCategoryAsync(tenantId,
-                    menu.Id, command.CategoryId!.Value, token);
-                if (category is null)
                 {
-                    return new(MenuDraftStatus.Missing);
+                    MenuDraftCategory? category = await FindCategoryAsync(tenantId,
+                        menu.Id, command.CategoryId!.Value, token);
+                    if (category is null)
+                    {
+                        return new(MenuDraftStatus.Missing);
+                    }
+                    category.Update(command.Name, command.IsVisible!.Value);
+                    return new(MenuDraftStatus.Saved, category.Id);
                 }
-                category.Update(command.Name, command.IsVisible!.Value);
-                return new(MenuDraftStatus.Saved, category.Id);
-            }
             case MenuDraftAction.MoveCategory:
-            {
-                List<MenuDraftCategory> rows = await context.MenuDraftCategories
-                    .Where(x => x.TenantId == tenantId && x.MenuId == menu.Id)
-                    .OrderBy(x => x.Position).ThenBy(x => x.Id).ToListAsync(token);
-                int previous = rows.FindIndex(x => x.Id == command.CategoryId);
-                if (previous < 0)
                 {
-                    return new(MenuDraftStatus.Missing);
+                    List<MenuDraftCategory> rows = await context.MenuDraftCategories
+                        .Where(x => x.TenantId == tenantId && x.MenuId == menu.Id)
+                        .OrderBy(x => x.Position).ThenBy(x => x.Id).ToListAsync(token);
+                    int previous = rows.FindIndex(x => x.Id == command.CategoryId);
+                    if (previous < 0)
+                    {
+                        return new(MenuDraftStatus.Missing);
+                    }
+                    int target = Math.Min(command.TargetPosition!.Value, rows.Count) - 1;
+                    MenuDraftCategory selected = rows[previous];
+                    rows.RemoveAt(previous);
+                    rows.Insert(target, selected);
+                    for (int i = 0; i < rows.Count; i++)
+                    {
+                        rows[i].SetPosition(i + 1);
+                    }
+                    return new(MenuDraftStatus.Saved, selected.Id);
                 }
-                int target = Math.Min(command.TargetPosition!.Value, rows.Count) - 1;
-                MenuDraftCategory selected = rows[previous];
-                rows.RemoveAt(previous);
-                rows.Insert(target, selected);
-                for (int i = 0; i < rows.Count; i++)
-                {
-                    rows[i].SetPosition(i + 1);
-                }
-                return new(MenuDraftStatus.Saved, selected.Id);
-            }
             case MenuDraftAction.RemoveCategory:
-            {
-                MenuDraftCategory? category = await FindCategoryAsync(tenantId,
-                    menu.Id, command.CategoryId!.Value, token);
-                if (category is null)
                 {
-                    return new(MenuDraftStatus.Missing);
-                }
+                    MenuDraftCategory? category = await FindCategoryAsync(tenantId,
+                        menu.Id, command.CategoryId!.Value, token);
+                    if (category is null)
+                    {
+                        return new(MenuDraftStatus.Missing);
+                    }
 
-                bool hasItems = await context.MenuDraftItems.AnyAsync(x =>
-                    x.TenantId == tenantId && x.MenuId == menu.Id &&
-                    x.MenuCategoryId == category.Id, token);
-                if (hasItems)
-                {
-                    return new(MenuDraftStatus.Invalid, Error: "menu.category.not_empty");
-                }
-
-                context.MenuDraftCategories.Remove(category);
-                List<MenuDraftCategory> remaining = await context.MenuDraftCategories
-                    .Where(x => x.TenantId == tenantId && x.MenuId == menu.Id &&
-                        x.Id != category.Id)
-                    .OrderBy(x => x.Position).ThenBy(x => x.Id).ToListAsync(token);
-                for (int i = 0; i < remaining.Count; i++)
-                {
-                    remaining[i].SetPosition(i + 1);
-                }
-                return new(MenuDraftStatus.Saved, category.Id);
-            }
-            case MenuDraftAction.AddItem:
-            {
-                if (!await context.MenuDraftCategories.AnyAsync(x =>
+                    bool hasItems = await context.MenuDraftItems.AnyAsync(x =>
                         x.TenantId == tenantId && x.MenuId == menu.Id &&
-                        x.Id == command.CategoryId, token))
-                {
-                    return new(MenuDraftStatus.Missing);
+                        x.MenuCategoryId == category.Id, token);
+                    if (hasItems)
+                    {
+                        return new(MenuDraftStatus.Invalid, Error: "menu.category.not_empty");
+                    }
+
+                    context.MenuDraftCategories.Remove(category);
+                    List<MenuDraftCategory> remaining = await context.MenuDraftCategories
+                        .Where(x => x.TenantId == tenantId && x.MenuId == menu.Id &&
+                            x.Id != category.Id)
+                        .OrderBy(x => x.Position).ThenBy(x => x.Id).ToListAsync(token);
+                    for (int i = 0; i < remaining.Count; i++)
+                    {
+                        remaining[i].SetPosition(i + 1);
+                    }
+                    return new(MenuDraftStatus.Saved, category.Id);
                 }
-                bool eligible = await context.CatalogItems.AnyAsync(x =>
-                    x.TenantId == tenantId && x.Id == command.CatalogItemId &&
-                    x.IsActive, token);
-                if (!eligible)
+            case MenuDraftAction.AddItem:
                 {
-                    return new(MenuDraftStatus.Invalid, Error: "menu.catalog.unavailable");
+                    if (!await context.MenuDraftCategories.AnyAsync(x =>
+                            x.TenantId == tenantId && x.MenuId == menu.Id &&
+                            x.Id == command.CategoryId, token))
+                    {
+                        return new(MenuDraftStatus.Missing);
+                    }
+                    bool eligible = await context.CatalogItems.AnyAsync(x =>
+                        x.TenantId == tenantId && x.Id == command.CatalogItemId &&
+                        x.IsActive, token);
+                    if (!eligible)
+                    {
+                        return new(MenuDraftStatus.Invalid, Error: "menu.catalog.unavailable");
+                    }
+                    bool duplicate = await context.MenuDraftItems.AnyAsync(x =>
+                        x.TenantId == tenantId && x.MenuId == menu.Id &&
+                        x.MenuCategoryId == command.CategoryId &&
+                        x.CatalogItemId == command.CatalogItemId, token);
+                    if (duplicate)
+                    {
+                        return new(MenuDraftStatus.Duplicate, Error: "menu.item.duplicate");
+                    }
+                    int count = await context.MenuDraftItems.CountAsync(x =>
+                        x.TenantId == tenantId && x.MenuId == menu.Id &&
+                        x.MenuCategoryId == command.CategoryId, token);
+                    if (count >= 10000)
+                    {
+                        return new(MenuDraftStatus.Invalid, Error: "menu.item.limit");
+                    }
+                    MenuDraftItem item = MenuDraftItem.Create(tenantId, menu.Id,
+                        command.CategoryId!.Value, command.CatalogItemId!.Value,
+                        count + 1, command.NameOverride);
+                    context.MenuDraftItems.Add(item);
+                    return new(MenuDraftStatus.Saved, item.Id);
                 }
-                bool duplicate = await context.MenuDraftItems.AnyAsync(x =>
-                    x.TenantId == tenantId && x.MenuId == menu.Id &&
-                    x.MenuCategoryId == command.CategoryId &&
-                    x.CatalogItemId == command.CatalogItemId, token);
-                if (duplicate)
-                {
-                    return new(MenuDraftStatus.Duplicate, Error: "menu.item.duplicate");
-                }
-                int count = await context.MenuDraftItems.CountAsync(x =>
-                    x.TenantId == tenantId && x.MenuId == menu.Id &&
-                    x.MenuCategoryId == command.CategoryId, token);
-                if (count >= 10000)
-                {
-                    return new(MenuDraftStatus.Invalid, Error: "menu.item.limit");
-                }
-                MenuDraftItem item = MenuDraftItem.Create(tenantId, menu.Id,
-                    command.CategoryId!.Value, command.CatalogItemId!.Value,
-                    count + 1, command.NameOverride);
-                context.MenuDraftItems.Add(item);
-                return new(MenuDraftStatus.Saved, item.Id);
-            }
             case MenuDraftAction.RenameItem:
-            {
-                MenuDraftItem? item = await FindItemAsync(tenantId, menu.Id,
-                    command.CategoryId!.Value, command.ItemId!.Value, token);
-                if (item is null)
                 {
-                    return new(MenuDraftStatus.Missing);
+                    MenuDraftItem? item = await FindItemAsync(tenantId, menu.Id,
+                        command.CategoryId!.Value, command.ItemId!.Value, token);
+                    if (item is null)
+                    {
+                        return new(MenuDraftStatus.Missing);
+                    }
+                    item.Rename(command.NameOverride);
+                    return new(MenuDraftStatus.Saved, item.Id);
                 }
-                item.Rename(command.NameOverride);
-                return new(MenuDraftStatus.Saved, item.Id);
-            }
             case MenuDraftAction.MoveItem:
-            {
-                List<MenuDraftItem> rows = await context.MenuDraftItems
-                    .Where(x => x.TenantId == tenantId && x.MenuId == menu.Id &&
-                        x.MenuCategoryId == command.CategoryId)
-                    .OrderBy(x => x.Position).ThenBy(x => x.Id).ToListAsync(token);
-                int previous = rows.FindIndex(x => x.Id == command.ItemId);
-                if (previous < 0)
                 {
-                    return new(MenuDraftStatus.Missing);
+                    List<MenuDraftItem> rows = await context.MenuDraftItems
+                        .Where(x => x.TenantId == tenantId && x.MenuId == menu.Id &&
+                            x.MenuCategoryId == command.CategoryId)
+                        .OrderBy(x => x.Position).ThenBy(x => x.Id).ToListAsync(token);
+                    int previous = rows.FindIndex(x => x.Id == command.ItemId);
+                    if (previous < 0)
+                    {
+                        return new(MenuDraftStatus.Missing);
+                    }
+                    int target = Math.Min(command.TargetPosition!.Value, rows.Count) - 1;
+                    MenuDraftItem selected = rows[previous];
+                    rows.RemoveAt(previous);
+                    rows.Insert(target, selected);
+                    for (int i = 0; i < rows.Count; i++)
+                    {
+                        rows[i].SetPosition(i + 1);
+                    }
+                    return new(MenuDraftStatus.Saved, selected.Id);
                 }
-                int target = Math.Min(command.TargetPosition!.Value, rows.Count) - 1;
-                MenuDraftItem selected = rows[previous];
-                rows.RemoveAt(previous);
-                rows.Insert(target, selected);
-                for (int i = 0; i < rows.Count; i++)
-                {
-                    rows[i].SetPosition(i + 1);
-                }
-                return new(MenuDraftStatus.Saved, selected.Id);
-            }
             case MenuDraftAction.RemoveItem:
-            {
-                MenuDraftItem? item = await FindItemAsync(tenantId, menu.Id,
-                    command.CategoryId!.Value, command.ItemId!.Value, token);
-                if (item is null)
                 {
-                    return new(MenuDraftStatus.Missing);
+                    MenuDraftItem? item = await FindItemAsync(tenantId, menu.Id,
+                        command.CategoryId!.Value, command.ItemId!.Value, token);
+                    if (item is null)
+                    {
+                        return new(MenuDraftStatus.Missing);
+                    }
+                    context.MenuDraftItems.Remove(item);
+                    List<MenuDraftItem> remaining = await context.MenuDraftItems
+                        .Where(x => x.TenantId == tenantId && x.MenuId == menu.Id &&
+                            x.MenuCategoryId == command.CategoryId && x.Id != item.Id)
+                        .OrderBy(x => x.Position).ThenBy(x => x.Id).ToListAsync(token);
+                    for (int i = 0; i < remaining.Count; i++)
+                    {
+                        remaining[i].SetPosition(i + 1);
+                    }
+                    return new(MenuDraftStatus.Saved, item.Id);
                 }
-                context.MenuDraftItems.Remove(item);
-                List<MenuDraftItem> remaining = await context.MenuDraftItems
-                    .Where(x => x.TenantId == tenantId && x.MenuId == menu.Id &&
-                        x.MenuCategoryId == command.CategoryId && x.Id != item.Id)
-                    .OrderBy(x => x.Position).ThenBy(x => x.Id).ToListAsync(token);
-                for (int i = 0; i < remaining.Count; i++)
-                {
-                    remaining[i].SetPosition(i + 1);
-                }
-                return new(MenuDraftStatus.Saved, item.Id);
-            }
             default:
                 return new(MenuDraftStatus.Invalid, Error: "menu.action.invalid");
         }
