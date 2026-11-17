@@ -12,6 +12,9 @@
             <a href="@PriceListsHref" aria-current="@(ActivePage == "price-lists" ? "page" : null)">
                 <AppIcon Name="sales" /> Τιμοκατάλογοι
             </a>
+            <a href="@MenusHref" aria-current="@(ActivePage == "menus" ? "page" : null)">
+                <AppIcon Name="catalog" /> Μενού εστίασης
+            </a>
             <span><AppIcon Name="settings" /> Περισσότερες λειτουργίες υπό ανάπτυξη</span>
         </nav>
     </details>
@@ -139,6 +142,7 @@
     private string DashboardHref => Href("/dashboard");
     private string CatalogHref => Href("/catalog");
     private string PriceListsHref => Href("/price-lists");
+    private string MenusHref => Href("/menus");
 
     private string Href(string path)
     {
