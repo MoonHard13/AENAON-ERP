@@ -172,35 +172,35 @@
                                 {
                                     <div class="menu-builder__empty">Δεν υπάρχουν κατηγορίες.</div>
                                 }
-                                @foreach (MenuDraftCategoryRecord category in details.Categories)
+                                @foreach (MenuDraftCategoryRecord menuCategory in details.Categories)
                                 {
-                                    <article class="menu-builder__entry @(SelectedCategory?.CategoryId == category.CategoryId ? "is-selected" : "")">
-                                        <a class="menu-builder__entry-title" href="@Url(details.Menu.MenuId, category.CategoryId, "items")"
-                                           aria-current="@(SelectedCategory?.CategoryId == category.CategoryId ? "true" : null)">
-                                            <span class="menu-builder__position">@category.Position.</span>
-                                            <span>@category.Name</span>
+                                    <article class="menu-builder__entry @(SelectedCategory?.CategoryId == menuCategory.CategoryId ? "is-selected" : "")">
+                                        <a class="menu-builder__entry-title" href="@Url(details.Menu.MenuId, menuCategory.CategoryId, "items")"
+                                           aria-current="@(SelectedCategory?.CategoryId == menuCategory.CategoryId ? "true" : null)">
+                                            <span class="menu-builder__position">@menuCategory.Position.</span>
+                                            <span>@menuCategory.Name</span>
                                         </a>
-                                        @if (!category.IsVisible)
+                                        @if (!menuCategory.IsVisible)
                                         {
                                             <span class="menu-builder__warning">Κρυφή</span>
                                         }
                                         @if (CanManage && _csrfToken is not null)
                                         {
                                             <div class="menu-builder__entry-actions">
-                                                @foreach (int target in CategoryMoves(category.Position, details.Categories.Count))
+                                                @foreach (int target in CategoryMoves(menuCategory.Position, details.Categories.Count))
                                                 {
                                                     <form method="post" action="/ui/menus/draft">
                                                         <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
                                                                              StoreId="@_workspace.Store?.StoreId"
                                                                              MenuId="@details.Menu.MenuId"
-                                                                             CategoryId="@category.CategoryId"
+                                                                             CategoryId="@menuCategory.CategoryId"
                                                                              Revision="@details.Menu.Revision"
                                                                              CsrfToken="@_csrfToken" />
                                                         <input type="hidden" name="action" value="move-category" />
                                                         <input type="hidden" name="targetPosition" value="@target" />
                                                         <button type="submit" class="menu-builder__move"
-                                                                aria-label="Μετακίνηση @category.Name @(target < category.Position ? "πάνω" : "κάτω")">
-                                                            @(target < category.Position ? "↑" : "↓")
+                                                                aria-label="Μετακίνηση @menuCategory.Name @(target < menuCategory.Position ? "πάνω" : "κάτω")">
+                                                            @(target < menuCategory.Position ? "↑" : "↓")
                                                         </button>
                                                     </form>
                                                 }
@@ -211,22 +211,22 @@
                                                         <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
                                                                              StoreId="@_workspace.Store?.StoreId"
                                                                              MenuId="@details.Menu.MenuId"
-                                                                             CategoryId="@category.CategoryId"
+                                                                             CategoryId="@menuCategory.CategoryId"
                                                                              Revision="@details.Menu.Revision"
                                                                              CsrfToken="@_csrfToken" />
                                                         <input type="hidden" name="action" value="update-category" />
-                                                        <label for="@($"menu-category-name-{category.CategoryId:N}")">Όνομα</label>
-                                                        <input id="@($"menu-category-name-{category.CategoryId:N}")"
-                                                               name="name" maxlength="160" required value="@category.Name" />
-                                                        <label for="@($"menu-category-visible-{category.CategoryId:N}")">Ορατότητα</label>
-                                                        <select id="@($"menu-category-visible-{category.CategoryId:N}")" name="isVisible">
-                                                            <option value="true" selected="@category.IsVisible">Ορατή</option>
-                                                            <option value="false" selected="@(!category.IsVisible)">Κρυφή</option>
+                                                        <label for="@($"menu-category-name-{menuCategory.CategoryId:N}")">Όνομα</label>
+                                                        <input id="@($"menu-category-name-{menuCategory.CategoryId:N}")"
+                                                               name="name" maxlength="160" required value="@menuCategory.Name" />
+                                                        <label for="@($"menu-category-visible-{menuCategory.CategoryId:N}")">Ορατότητα</label>
+                                                        <select id="@($"menu-category-visible-{menuCategory.CategoryId:N}")" name="isVisible">
+                                                            <option value="true" selected="@menuCategory.IsVisible">Ορατή</option>
+                                                            <option value="false" selected="@(!menuCategory.IsVisible)">Κρυφή</option>
                                                         </select>
                                                         <button class="button button--primary" type="submit">Αποθήκευση</button>
                                                     </form>
                                                 </details>
-                                                @if (!details.Items.Any(x => x.CategoryId == category.CategoryId))
+                                                @if (!details.Items.Any(x => x.CategoryId == menuCategory.CategoryId))
                                                 {
                                                     <details>
                                                         <summary class="menu-builder__text-action menu-builder__text-action--danger">Αφαίρεση</summary>
@@ -234,7 +234,7 @@
                                                             <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
                                                                                  StoreId="@_workspace.Store?.StoreId"
                                                                                  MenuId="@details.Menu.MenuId"
-                                                                                 CategoryId="@category.CategoryId"
+                                                                                 CategoryId="@menuCategory.CategoryId"
                                                                                  Revision="@details.Menu.Revision"
                                                                                  CsrfToken="@_csrfToken" />
                                                             <input type="hidden" name="action" value="remove-category" />
@@ -366,9 +366,9 @@
                                 </header>
                                 <form method="get" action="/menus" class="menu-builder__search" role="search">
                                     <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
-                                    @if (_workspace.Store is { } store)
+                                    @if (_workspace.Store is { } catalogStore)
                                     {
-                                        <input type="hidden" name="storeId" value="@store.StoreId" />
+                                        <input type="hidden" name="storeId" value="@catalogStore.StoreId" />
                                     }
                                     <input type="hidden" name="menuId" value="@details.Menu.MenuId" />
                                     @if (SelectedCategory is { } category)
@@ -405,7 +405,7 @@
                                                 <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
                                                                      StoreId="@_workspace.Store?.StoreId"
                                                                      MenuId="@details.Menu.MenuId"
-                                                                     CategoryId="@category.CategoryId"
+                                                                     CategoryId="@catalogCategory.CategoryId"
                                                                      Revision="@details.Menu.Revision"
                                                                      CsrfToken="@_csrfToken" />
                                                 <input type="hidden" name="action" value="add-item" />
