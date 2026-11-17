@@ -19,8 +19,11 @@ internal sealed class MenuDraftItemConfiguration : IEntityTypeConfiguration<Menu
         builder.Property(x => x.NameOverride).HasMaxLength(MenuDraftItem.MaxNameOverrideLength)
             .IsRequired(false);
         builder.Property(x => x.Position).IsRequired();
+        builder.Property(x => x.MenuCategoryId).IsRequired(false);
         builder.HasIndex(x => new { x.TenantId, x.MenuId, x.MenuCategoryId, x.CatalogItemId })
-            .IsUnique();
+            .IsUnique().HasFilter("[MenuCategoryId] IS NOT NULL");
+        builder.HasIndex(x => new { x.TenantId, x.MenuId, x.CatalogItemId })
+            .IsUnique().HasFilter("[MenuCategoryId] IS NULL");
         builder.HasIndex(x => new { x.TenantId, x.MenuId, x.MenuCategoryId, x.Position, x.Id });
         builder.HasOne<MenuDraftCategory>().WithMany()
             .HasForeignKey(x => new { x.TenantId, x.MenuId, x.MenuCategoryId })
