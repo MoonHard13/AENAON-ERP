@@ -59,11 +59,16 @@ public static class MenuDraftManageCommand
                 "move-category" or "remove-category" or "add-item" or "rename-item" or
                 "move-item" or "remove-item");
 
-        if (!TryOptionalGuid(values, "--menu-id", out Guid? menuId) ||
-            !TryOptionalGuid(values, "--category-id", out Guid? categoryId) ||
-            !TryOptionalGuid(values, "--item-id", out Guid? itemId) ||
-            !TryOptionalGuid(values, "--catalog-item-id", out Guid? catalogItemId) ||
-            !TryOptionalGuid(values, "--request-id", out Guid? requestId))
+        Guid? menuId = null;
+        Guid? categoryId = null;
+        Guid? itemId = null;
+        Guid? catalogItemId = null;
+        Guid? requestId = null;
+        if (!TryOptionalGuid(values, "--menu-id", out menuId) ||
+            !TryOptionalGuid(values, "--category-id", out categoryId) ||
+            !TryOptionalGuid(values, "--item-id", out itemId) ||
+            !TryOptionalGuid(values, "--catalog-item-id", out catalogItemId) ||
+            !TryOptionalGuid(values, "--request-id", out requestId))
         {
             valid = false;
         }
@@ -162,11 +167,11 @@ public static class MenuDraftManageCommand
 
             if (read)
             {
-                MenuDraftReadResult result = await service.ReadAsync(userId, tenantId,
+                MenuDraftReadResult readResult = await service.ReadAsync(userId, tenantId,
                     actionName == "details" ? menuId : null,
                     actionName == "catalog" ? values.GetValueOrDefault("--search") : null,
                     token);
-                if (!result.IsAuthorized)
+                if (!readResult.IsAuthorized)
                 {
                     await error.WriteLineAsync("Δεν έχετε δικαίωμα ανάγνωσης.");
                     return 3;
@@ -174,14 +179,14 @@ public static class MenuDraftManageCommand
 
                 if (actionName == "catalog")
                 {
-                    foreach (MenuCatalogOption item in result.Catalog)
+                    foreach (MenuCatalogOption item in readResult.Catalog)
                     {
                         await output.WriteLineAsync($"{item.CatalogItemId:D} | {item.Code} | {item.Name}");
                     }
                 }
                 else if (actionName == "details")
                 {
-                    if (result.Details is not { } details || details.Menu.MenuId != menuId)
+                    if (readResult.Details is not { } details || details.Menu.MenuId != menuId)
                     {
                         await error.WriteLineAsync("Το μενού δεν βρέθηκε.");
                         return 4;
@@ -203,7 +208,7 @@ public static class MenuDraftManageCommand
                 }
                 else
                 {
-                    foreach (MenuDraftSummary menu in result.Menus)
+                    foreach (MenuDraftSummary menu in readResult.Menus)
                     {
                         await output.WriteLineAsync(
                             $"{menu.MenuId:D} | {menu.Code} | {menu.Name} | Revision {menu.Revision}");
