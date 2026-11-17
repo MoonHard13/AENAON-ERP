@@ -75,6 +75,83 @@ public sealed class MenuBuilderUiTests
     }
 
     [TestMethod]
+    public async Task Owner_SeesNestedCategoriesOnlyWithinTheirParent()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.MenuDrafts.NestedCategory = true;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string root = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}"));
+        Assert.Contains("Κατηγορίες μενού", root);
+        Assert.Contains("Ορεκτικά", root);
+        Assert.DoesNotContain($"categoryId={SessionMenuDraftFixture.SecondaryCategoryId:D}", root);
+        Assert.Contains("data-menu-sortable=\"category\"", root);
+        Assert.Contains("menu-builder__drag-handle", root);
+
+        string parent = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}" +
+            $"&categoryId={SessionMenuDraftFixture.CategoryId:D}&tab=items"));
+        Assert.Contains($"categoryId={SessionMenuDraftFixture.SecondaryCategoryId:D}", parent);
+        Assert.Contains("Νέα υποκατηγορία", parent);
+        Assert.Contains($"name=\"parentCategoryId\" value=\"{SessionMenuDraftFixture.CategoryId:D}\"", parent);
+        Assert.Contains("menu-builder__drag-form", parent);
+
+        string child = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}" +
+            $"&categoryId={SessionMenuDraftFixture.SecondaryCategoryId:D}&tab=items"));
+        Assert.Contains("Αρχικό μενού", child);
+        Assert.Contains("Ορεκτικά", child);
+        Assert.Contains("Ποτά", child);
+    }
+
+    [TestMethod]
+    public async Task Owner_CanAddItemDirectlyToRootAndNestedCategory()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.MenuDrafts.RootItem = true;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}&tab=catalog"));
+        Assert.Contains("menu-builder__tile--category", html);
+        Assert.Contains("menu-builder__tile--item", html);
+        Assert.Contains("Είδη αρχικού μενού", html);
+        Assert.Contains("menu-builder__drag-handle", html);
+        Assert.Contains("menu-builder__catalog-drawer", html);
+
+        using var saved = await PostAsync(client, Token(html), new()
+        {
+            ["tenantId"] = Tenant.ToString("D"),
+            ["requestId"] = Guid.NewGuid().ToString("D"),
+            ["action"] = "add-item",
+            ["menuId"] = SessionMenuDraftFixture.MenuId.ToString("D"),
+            ["catalogItemId"] = SessionMenuDraftFixture.ProductId.ToString("D"),
+            ["expectedRevision"] = "1"
+        });
+        Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
+        Assert.IsNull(factory.MenuDrafts.LastCommand?.CategoryId);
+        Assert.AreEqual(MenuDraftAction.AddItem, factory.MenuDrafts.LastCommand?.Action);
+
+        using var childAdded = await PostAsync(client, Token(html), new()
+        {
+            ["tenantId"] = Tenant.ToString("D"),
+            ["requestId"] = Guid.NewGuid().ToString("D"),
+            ["action"] = "add-category",
+            ["menuId"] = SessionMenuDraftFixture.MenuId.ToString("D"),
+            ["parentCategoryId"] = SessionMenuDraftFixture.CategoryId.ToString("D"),
+            ["name"] = "Καφές",
+            ["expectedRevision"] = "1"
+        });
+        Assert.AreEqual(HttpStatusCode.Redirect, childAdded.StatusCode);
+        Assert.AreEqual(SessionMenuDraftFixture.CategoryId,
+            factory.MenuDrafts.LastCommand?.ParentCategoryId);
+        Assert.Contains("tab=items", childAdded.Headers.Location?.OriginalString ?? "");
+    }
+
+    [TestMethod]
     public async Task Owner_CanReorderBothLevelsAndRemoveEmptyCategory()
     {
         await using var factory = new SessionApiFactory();
