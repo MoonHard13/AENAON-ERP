@@ -174,8 +174,7 @@
 
 
                         @* Οι κατηγορίες και τα είδη εμφανίζονται στο ίδιο επίπεδο, με ασφαλή πλοήγηση στην ιεραρχία. *@
-                        @{
-                            Guid? currentCategoryId = SelectedCategory?.CategoryId;
+                        Guid? currentCategoryId = SelectedCategory?.CategoryId;
                             var childCategories = details.Categories.Where(x =>
                                 x.ParentCategoryId == currentCategoryId)
                                 .OrderBy(x => x.Position).ThenBy(x => x.CategoryId).ToList();
@@ -183,7 +182,6 @@
                                 x.CategoryId == currentCategoryId)
                                 .OrderBy(x => x.Position).ThenBy(x => x.ItemId).ToList();
                             var breadcrumbs = CategoryPath(details.Categories, SelectedCategory);
-                        }
                         <nav class="menu-builder__breadcrumbs" aria-label="Διαδρομή μενού">
                             <a href="@Url(details.Menu.MenuId, null, "categories")"
                                aria-current="@(currentCategoryId is null ? "page" : null)">
