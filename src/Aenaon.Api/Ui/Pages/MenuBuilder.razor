@@ -200,6 +200,8 @@
                                     <div class="menu-builder__empty" role="status">Δεν υπάρχουν κατηγορίες σε αυτό το προσχέδιο.</div>
                                 }
                                 <div class="menu-builder__tiles menu-builder__tiles--categories">
+                                @foreach (MenuDraftCategoryRecord menuCategory in details.Categories)
+                                {
                                     <article class="menu-builder__tile menu-builder__tile--category @(CategoryId == menuCategory.CategoryId ? "is-selected" : "")">
                                         <a class="menu-builder__tile-link" href="@Url(details.Menu.MenuId, menuCategory.CategoryId, "items")"
                                            aria-current="@(SelectedCategory?.CategoryId == menuCategory.CategoryId ? "true" : null)">
@@ -322,6 +324,8 @@
                                     <div class="menu-builder__empty" role="status">Δεν υπάρχουν είδη σε αυτή την κατηγορία. Χρησιμοποιήστε το ERP Catalog για χειροκίνητη προσθήκη.</div>
                                 }
                                 <div class="menu-builder__tiles menu-builder__tiles--items">
+                                    @foreach (MenuDraftItemRecord item in categoryItems)
+                                    {
                                         <article class="menu-builder__tile menu-builder__tile--item">
                                             <div class="menu-builder__tile-main">
                                                 <span class="menu-builder__tile-symbol" aria-hidden="true"><AppIcon Name="catalog" /></span>
