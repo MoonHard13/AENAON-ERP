@@ -1,7 +1,7 @@
 using System.Data;
 using Aenaon.Application.Tenancy;
-using Aenaon.Domain.Tenancy;
 using Aenaon.Domain.Menus;
+using Aenaon.Domain.Tenancy;
 using Aenaon.Infrastructure.Database;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
