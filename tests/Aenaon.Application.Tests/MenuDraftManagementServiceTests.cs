@@ -191,12 +191,14 @@ public sealed class MenuDraftManagementServiceTests
         public int ListCalls { get; private set; }
         public int CatalogCalls { get; private set; }
         public Guid LastTenant { get; private set; }
+        public MenuDraftCommand? LastCommand { get; private set; }
 
         public Task<MenuDraftMutationResult> ApplyAsync(Guid tenantId, Guid userId,
             MenuDraftCommand command, CancellationToken cancellationToken = default)
         {
             ApplyCalls++;
             LastTenant = tenantId;
+            LastCommand = command;
             return Task.FromResult(new MenuDraftMutationResult(MenuDraftStatus.Saved));
         }
 
