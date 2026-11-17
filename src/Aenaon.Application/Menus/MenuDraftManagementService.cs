@@ -83,6 +83,9 @@ public interface IMenuDraftStore
     Task<IReadOnlyList<MenuDraftSummary>> ListAsync(Guid tenantId,
         CancellationToken cancellationToken = default);
 
+    Task<Guid?> GetDefaultMenuIdAsync(Guid tenantId, Guid storeId,
+        CancellationToken cancellationToken = default);
+
     Task<MenuDraftDetails?> GetAsync(Guid tenantId, Guid menuId,
         CancellationToken cancellationToken = default);
 
@@ -153,18 +156,22 @@ public sealed class MenuDraftManagementService(
     }
 
     public async Task<MenuDraftReadResult> ReadAsync(Guid userId, Guid tenantId,
-        Guid? menuId, string? catalogSearch, CancellationToken cancellationToken = default)
+        Guid? menuId, string? catalogSearch, CancellationToken cancellationToken = default,
+        Guid? storeId = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         TenantAccessResult access = await authorization.CheckAsync(
-            userId, tenantId, null, TenantPermission.Read, cancellationToken);
+            userId, tenantId, storeId, TenantPermission.Read, cancellationToken);
         if (access.Status != TenantAccessStatus.Granted)
         {
             return MenuDraftReadResult.Denied;
         }
 
         IReadOnlyList<MenuDraftSummary> menus = await store.ListAsync(tenantId, cancellationToken);
-        Guid? selected = menuId ?? menus.FirstOrDefault()?.MenuId;
+        Guid? preferred = storeId.HasValue
+            ? await store.GetDefaultMenuIdAsync(tenantId, storeId.Value, cancellationToken)
+            : null;
+        Guid? selected = menuId ?? preferred ?? menus.FirstOrDefault()?.MenuId;
         MenuDraftDetails? details = selected.HasValue
             ? await store.GetAsync(tenantId, selected.Value, cancellationToken)
             : null;
