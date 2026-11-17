@@ -120,7 +120,7 @@ public sealed class MenuDraftManagementService(
             (command.Action is MenuDraftAction.CreateMenu or MenuDraftAction.EnsureStoreDefault &&
                 (command.MenuId.HasValue || command.ExpectedRevision.HasValue)) ||
             (command.Action == MenuDraftAction.EnsureStoreDefault &&
-                command.StoreId is not { } store || store == Guid.Empty) ||
+                (command.StoreId is not { } storeId || storeId == Guid.Empty)) ||
             (command.Action is not (MenuDraftAction.CreateMenu or MenuDraftAction.EnsureStoreDefault) &&
                 (command.MenuId is not { } menuId || menuId == Guid.Empty ||
                  command.ExpectedRevision is not > 0)) ||
