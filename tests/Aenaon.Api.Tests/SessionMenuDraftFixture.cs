@@ -14,6 +14,7 @@ internal sealed class SessionMenuDraftFixture : IMenuDraftStore
     public MenuDraftCommand? LastCommand { get; private set; }
     public Guid LastTenant { get; private set; }
     public int ReadCalls { get; private set; }
+    public bool EmptyDraft { get; set; }
 
     public Task<MenuDraftMutationResult> ApplyAsync(Guid tenantId, Guid userId,
         MenuDraftCommand command, CancellationToken cancellationToken = default)
@@ -44,8 +45,8 @@ internal sealed class SessionMenuDraftFixture : IMenuDraftStore
             ? new(
                 new(MenuId, "MAIN", "Κυρίως", 1,
                     new DateTime(2026, 11, 17, 8, 0, 0, DateTimeKind.Utc)),
-                [new MenuDraftCategoryRecord(CategoryId, "Ορεκτικά", 1, true)],
-                [new MenuDraftItemRecord(Guid.NewGuid(), CategoryId, ProductId,
+                EmptyDraft ? [] : [new MenuDraftCategoryRecord(CategoryId, "Ορεκτικά", 1, true)],
+                EmptyDraft ? [] : [new MenuDraftItemRecord(Guid.NewGuid(), CategoryId, ProductId,
                     "SKU001", "Πίτσα", null, true, 1)])
             : null;
         return Task.FromResult(value);
