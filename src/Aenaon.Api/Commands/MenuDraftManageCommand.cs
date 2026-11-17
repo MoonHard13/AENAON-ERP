@@ -32,7 +32,7 @@ public static class MenuDraftManageCommand
                 continue;
             }
             if (key is not ("--username" or "--tenant-id" or "--confirm-database" or
-                "--action" or "--menu-id" or "--category-id" or "--item-id" or
+                "--action" or "--menu-id" or "--store-id" or "--category-id" or "--item-id" or
                 "--catalog-item-id" or "--expected-revision" or "--position" or
                 "--name" or "--code" or "--name-override" or "--visible" or
                 "--request-id" or "--search") || i >= args.Length ||
@@ -55,7 +55,7 @@ public static class MenuDraftManageCommand
             Guid.TryParse(values.GetValueOrDefault("--tenant-id"), out tenantId) &&
             tenantId != Guid.Empty &&
             actionName is ("list" or "details" or "catalog" or
-                "create-menu" or "import-catalog" or "update-menu" or "add-category" or "update-category" or
+                "create-menu" or "import-catalog" or "ensure-store-default" or "update-menu" or "add-category" or "update-category" or
                 "move-category" or "remove-category" or "add-item" or "rename-item" or
                 "move-item" or "remove-item");
 
@@ -64,7 +64,9 @@ public static class MenuDraftManageCommand
         Guid? itemId = null;
         Guid? catalogItemId = null;
         Guid? requestId = null;
-        if (!TryOptionalGuid(values, "--menu-id", out menuId) ||
+        Guid? storeId = null;
+        if (!TryOptionalGuid(values, "--store-id", out storeId) ||
+            !TryOptionalGuid(values, "--menu-id", out menuId) ||
             !TryOptionalGuid(values, "--category-id", out categoryId) ||
             !TryOptionalGuid(values, "--item-id", out itemId) ||
             !TryOptionalGuid(values, "--catalog-item-id", out catalogItemId) ||
@@ -114,7 +116,15 @@ public static class MenuDraftManageCommand
             }
         }
 
-        if (read && (revision.HasValue || requestId.HasValue || categoryId.HasValue ||
+        if (actionName == "ensure-store-default" &&
+            (!storeId.HasValue || menuId.HasValue || revision.HasValue ||
+             categoryId.HasValue || itemId.HasValue || catalogItemId.HasValue ||
+             position.HasValue || visible.HasValue))
+        {
+            valid = false;
+        }
+
+        if (read && (storeId.HasValue || revision.HasValue || requestId.HasValue || categoryId.HasValue ||
                      itemId.HasValue || catalogItemId.HasValue || position.HasValue ||
                      visible.HasValue))
         {
@@ -125,9 +135,9 @@ public static class MenuDraftManageCommand
         {
             await error.WriteLineAsync(
                 "Χρήση: --manage-menus --username NAME --tenant-id GUID --confirm-database NAME " +
-                "--action list|details|catalog|create-menu|import-catalog|update-menu|add-category|update-category|" +
+                "--action list|details|catalog|create-menu|import-catalog|ensure-store-default|update-menu|add-category|update-category|" +
                 "move-category|remove-category|add-item|rename-item|move-item|remove-item " +
-                "[--menu-id GUID] [--category-id GUID] [--item-id GUID] [--catalog-item-id GUID] " +
+                "[--store-id GUID] [--menu-id GUID] [--category-id GUID] [--item-id GUID] [--catalog-item-id GUID] " +
                 "[--code CODE] [--name NAME] [--name-override TEXT] [--expected-revision N] " +
                 "[--position N] [--visible true|false] [--request-id GUID] [--search PREFIX] " +
                 "(--dry-run | --apply). Απαιτείται διαδραστικό τερματικό.");
@@ -218,7 +228,8 @@ public static class MenuDraftManageCommand
             }
 
             TenantAccessResult access = await authorization.CheckAsync(userId,
-                tenantId, null, TenantPermission.Manage, token);
+                tenantId, actionName == "ensure-store-default" ? storeId : null,
+                TenantPermission.Manage, token);
             if (access.Status != TenantAccessStatus.Granted)
             {
                 await error.WriteLineAsync("Απαιτείται δικαίωμα Owner.");
@@ -228,6 +239,7 @@ public static class MenuDraftManageCommand
             MenuDraftAction action = actionName switch
             {
                 "create-menu" => MenuDraftAction.CreateMenu,
+                "ensure-store-default" => MenuDraftAction.EnsureStoreDefault,
                 "import-catalog" => MenuDraftAction.ImportCatalogContents,
                 "update-menu" => MenuDraftAction.UpdateMenu,
                 "add-category" => MenuDraftAction.AddCategory,
@@ -245,12 +257,12 @@ public static class MenuDraftManageCommand
             var command = new MenuDraftCommand(action, operation, menuId, revision,
                 categoryId, itemId, catalogItemId, values.GetValueOrDefault("--code"),
                 values.GetValueOrDefault("--name"), values.GetValueOrDefault("--name-override"),
-                position, visible);
+                position, visible, storeId);
 
             if (dryRun)
             {
                 await output.WriteLineAsync($"ΠΡΟΕΠΙΣΚΟΠΗΣΗ ΧΩΡΙΣ SQL WRITE | {actionName} | Tenant {tenantId:D}");
-                if (action is MenuDraftAction.CreateMenu or MenuDraftAction.ImportCatalogContents)
+                if (action is MenuDraftAction.CreateMenu or MenuDraftAction.ImportCatalogContents or MenuDraftAction.EnsureStoreDefault)
                 {
                     await output.WriteLineAsync("Η εφαρμογή θα εισαγάγει τις ενεργές κατηγορίες ΜΑΖΙ με τα ενεργά είδη ERP, χωρίς αλλαγή του καταλόγου ή τιμών.");
                 }
