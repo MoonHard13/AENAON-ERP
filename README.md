@@ -2,7 +2,13 @@
 
 Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες επιχειρήσεις εστίασης. Διαθέτει Development Back Office και υποστήριξη προϊόντων/υπηρεσιών· το POS και η εφαρμογή σερβιτόρων είναι **μελλοντικές λειτουργίες**, όχι διαθέσιμο προϊόν.
 
-## Step 9.6A.1 — Draft Menu Management (προτεινόμενο PR #62)
+## Επέκταση Menu Builder — Ιεραρχία, drag & drop, root items (Draft PR #62, 17/11/2026)
+
+**Νέο στο feature branch, όχι στο `main`:** κύριες κατηγορίες μόνο στην αρχική προβολή, υποκατηγορίες μέσα στον γονέα, είδη και στη ρίζα χωρίς κατηγορία, πραγματικό native drag & drop ταξινόμησης **εντός ίδιου επιπέδου** με πλήκτρα ↑/↓ και keyboard, modular Razor πλακίδια. Το μοντέλο παραμένει multi-tenant, με Owner-only writes, antiforgery, revision, idempotency, SQL FKs και ευθυγράμμιση ERP Catalog auto-sync.
+
+**Κρίσιμο:** Απαιτεί την νέα **13η SQL migration** `20261117170000_MenuBuilderHierarchyAndRootItems`, η οποία **δεν έχει εγκριθεί / εφαρμοστεί στην `AenaonERP_Dev`**. Η προηγούμενη #12 έχει εφαρμοστεί σύμφωνα με owner-provided στοιχεία. **Μην εφαρμόσετε #13 χωρίς νέο backup, review ακριβούς SQL, dry-run, restore plan και ρητή άδεια.** Δεν έγινε merge, Production, POS, Publish ή fiscal. Η πραγματική οπτική/SQL E2E αποδοχή παραμένει **NOT VERIFIED**. [Manual 64](docs/64-menu-builder-hierarchy-and-drag-drop.md) · [Draft PR #62](https://github.com/MoonHard13/AENAON-ERP/pull/62).
+
+
 
 **Menu Builder UI redesign (17/11/2026):** Στο Draft PR #62 η παλιά τρίστηλη προβολή αντικαταστάθηκε με **responsive grid κατηγοριών → grid ειδών**, breadcrumb επιστροφής, compact ενέργειες σε γρανάζια, ξεχωριστές ενδείξεις ορατότητας και πτυσσόμενο ERP Catalog. Διατηρούνται οι ίδιες εξουσιοδοτήσεις, atomic/idempotent POST, revisions και Store Default/Auto-Sync — **χωρίς νέα SQL migration, Production/POS/Publish/fiscal ή merge**. **GitHub Actions #44099925539 PASS**: Windows/Ubuntu Release, 533 non-SQL tests ανά OS, 1 isolated SQL Server test στο Ubuntu. Οι SSR regression tests αποτελούν μόνο αυτοματοποιημένο έλεγχο· πραγματικό Development browser/mobile/Light-Dark/keyboard E2E **NOT VERIFIED**. [Manual 63 — Menu Builder UI/UX](docs/63-menu-builder-tile-redesign.md).
 
