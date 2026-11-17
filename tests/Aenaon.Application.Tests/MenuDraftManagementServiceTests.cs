@@ -85,6 +85,23 @@ public sealed class MenuDraftManagementServiceTests
         Assert.AreEqual(MenuDraftStatus.Saved, root.Status);
         Assert.IsNull(store.LastCommand?.CategoryId);
 
+        // Επεξεργασία, ταξινόμηση και αφαίρεση είδους ρίζας δεν απαιτούν CategoryId.
+        Guid rootItemId = Guid.NewGuid();
+        foreach (MenuDraftAction action in new[]
+        {
+            MenuDraftAction.RenameItem, MenuDraftAction.MoveItem, MenuDraftAction.RemoveItem
+        })
+        {
+            MenuDraftMutationResult operation = await service.ApplyAsync(User, Tenant,
+                new(action, Guid.NewGuid(), MenuId: menuId, ExpectedRevision: 1,
+                    ItemId: rootItemId,
+                    TargetPosition: action == MenuDraftAction.MoveItem ? 1 : null,
+                    NameOverride: action == MenuDraftAction.RenameItem ? "Ειδικό" : null));
+            Assert.AreEqual(MenuDraftStatus.Saved, operation.Status);
+            Assert.AreEqual(action, store.LastCommand?.Action);
+            Assert.IsNull(store.LastCommand?.CategoryId);
+        }
+
         int calls = store.ApplyCalls;
         MenuDraftMutationResult invalid = await service.ApplyAsync(User, Tenant,
             new(MenuDraftAction.AddCategory, Guid.NewGuid(), MenuId: menuId,
