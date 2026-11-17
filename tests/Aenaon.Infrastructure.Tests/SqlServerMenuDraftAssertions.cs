@@ -1,3 +1,4 @@
+using Aenaon.Application.Catalog;
 using Aenaon.Application.Menus;
 using Aenaon.Domain.Catalog;
 using Aenaon.Domain.Menus;
@@ -194,6 +195,58 @@ internal static class SqlServerMenuDraftAssertions
         Assert.AreEqual(2L, sameRequest.Revision);
         Assert.AreEqual(2, await context.MenuDraftItems.CountAsync(x =>
             x.TenantId == menuTenantId && x.MenuId == legacy.Id, token));
+
+        // Η δημιουργία νέας ERP κατηγορίας συγχρονίζει ατομικά όλα τα μενού.
+        var catalogWrite = new SqlCatalogWriteStore(context);
+        Guid categoryRequestId = Guid.NewGuid();
+        CatalogChangeResult newCategory = await catalogWrite.ApplyAsync(menuTenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "DESSERT", Name: "Γλυκά", RequestId: categoryRequestId), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, newCategory.Status);
+        Assert.IsNotNull(newCategory.Id);
+
+        MenuDraftDetails? afterCategory = await store.GetAsync(menuTenantId, menuId, token);
+        Assert.IsNotNull(afterCategory);
+        Assert.HasCount(4, afterCategory.Categories);
+        Assert.AreEqual(6L, afterCategory.Menu.Revision);
+        Assert.IsTrue(afterCategory.Categories.Any(x => x.Name == "Γλυκά"));
+        Guid newMenuCategoryId = await context.MenuDraftCategories
+            .Where(x => x.TenantId == menuTenantId && x.MenuId == menuId &&
+                x.CatalogCategoryId == newCategory.Id)
+            .Select(x => x.Id).SingleAsync(token);
+        Guid legacyMenuCategoryId = await context.MenuDraftCategories
+            .Where(x => x.TenantId == menuTenantId && x.MenuId == legacy.Id &&
+                x.CatalogCategoryId == newCategory.Id)
+            .Select(x => x.Id).SingleAsync(token);
+        Assert.AreNotEqual(newMenuCategoryId, legacyMenuCategoryId);
+
+        // Retry με ίδιο idempotency token δεν προσθέτει δεύτερη κατηγορία.
+        CatalogChangeResult duplicateCategoryRequest = await catalogWrite.ApplyAsync(menuTenantId,
+            new(CatalogManagedEntity.Category, CatalogChangeAction.Create,
+                Code: "DESSERT", Name: "Γλυκά", RequestId: categoryRequestId), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, duplicateCategoryRequest.Status);
+        Assert.AreEqual(newCategory.Id, duplicateCategoryRequest.Id);
+        Assert.AreEqual(1, await context.MenuDraftCategories.CountAsync(x =>
+            x.TenantId == menuTenantId && x.MenuId == menuId &&
+            x.CatalogCategoryId == newCategory.Id, token));
+
+        // Το νέο ERP είδος προστίθεται στο σωστό auto-synced MenuDraftCategory.
+        CatalogChangeResult newProduct = await catalogWrite.ApplyAsync(menuTenantId,
+            new(CatalogManagedEntity.Product, CatalogChangeAction.Create,
+                Code: "P100", Name: "Γλυκό ημέρας", CategoryId: newCategory.Id,
+                RequestId: Guid.NewGuid()), token);
+        Assert.AreEqual(CatalogChangeStatus.Saved, newProduct.Status);
+        Assert.IsNotNull(newProduct.Id);
+        Assert.IsTrue(await context.MenuDraftItems.AsNoTracking().AnyAsync(x =>
+            x.TenantId == menuTenantId && x.MenuId == menuId &&
+            x.MenuCategoryId == newMenuCategoryId &&
+            x.CatalogItemId == newProduct.Id, token));
+        Assert.IsTrue(await context.MenuDraftItems.AsNoTracking().AnyAsync(x =>
+            x.TenantId == menuTenantId && x.MenuId == legacy.Id &&
+            x.MenuCategoryId == legacyMenuCategoryId &&
+            x.CatalogItemId == newProduct.Id, token));
+        Assert.IsFalse(await context.MenuDraftItems.AsNoTracking().AnyAsync(x =>
+            x.TenantId == foreignTenant && x.CatalogItemId == newProduct.Id, token));
 
         // Το σύνθετο SQL FK απορρίπτει σύνδεση με προϊόν άλλου Tenant.
         RestaurantMenu fkMenu = RestaurantMenu.Create(menuTenantId, "FK-PROBE", "Έλεγχος FK");
