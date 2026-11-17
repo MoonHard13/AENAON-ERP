@@ -118,15 +118,15 @@ internal static class MenuCatalogSynchronizer
 
         Guid[] categoryIds = categories.Select(x => x.CategoryId).ToArray();
         var maxPositions = await context.MenuDraftItems.AsNoTracking()
-            .Where(x => x.TenantId == tenantId && categoryIds.Contains(x.MenuCategoryId))
-            .GroupBy(x => x.MenuCategoryId)
+            .Where(x => x.TenantId == tenantId && x.MenuCategoryId.HasValue && categoryIds.Contains(x.MenuCategoryId.Value))
+            .GroupBy(x => x.MenuCategoryId!.Value)
             .Select(g => new { CategoryId = g.Key, Last = g.Max(x => x.Position) })
             .ToDictionaryAsync(x => x.CategoryId, x => x.Last, cancellationToken);
 
         HashSet<Guid> existing = (await context.MenuDraftItems.AsNoTracking()
             .Where(x => x.TenantId == tenantId && x.CatalogItemId == source.Id &&
-                categoryIds.Contains(x.MenuCategoryId))
-            .Select(x => x.MenuCategoryId).ToListAsync(cancellationToken))
+                x.MenuCategoryId.HasValue && categoryIds.Contains(x.MenuCategoryId.Value))
+            .Select(x => x.MenuCategoryId!.Value).ToListAsync(cancellationToken))
             .ToHashSet();
 
         Guid[] menus = categories.Select(x => x.MenuId).Distinct().ToArray();
