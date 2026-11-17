@@ -1706,3 +1706,41 @@ html {
 @media (prefers-reduced-motion: reduce) {
     .menu-builder * { scroll-behavior: auto !important; }
 }
+
+
+/* Η αυτόματη εισαγωγή ενεργών κατηγοριών ΚΑΙ ειδών έχει σαφή επιβεβαίωση και mobile στοίχιση. */
+.menu-builder__hint {
+    color: var(--muted-strong);
+    font-size: 12px;
+    line-height: 1.6;
+    margin: 4px 0 8px;
+}
+.menu-builder__import {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--border);
+    padding: 15px 24px;
+    background: var(--surface-alt);
+}
+.menu-builder__import > div { flex: 1 1 260px; min-width: 0; }
+.menu-builder__import strong { font-size: 13px; }
+.menu-builder__import p {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--muted-strong);
+    margin: 5px 0 0;
+}
+.menu-builder__import form { flex: 0 1 auto; min-width: 0; }
+.menu-builder__import button {
+    min-height: 44px;
+    max-width: 100%;
+    white-space: normal;
+}
+@media (max-width: 600px) {
+    .menu-builder__import { padding: 14px 11px; }
+    .menu-builder__import form,
+    .menu-builder__import button { width: 100%; }
+}
