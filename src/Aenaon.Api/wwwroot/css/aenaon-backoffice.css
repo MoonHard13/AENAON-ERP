@@ -1782,6 +1782,13 @@ html {
     .menu-builder__workspace, .menu-builder__footnote { padding-inline: 13px; }
     .menu-builder__breadcrumbs { padding-inline: 13px; }
     .menu-builder__tiles { grid-template-columns: repeat(auto-fill, minmax(min(100%, 142px), 1fr)); gap: 9px; }
+    /* Το μενού ενεργειών παραμένει εντός viewport και σε στενές συσκευές. */
+    .menu-builder__tile-menu[open] .menu-builder__entry-actions {
+        position: fixed; top: clamp(70px, 15vh, 125px);
+        left: 50%; right: auto; transform: translateX(-50%);
+        width: min(340px, calc(100vw - 24px));
+        max-height: calc(100dvh - 150px); z-index: 80;
+    }
     .menu-builder__drawer-trigger { flex-wrap: wrap; }
     .menu-builder__drawer-trigger > small { order: 3; margin: 0; width: 100%; }
     .menu-builder__import { padding-inline: 13px; }
