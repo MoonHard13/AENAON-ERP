@@ -10,7 +10,7 @@ public sealed class MenuDraftCategory
         Name = string.Empty;
     }
 
-    private MenuDraftCategory(Guid tenantId, Guid menuId, string? name, int position)
+    private MenuDraftCategory(Guid tenantId, Guid menuId, string? name, int position, Guid? catalogCategoryId)
     {
         MenuText.Identity(tenantId, menuId, "μενού");
         MenuText.Position(position);
@@ -20,10 +20,20 @@ public sealed class MenuDraftCategory
         Name = MenuText.Required(name, MaxNameLength, "menu.category.name.invalid", "Κατηγορία");
         Position = position;
         IsVisible = true;
+        CatalogCategoryId = catalogCategoryId;
     }
 
-    public static MenuDraftCategory Create(Guid tenantId, Guid menuId, string? name, int position) =>
-        new(tenantId, menuId, name, position);
+    public static MenuDraftCategory Create(Guid tenantId, Guid menuId, string? name, int position,
+        Guid? catalogCategoryId = null)
+    {
+        if (catalogCategoryId == Guid.Empty)
+        {
+            throw new Aenaon.Domain.Exceptions.DomainRuleException("menu.catalog.category.invalid",
+                "Η πηγή κατηγορίας ERP δεν είναι έγκυρη.");
+        }
+
+        return new(tenantId, menuId, name, position, catalogCategoryId);
+    }
 
     public void Update(string? name, bool isVisible)
     {
@@ -40,6 +50,7 @@ public sealed class MenuDraftCategory
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
     public Guid MenuId { get; private set; }
+    public Guid? CatalogCategoryId { get; private set; }
     public string Name { get; private set; }
     public int Position { get; private set; }
     public bool IsVisible { get; private set; }
