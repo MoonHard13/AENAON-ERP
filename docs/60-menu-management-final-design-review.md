@@ -5,7 +5,7 @@
 **Κατάσταση:** **9.6A.0 DESIGN APPROVED — 10/10 αποφάσεις owner**, design-only. **Καμία άδεια υλοποίησης, SQL migration ή merge**.
 
 {% hint style="warning" %}
-Η ρητή δήλωση «accept 9.5C.5» αποτελεί owner acceptance με **NOT VERIFIED** πραγματικά Browser/Development SQL/Owner–Member/Mobile/Keyboard/Concurrency gates. Στις 16/11/2026 εγκρίθηκαν τόσο οι έξι UX/functional αποφάσεις όσο και οι τέσσερις πολιτικές DEC-01..DEC-04. Αυτές οι **10/10 σχεδιαστικές εγκρίσεις** δεν εγκρίνουν migration, ανάπτυξη 9.6A.1, δημοσίευση σε GitBook ή merge του PR #61.
+Η αρχική δήλωση «accept 9.5C.5» συμπληρώθηκε στις **17/11/2026** με ρητή επιβεβαίωση του ιδιοκτήτη ότι **οι πραγματικοί Development E2E/SQL έλεγχοι εκτελέστηκαν επιτυχώς**. Πρόκειται για **owner-attested PASS**, όχι independently reproduced E2E/SQL test report. Στις 16/11/2026 εγκρίθηκαν τόσο οι έξι UX/functional αποφάσεις όσο και οι τέσσερις πολιτικές DEC-01..DEC-04. Αυτές οι **10/10 σχεδιαστικές εγκρίσεις** δεν εγκρίνουν migration, ανάπτυξη 9.6A.1, δημοσίευση σε GitBook ή merge του PR #61.
 {% endhint %}
 
 ## 1. Ρητώς εγκεκριμένες αποφάσεις του ιδιοκτήτη
@@ -31,7 +31,7 @@
 | B — SQL integrity | DESIGN REVIEWED, NOT TESTED | Απαιτούνται scoped composite FKs, tenant-safe unique keys, rowversion, audit, transaction και isolation tests |
 | C — UI/Accessibility | CORE APPROVED, NOT TESTED | Τρεις στήλες, mobile tabs, side-sheet editor, μη-Drag-only actions, χωρίς inactive placeholders |
 | D — Tests/Delivery | NOT VERIFIED | Το Menu δεν υπάρχει ακόμη· δεν είναι δυνατό E2E πραγματικής λειτουργίας. Σχεδιάστηκαν test IDs MENU-01..14 |
-| Prior 9.5C.5 acceptance | OWNER ACCEPTED, TECHNICAL GATES NOT VERIFIED | Owner sign-off έχει καταγραφεί ξεχωριστά. Δεν γίνεται rewrite των ανεπιβεβαίωτων gates ως PASS |
+| Prior 9.5C.5 acceptance | OWNER ACCEPTED; USER-ATTESTED DEV E2E/SQL PASS | Ο χειριστής επιβεβαίωσε πραγματικές επιτυχείς δοκιμές (17/11/2026)· ανά-case logs και ανεξάρτητη επανεκτέλεση δεν υποβλήθηκαν εδώ |
 | GitHub docs PR #61 | OPEN, NOT MERGED | Παραμένει documentation-only. Τελευταίο CI ελέγχεται σε αναφορά PR· όχι ισχυρισμός PASS για νέες αλλαγές χωρίς run |
 | GitBook | CONTENT DRIFT DETECTED | Η τρέχουσα δημοσιευμένη εισαγωγή/Κατάλογος έχει παλαιότερα PR #50/#51. Καμία live δημοσίευση εδώ |
 
@@ -130,14 +130,14 @@
 
 ## 7. Πότε χρησιμοποιείται / δεν χρησιμοποιείται
 
-Χρησιμοποιείται για design sign-off και αρχιτεκτονική ανασκόπηση πριν από την προετοιμασία implementable 9.6A.1 PR. Δεν αποτελεί εγχειρίδιο ήδη υπάρχουσας λειτουργίας, εξουσιοδότηση βάσης, πλήρες acceptance των 9.5C.5 tests, φορολογική έγκριση ή άδεια έκδοσης παραστατικών.
+Χρησιμοποιείται για design sign-off και αρχιτεκτονική ανασκόπηση πριν από την προετοιμασία implementable 9.6A.1 PR. Δεν αποτελεί εγχειρίδιο ήδη υπάρχουσας λειτουργίας, εξουσιοδότηση βάσης, **ανεξάρτητο test report του owner-accepted 9.5C.5**, φορολογική έγκριση ή άδεια έκδοσης παραστατικών.
 
 ### Checklist τελικής έγκρισης
 - [x] Έξι βασικές UX/functional αποφάσεις εγκρίθηκαν από τον ιδιοκτήτη.
 - [x] Επιβεβαιώθηκε το GitHub main και το ανοικτό docs-only PR.
 - [x] Καταγράφηκαν οι εξαρτήσεις Catalog/Pricing, τα security risks, τα models και UX wireframes.
 - [x] **Εγκρίθηκαν ρητά οι πολιτικές DEC-01..DEC-04** (Owner-only, fail-closed pricing, ERP-linked charged modifiers, explicit Store timezone/UTC/DST).
-- [ ] Ολοκληρώθηκαν/τεκμηριώθηκαν τα εκκρεμή υποχρεωτικά πραγματικά 9.5C.5 E2E/SQL checks.
+- [x] Ο ιδιοκτήτης **επιβεβαίωσε ότι ολοκλήρωσε επιτυχώς** τα πραγματικά 9.5C.5 E2E/SQL checks (17/11/2026). **Δεν έχουν επισυναφθεί** εδώ detailed artifacts για ανεξάρτητη ανασκόπηση.
 - [ ] Δόθηκε ξεχωριστή ρητή έγκριση έναρξης 9.6A.1 και σχετικού SQL migration plan.
 - [ ] Αποφασίστηκε χωριστά το merge του docs PR #61.
 - [ ] Δημοσιεύτηκε εγκεκριμένη, ενημερωμένη έκδοση GitBook με ανεξάρτητο content review.
