@@ -2,11 +2,21 @@
 
 Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες επιχειρήσεις εστίασης. Διαθέτει Development Back Office και υποστήριξη προϊόντων/υπηρεσιών· το POS και η εφαρμογή σερβιτόρων είναι **μελλοντικές λειτουργίες**, όχι διαθέσιμο προϊόν.
 
+## Τρέχον checkpoint — 16/11/2026: 9.5C.5 → 9.6A.0
+
+**Αποδοχή ιδιοκτήτη (16–17/11/2026):** Στις 16/11 ο ιδιοκτήτης δήλωσε **«accept 9.5C.5»** και στις **17/11/2026** δήλωσε ρητά ότι **εκτέλεσε ο ίδιος τα πραγματικά Development E2E/SQL acceptance checks του 9.5C.5 και ήταν όλα εντάξει**. Κατάσταση: **9.5C.5 OWNER ACCEPTED — USER-ATTESTED DEVELOPMENT E2E/SQL PASS**. Η διαπίστωση προέρχεται από τον χειριστή και **δεν έχει επανεκτελεστεί ανεξάρτητα** σε αυτό το περιβάλλον· δεν δόθηκαν εδώ αναλυτικά αποτελέσματα ανά test case, SQL outputs, test logs ή screenshots. Τα ιστορικά `NOT VERIFIED` αφορούν **τον ανεξάρτητο έλεγχο που δεν έγινε εδώ**, όχι άρνηση της επιβεβαίωσης του ιδιοκτήτη. Παραμένει απαραίτητη **ξεχωριστή ρητή έγκριση** για έναρξη 9.6A.1, SQL migration, merge PR #61 ή δημοσίευση GitBook.
+
+Το [PR #60](https://github.com/MoonHard13/AENAON-ERP/pull/60) **έγινε merge** στο `main` commit `3af56b94d0758f59386f6437be5330ff681b0b53`. Το [τελευταίο main CI #43836751173](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43836751173) ολοκληρώθηκε επιτυχώς σε Windows/Ubuntu με isolated SQL Server 2022. Η φυσική SQL ταξινόμηση κωδικών τιμοκαταλόγων (1, 2, 10) περιλαμβάνεται πλέον στο main.
+
+**Catalog & Pricing 9.5C.5: OWNER ACCEPTED — USER-ATTESTED E2E/SQL PASS (17/11/2026).** Ο ιδιοκτήτης αναφέρει επιτυχή ολοκλήρωση των πραγματικών Development checks· ανεξάρτητη επανεκτέλεση και ανά-case artifacts **δεν έχουν παρασχεθεί εδώ**. [Πρωτόκολλο και κατάσταση τεκμηρίων](docs/59-acceptance-evidence-and-test-protocol.md).
+
+Το [**9.6A.0 — Menu Management Architecture & UX**](docs/58-menu-management-architecture.md) είναι **DESIGN APPROVED (10/10 αποφάσεις owner)**, αλλά αυστηρά design-only. Ο ιδιοκτήτης αναφέρει επιτυχή πραγματικά 9.5C.5 Development E2E/SQL checks· καμία υλοποίηση/SQL migration/POS/δημοσίευση μενού χωρίς ξεχωριστή ρητή έγκριση για 9.6A.1. Το live AENAON GitBook έχει παρωχημένες αναφορές (PR #50/#51) και απαιτεί ξεχωριστή ελεγχόμενη ενημέρωση.
+
 ## Βήμα 9.5C.4 — Εμπορικά scopes και immutable price snapshot (PR #59 merged)
 
 Το [PR #59](https://github.com/MoonHard13/AENAON-ERP/pull/59) συγχωνεύθηκε στο `main` στις 16/11/2026. Το `CommercialPriceSnapshot` v1 και η εξουσιοδοτημένη read-only `PreviewSnapshotAsync` υλοποιούνται στον κώδικα, με επιτυχές [main CI #43823668569](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43823668569). **Το snapshot παραμένει μόνο στη μνήμη**, όχι εγγραφή SQL ή δέσμευση παραγγελίας. Δεν εισήχθη νέα migration, Order/POS, customer-group pricing ή φορολογικός υπολογισμός. [Manual 56](docs/56-pricing-scopes-commercial-snapshot.md).
 
-**9.5C.5 — Catalog & Pricing Final Acceptance:** ενεργός έλεγχος χωρίς πλήρη αποδοχή. Η επιθεώρηση και οι επιδιορθώσεις καταγράφονται στο [Manual 57](docs/57-catalog-pricing-final-acceptance.md). Οι πραγματικές δοκιμές Development application/mobile/keyboard/SQL persistence απαιτούν επιπλέον τεκμήρια πριν από το 9.6A.
+**9.5C.5 — Catalog & Pricing Final Acceptance:** **αποδεκτό από ιδιοκτήτη**, με αναφερόμενα επιτυχή πραγματικά Development E2E/SQL checks (17/11/2026). Το [Manual 57](docs/57-catalog-pricing-final-acceptance.md) διατηρεί τα ιστορικά independently `NOT VERIFIED` και διαχωρίζει owner attestation από ανεξάρτητο έλεγχο.
 
 ## Υποχρεωτική συμβατότητα ΑΑΔΕ myDATA / IMPACT
 
@@ -144,7 +154,7 @@ Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες ε�
 
 ## Βήμα 9.5B.3B — Blazor Price Preview (PR #49 merged)
 
-Η οθόνη `/price-lists/preview` διαβάζει ενεργά είδη και εξηγεί εμπορική τιμή, scope, κανάλι και προτεραιότητα. **Οπτική αποδοχή Light/Dark, mobile και πληκτρολογίου παραμένει εκκρεμής.** [Manual 50](docs/50-price-preview-blazor.md).
+Η οθόνη `/price-lists/preview` διαβάζει ενεργά είδη και εξηγεί εμπορική τιμή, scope, κανάλι και προτεραιότητα. **Η οπτική αποδοχή περιλαμβάνεται στους Development ελέγχους που ο ιδιοκτήτης αναφέρει ότι ολοκλήρωσε επιτυχώς στις 17/11/2026· δεν επαναλήφθηκε ανεξάρτητα εδώ.** [Manual 50](docs/50-price-preview-blazor.md).
 
 ## Βήμα 9.5C.1 — Catalog & Pricing Gap Analysis
 
@@ -183,7 +193,7 @@ Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες ε�
 - **Σχήμα:** Στο `main` υπάρχουν **10 EF Core migrations**, τελευταία `20261114163000_PriceListAuditHistory`. Ο χειριστής επιβεβαίωσε `AenaonERP_Dev`: **10 εφαρμοσμένες / 0 εκκρεμείς**, καθώς και audit table, ενεργό trigger, trusted constraints και index μέσω SSMS. Η migration **δεν πρέπει να εκτελεστεί ξανά**. Άλλα περιβάλλοντα χρειάζονται ανεξάρτητο backup/SQL review/έγκριση. Η βελτίωση sorting δεν προσθέτει migration.
 - **Δικαιώματα:** Owner/Manage για μεταβολές, Owner/Member με Read για προβολή, πάντα με Tenant/Store έλεγχο.
 - **Όχι ακόμη:** production POS, Android APK, offline συγχρονισμός, τιμολόγηση παραγγελιών, έκδοση/αποστολή παραστατικών, εγκεκριμένοι φορολογικοί κανόνες myDATA/IMPACT ή **αποθηκευμένα** immutable price snapshots παραγγελιών.
-- **Επόμενο προτεινόμενο βήμα:** ολοκλήρωση του [9.5C.5 acceptance](docs/57-catalog-pricing-final-acceptance.md), πραγματικών browser/SQL δοκιμών και έγκρισης. Το **9.6A — Μενού εστίασης** έπεται της ολοκλήρωσης/αποδοχής του catalog & pricing. Excel / bulk παραμένουν αναβλημένα.
+- **Επόμενο προτεινόμενο βήμα:** προετοιμασία [9.6A.1 Draft Menu Management](docs/58-menu-management-architecture.md) για **ξεχωριστή ρητή έγκριση υλοποίησης**. Η [9.5C.5 ανθρώπινη αποδοχή](docs/57-catalog-pricing-final-acceptance.md) και τα Development E2E/SQL checks έχουν επιβεβαιωθεί ως PASS **από τον ιδιοκτήτη**, όχι με ανεξάρτητη επανεκτέλεση εδώ. Excel / bulk παραμένουν αναβλημένα.
 
 Η πιο πρόσφατη σύνοψη και η διάκριση ιστορικών manuals: [Κατάσταση και χάρτης τεκμηρίωσης](docs/00-current-state-and-roadmap.md).
 
@@ -510,7 +520,10 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database
 - [Read-only επίλυση τιμής](docs/49-price-resolution-foundation.md)
 - [Blazor προεπισκόπηση τιμής](docs/50-price-preview-blazor.md)
 - [Εμπορικά scopes & immutable snapshot — 9.5C.4 (merged PR #59)](docs/56-pricing-scopes-commercial-snapshot.md)
-- [Catalog & Pricing Final Acceptance — 9.5C.5 (σε εξέλιξη)](docs/57-catalog-pricing-final-acceptance.md)
+- [Catalog & Pricing Final Acceptance — 9.5C.5 (owner accepted / E2E+SQL user-attested PASS)](docs/57-catalog-pricing-final-acceptance.md)
+- [9.5C.5 Evidence — main PR #60 και πραγματικό QA πρωτόκολλο](docs/59-acceptance-evidence-and-test-protocol.md)
+- [Menu Management 9.6A.0 — Αρχιτεκτονική και UX, μόνο σχεδιασμός](docs/58-menu-management-architecture.md)
+- [Menu Management 9.6A.0 — Τελικό design review: 10/10 εγκεκριμένες UX/functional αποφάσεις και πολιτικές](docs/60-menu-management-final-design-review.md)
 - [Κατάσταση έργου και χάρτης τεκμηρίωσης](docs/00-current-state-and-roadmap.md)
 - [Συμφωνημένες απαιτήσεις](docs/requirements.md)
 
