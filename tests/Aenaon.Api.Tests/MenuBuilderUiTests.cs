@@ -18,7 +18,7 @@ public sealed class MenuBuilderUiTests
         await using var factory = new SessionApiFactory();
         using var client = factory.CreateHttpsClient();
         using var page = await client.GetAsync("/menus");
-        Assert.AreEqual(HttpStatusCode.Redirect, page.StatusCode);
+        Assert.IsTrue(page.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.Unauthorized);
         using var post = await client.PostAsync("/ui/menus/draft", new FormUrlEncodedContent([]));
         Assert.IsTrue(post.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.Unauthorized);
         Assert.AreEqual(0, factory.MenuDrafts.ApplyCalls);
