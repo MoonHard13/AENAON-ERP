@@ -1,4 +1,5 @@
 using Aenaon.Domain.Catalog;
+using Aenaon.Domain.Menus;
 using Aenaon.Domain.Tenancy;
 using Aenaon.Infrastructure.Fiscal;
 using Aenaon.Infrastructure.Identity;
@@ -17,6 +18,11 @@ public sealed class AenaonDbContext(DbContextOptions<AenaonDbContext> options) :
     public DbSet<PriceList> PriceLists => Set<PriceList>();
     public DbSet<PriceListItem> PriceListItems => Set<PriceListItem>();
     public DbSet<PriceListAuditEntry> PriceListAuditEntries => Set<PriceListAuditEntry>();
+    public DbSet<RestaurantMenu> RestaurantMenus => Set<RestaurantMenu>();
+    public DbSet<MenuDraft> MenuDrafts => Set<MenuDraft>();
+    public DbSet<MenuDraftCategory> MenuDraftCategories => Set<MenuDraftCategory>();
+    public DbSet<MenuDraftItem> MenuDraftItems => Set<MenuDraftItem>();
+    public DbSet<MenuDraftOperationReceipt> MenuDraftOperationReceipts => Set<MenuDraftOperationReceipt>();
     public DbSet<FiscalReferenceRecord> FiscalReferenceCodes => Set<FiscalReferenceRecord>();
     public DbSet<FiscalTaxMappingRecord> FiscalTaxMappings => Set<FiscalTaxMappingRecord>();
     public DbSet<FiscalImportBatch> FiscalImportBatches => Set<FiscalImportBatch>();
@@ -35,6 +41,11 @@ public sealed class AenaonDbContext(DbContextOptions<AenaonDbContext> options) :
         modelBuilder.ApplyConfiguration(new PriceListConfiguration());
         modelBuilder.ApplyConfiguration(new PriceListItemConfiguration());
         modelBuilder.ApplyConfiguration(new PriceListAuditEntryConfiguration());
+        modelBuilder.ApplyConfiguration(new RestaurantMenuConfiguration());
+        modelBuilder.ApplyConfiguration(new MenuDraftConfiguration());
+        modelBuilder.ApplyConfiguration(new MenuDraftCategoryConfiguration());
+        modelBuilder.ApplyConfiguration(new MenuDraftItemConfiguration());
+        modelBuilder.ApplyConfiguration(new MenuDraftOperationReceiptConfiguration());
         modelBuilder.ApplyConfiguration(new FiscalReferenceConfiguration());
         modelBuilder.ApplyConfiguration(new FiscalTaxMappingConfiguration());
         modelBuilder.ApplyConfiguration(new FiscalImportBatchConfiguration());
