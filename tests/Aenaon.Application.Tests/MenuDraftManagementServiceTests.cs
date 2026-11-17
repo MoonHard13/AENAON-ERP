@@ -110,6 +110,30 @@ public sealed class MenuDraftManagementServiceTests
     }
 
     [TestMethod]
+    public async Task DefaultStoreMenu_RequiresOwnerAndValidStoreScope()
+    {
+        var store = new FakeMenuStore();
+        MenuDraftManagementService owner = CreateService(TenantMembershipRole.Owner, store);
+        MenuDraftManagementService member = CreateService(TenantMembershipRole.Member, store);
+
+        MenuDraftMutationResult missing = await owner.ApplyAsync(User, Tenant,
+            new(MenuDraftAction.EnsureStoreDefault, Guid.NewGuid()));
+        Assert.AreEqual(MenuDraftStatus.Invalid, missing.Status);
+
+        Guid storeId = Guid.NewGuid();
+        MenuDraftCommand command = new(MenuDraftAction.EnsureStoreDefault,
+            Guid.NewGuid(), StoreId: storeId);
+        MenuDraftMutationResult forbidden = await member.ApplyAsync(User, Tenant, command);
+        Assert.AreEqual(MenuDraftStatus.Denied, forbidden.Status);
+        Assert.AreEqual(0, store.ApplyCalls);
+
+        MenuDraftMutationResult accepted = await owner.ApplyAsync(User, Tenant, command);
+        Assert.AreEqual(MenuDraftStatus.Saved, accepted.Status);
+        Assert.AreEqual(Tenant, store.LastTenant);
+        Assert.AreEqual(1, store.ApplyCalls);
+    }
+
+    [TestMethod]
     public async Task Cancellation_StopsBeforeDatabase()
     {
         var store = new FakeMenuStore();
