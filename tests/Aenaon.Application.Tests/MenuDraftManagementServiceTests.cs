@@ -1,7 +1,6 @@
 using Aenaon.Application.Menus;
 using Aenaon.Application.Tenancy;
 using Aenaon.Domain.Tenancy;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Aenaon.Application.Tests;
@@ -97,8 +96,7 @@ public sealed class MenuDraftManagementServiceTests
 
     private static MenuDraftManagementService CreateService(TenantMembershipRole role,
         FakeMenuStore store) =>
-        new(new TenantAuthorizationService(new FakeAccessStore(role)), store,
-            NullLogger<MenuDraftManagementService>.Instance);
+        new(new TenantAuthorizationService(new FakeAccessStore(role)), store);
 
     private sealed class FakeMenuStore : IMenuDraftStore
     {
