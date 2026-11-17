@@ -315,7 +315,8 @@ internal static class SqlServerMenuDraftAssertions
         Assert.AreEqual(MenuDraftStatus.Invalid, blockedParent.Status);
         MenuDraftMutationResult crossMenuParent = await store.ApplyAsync(menuTenantId,
             ownerId, new(MenuDraftAction.AddCategory, Guid.NewGuid(), MenuId: legacy.Id,
-                ExpectedRevision: 3, Name: "Άκυρο", ParentCategoryId: drinksId), token);
+                ExpectedRevision: (await store.GetAsync(menuTenantId, legacy.Id, token))!.Menu.Revision,
+                Name: "Άκυρο", ParentCategoryId: drinksId), token);
         Assert.AreEqual(MenuDraftStatus.Missing, crossMenuParent.Status);
 
         // Το σύνθετο SQL FK απορρίπτει σύνδεση με προϊόν άλλου Tenant.
