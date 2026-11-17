@@ -103,6 +103,7 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
             await using IDbContextTransaction transaction =
                 await context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted,
                     cancellationToken);
+            await MenuCatalogTenantLock.AcquireAsync(context, tenantId, cancellationToken);
 
             MenuDraftOperationReceipt? prior = await context.MenuDraftOperationReceipts.AsNoTracking()
                 .SingleOrDefaultAsync(x => x.TenantId == tenantId &&
@@ -459,7 +460,7 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
             string categoryName = candidate.Length <= MenuDraftCategory.MaxNameLength
                 ? candidate : source.Name;
             MenuDraftCategory destination = MenuDraftCategory.Create(
-                tenantId, menuId, categoryName, ++categoryPosition);
+                tenantId, menuId, categoryName, ++categoryPosition, source.Id);
             context.MenuDraftCategories.Add(destination);
 
             int itemPosition = 0;
