@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Aenaon.Api.Contracts;
 using Aenaon.Application.Catalog;
+using Aenaon.Application.Menus;
 using Aenaon.Application.Identity;
 using Aenaon.Application.Tenancy;
 using Aenaon.Domain.Catalog;
@@ -219,6 +220,7 @@ internal sealed class SessionApiFactory(string environment = "Development") : We
     public SessionCatalogWriteFixture CatalogWriter { get; } = new();
     public SessionPriceListFixture PriceLists { get; } = new();
     public SessionPriceResolutionFixture PriceResolution { get; } = new();
+    public SessionMenuDraftFixture MenuDrafts { get; } = new();
     public SessionTenancyFixture Access { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -240,6 +242,8 @@ internal sealed class SessionApiFactory(string environment = "Development") : We
             services.AddSingleton<IPriceListManagementStore>(PriceLists);
             services.RemoveAll<IPriceResolutionStore>();
             services.AddSingleton<IPriceResolutionStore>(PriceResolution);
+            services.RemoveAll<IMenuDraftStore>();
+            services.AddSingleton<IMenuDraftStore>(MenuDrafts);
         });
     }
 
