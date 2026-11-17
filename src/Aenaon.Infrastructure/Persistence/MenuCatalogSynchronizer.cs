@@ -47,8 +47,12 @@ internal static class MenuCatalogSynchronizer
         var positions = await context.MenuDraftCategories.AsNoTracking()
             .Where(x => x.TenantId == tenantId && menuIds.Contains(x.MenuId))
             .GroupBy(x => new { x.MenuId, x.ParentCategoryId })
-            .Select(g => new { g.Key.MenuId, g.Key.ParentCategoryId,
-                Last = g.Max(x => x.Position) })
+            .Select(g => new
+            {
+                g.Key.MenuId,
+                g.Key.ParentCategoryId,
+                Last = g.Max(x => x.Position)
+            })
             .ToListAsync(cancellationToken);
         var siblingPositions = positions.ToDictionary(
             x => (x.MenuId, x.ParentCategoryId), x => x.Last);
