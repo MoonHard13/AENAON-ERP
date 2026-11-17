@@ -116,14 +116,16 @@ public partial class MenuBuilderHierarchyAndRootItems : Migration
     /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.DropForeignKey(
-            "FK_MenuDraftItems_MenuDrafts_TenantId_MenuId",
-            "MenuDraftItems", "dbo");
-        // Απαγορεύεται ασφαλής επαναφορά αν υπάρχουν είδη στη ρίζα.
+        // Οι έλεγχοι προηγούνται από κάθε DDL, ώστε να μην χαθούν σχέσεις ή είδη.
         migrationBuilder.Sql("""
             IF EXISTS (SELECT 1 FROM dbo.MenuDraftItems WHERE MenuCategoryId IS NULL)
                 THROW 51000, 'Root items exist: move them before reverting this migration.', 1;
+            IF EXISTS (SELECT 1 FROM dbo.MenuDraftCategories WHERE ParentCategoryId IS NOT NULL)
+                THROW 51001, 'Nested categories exist: explicit flattening or restore is required.', 1;
             """);
+        migrationBuilder.DropForeignKey(
+            "FK_MenuDraftItems_MenuDrafts_TenantId_MenuId",
+            "MenuDraftItems", "dbo");
         migrationBuilder.DropForeignKey(
             "FK_MenuDraftItems_MenuDraftCategories_TenantId_MenuId_MenuCategoryId",
             "MenuDraftItems", "dbo");
