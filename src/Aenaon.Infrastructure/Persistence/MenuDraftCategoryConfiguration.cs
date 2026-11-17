@@ -23,6 +23,7 @@ internal sealed class MenuDraftCategoryConfiguration : IEntityTypeConfiguration<
         builder.Property(x => x.CatalogCategoryId).IsRequired(false);
         builder.Property(x => x.Position).IsRequired();
         builder.HasIndex(x => new { x.TenantId, x.MenuId, x.Position, x.Id });
+        builder.HasIndex(x => new { x.TenantId, x.CatalogCategoryId });
         builder.HasIndex(x => new { x.TenantId, x.MenuId, x.CatalogCategoryId })
             .IsUnique().HasFilter("[CatalogCategoryId] IS NOT NULL");
         builder.HasOne<CatalogCategory>().WithMany()
