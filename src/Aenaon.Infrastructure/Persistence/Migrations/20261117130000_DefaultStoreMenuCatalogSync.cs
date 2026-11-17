@@ -26,6 +26,12 @@ public partial class DefaultStoreMenuCatalogSync : Migration
             nullable: true);
 
         migrationBuilder.CreateIndex(
+            name: "IX_MenuDraftCategories_TenantId_CatalogCategoryId",
+            schema: "dbo",
+            table: "MenuDraftCategories",
+            columns: new[] { "TenantId", "CatalogCategoryId" });
+
+        migrationBuilder.CreateIndex(
             name: "IX_MenuDraftCategories_TenantId_MenuId_CatalogCategoryId",
             schema: "dbo",
             table: "MenuDraftCategories",
@@ -85,6 +91,9 @@ public partial class DefaultStoreMenuCatalogSync : Migration
         migrationBuilder.DropTable("StoreDefaultMenus", "dbo");
         migrationBuilder.DropForeignKey(
             "FK_MenuDraftCategories_CatalogCategories_TenantId_CatalogCategoryId",
+            "MenuDraftCategories", "dbo");
+        migrationBuilder.DropIndex(
+            "IX_MenuDraftCategories_TenantId_CatalogCategoryId",
             "MenuDraftCategories", "dbo");
         migrationBuilder.DropIndex(
             "IX_MenuDraftCategories_TenantId_MenuId_CatalogCategoryId",
