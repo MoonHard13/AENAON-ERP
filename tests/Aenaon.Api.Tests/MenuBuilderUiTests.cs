@@ -37,6 +37,7 @@ public sealed class MenuBuilderUiTests
         Assert.Contains("menu-builder__column--items", html);
         Assert.Contains("menu-builder__column--catalog", html);
         Assert.Contains("menu-builder__mobile-tabs", html);
+        Assert.Contains("Δημιουργία μενού με είδη ERP", html);
         Assert.Contains("DRAFT ONLY", html);
         Assert.Contains("name=\"expectedRevision\"", html);
         Assert.Contains("name=\"requestId\"", html);
