@@ -134,8 +134,7 @@ public sealed class MenuDraftManagementService(
             (command.Action is MenuDraftAction.AddCategory or MenuDraftAction.UpdateCategory &&
                 command.Name is null) ||
             (command.Action is MenuDraftAction.UpdateCategory or MenuDraftAction.MoveCategory or
-                MenuDraftAction.RemoveCategory or
-                MenuDraftAction.RenameItem or MenuDraftAction.MoveItem or MenuDraftAction.RemoveItem &&
+                MenuDraftAction.RemoveCategory &&
                 (command.CategoryId is not { } catId || catId == Guid.Empty)) ||
             (command.Action is MenuDraftAction.RenameItem or MenuDraftAction.MoveItem or
                 MenuDraftAction.RemoveItem &&
