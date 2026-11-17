@@ -39,6 +39,7 @@ public static class MenuDraftManagementEndpoints
             !TryGuid(form, "storeId", required: false, out Guid? storeId) ||
             !TryGuid(form, "menuId", required: false, out Guid? menuId) ||
             !TryGuid(form, "categoryId", required: false, out Guid? categoryId) ||
+             !TryGuid(form, "parentCategoryId", required: false, out Guid? parentCategoryId) ||
             !TryGuid(form, "itemId", required: false, out Guid? itemId) ||
             !TryGuid(form, "catalogItemId", required: false, out Guid? catalogItemId) ||
             !TryGuid(form, "requestId", required: true, out Guid? requestId) ||
@@ -117,7 +118,8 @@ public static class MenuDraftManagementEndpoints
 
         var command = new MenuDraftCommand(
             action, requestId.Value, menuId, revision, categoryId, itemId,
-            catalogItemId, code, name, nameOverride, position, visible);
+            catalogItemId, code, name, nameOverride, position, visible,
+            ParentCategoryId: parentCategoryId);
 
         try
         {
@@ -149,8 +151,20 @@ public static class MenuDraftManagementEndpoints
 
             Guid? targetMenu = result.Status == MenuDraftStatus.Saved
                 ? result.MenuId ?? menuId : menuId;
+            Guid? destinationCategory = action == MenuDraftAction.AddCategory
+                ? parentCategoryId : categoryId;
+            if (action is MenuDraftAction.AddItem or MenuDraftAction.RenameItem or
+                MenuDraftAction.MoveItem or MenuDraftAction.RemoveItem)
+            {
+                tab = "items";
+            }
+            else if (action is MenuDraftAction.AddCategory or MenuDraftAction.UpdateCategory or
+                MenuDraftAction.MoveCategory or MenuDraftAction.RemoveCategory)
+            {
+                tab = destinationCategory.HasValue ? "items" : "categories";
+            }
             return Results.Redirect(BuildUrl(tenantId.Value, storeId, targetMenu,
-                categoryId, tab, state));
+                destinationCategory, tab, state));
         }
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
