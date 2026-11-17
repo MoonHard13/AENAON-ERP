@@ -6,6 +6,7 @@ using Aenaon.Api.Ui;
 using Aenaon.Application.Catalog;
 using Aenaon.Application.Fiscal;
 using Aenaon.Application.Identity;
+using Aenaon.Application.Menus;
 using Aenaon.Application.Tenancy;
 using Aenaon.Infrastructure.Database;
 using Aenaon.Infrastructure.Fiscal;
@@ -85,6 +86,8 @@ public static class ApiServiceCollectionExtensions
         services.AddScoped<PriceListManagementService>();
         services.AddScoped<IPriceResolutionStore, SqlPriceResolutionStore>();
         services.AddScoped<PriceResolutionService>();
+        services.AddScoped<IMenuDraftStore, SqlMenuDraftStore>();
+        services.AddScoped<MenuDraftManagementService>();
         services.AddScoped<TenantWorkspaceService>();
         services.AddScoped<TenantWorkspaceResolver>();
         services.AddScoped<ISessionIdentityService, IdentitySessionService>();
