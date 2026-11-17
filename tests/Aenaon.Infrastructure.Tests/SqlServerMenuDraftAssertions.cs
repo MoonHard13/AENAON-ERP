@@ -63,7 +63,7 @@ internal static class SqlServerMenuDraftAssertions
         Assert.HasCount(3, initial.Categories);
         Assert.HasCount(2, initial.Items);
         Assert.IsTrue(initial.Categories.Any(x => x.Name == "Φαγητά"));
-        Assert.IsTrue(initial.Categories.Any(x => x.Name == "Φαγητά / Κυρίως"));
+        Assert.IsTrue(initial.Categories.Any(x => x.Name == "Κυρίως"));
         Assert.IsTrue(initial.Categories.Any(x => x.Name == "Ποτά"));
         Assert.IsFalse(initial.Categories.Any(x => x.Name.Contains("Ανενεργά", StringComparison.Ordinal)));
         Assert.IsTrue(initial.Items.Any(x => x.CatalogItemId == activeParent.Id));
@@ -72,11 +72,15 @@ internal static class SqlServerMenuDraftAssertions
         Assert.IsFalse(initial.Items.Any(x => x.CatalogItemId == productInInactiveCategory.Id));
 
         Guid foodId = initial.Categories.Single(x => x.Name == "Φαγητά").CategoryId;
-        Guid mainId = initial.Categories.Single(x => x.Name == "Φαγητά / Κυρίως").CategoryId;
+        Guid mainId = initial.Categories.Single(x => x.Name == "Κυρίως").CategoryId;
         Assert.AreEqual(foodId,
             initial.Items.Single(x => x.CatalogItemId == activeParent.Id).CategoryId);
         Assert.AreEqual(mainId,
             initial.Items.Single(x => x.CatalogItemId == activeChild.Id).CategoryId);
+        Assert.AreEqual(foodId, initial.Categories.Single(x =>
+            x.CategoryId == mainId).ParentCategoryId);
+        Assert.AreEqual(2, initial.Categories.Count(x => x.ParentCategoryId is null));
+        Assert.AreEqual(1, initial.Categories.Count(x => x.ParentCategoryId == foodId));
 
         // Ο ERP Catalog δεν τροποποιείται και κανένα είδος δεν παίρνει τιμή στο προσχέδιο.
         Assert.AreEqual(4, await context.CatalogItems.CountAsync(x =>
@@ -281,6 +285,38 @@ internal static class SqlServerMenuDraftAssertions
         Assert.AreEqual(4, await context.MenuDraftCategories.CountAsync(x =>
             x.TenantId == menuTenantId && x.MenuId == storeDefault, token));
         Assert.IsNull(await store.GetDefaultMenuIdAsync(foreignTenant, branch.Id, token));
+
+        // Τα είδη μπορούν να αποθηκευτούν απευθείας στη ρίζα, χωρίς κατηγορία.
+        long currentRevision = (await store.GetAsync(menuTenantId, menuId, token))!.Menu.Revision;
+        MenuDraftMutationResult rootItem = await store.ApplyAsync(menuTenantId, ownerId,
+            new(MenuDraftAction.AddItem, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: currentRevision, CatalogItemId: activeParent.Id), token);
+        Assert.AreEqual(MenuDraftStatus.Saved, rootItem.Status);
+        Assert.IsTrue((await store.GetAsync(menuTenantId, menuId, token))!.Items.Any(x =>
+            x.ItemId == rootItem.RecordId && x.CategoryId is null));
+        MenuDraftMutationResult duplicateRoot = await store.ApplyAsync(menuTenantId, ownerId,
+            new(MenuDraftAction.AddItem, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: rootItem.Revision, CatalogItemId: activeParent.Id), token);
+        Assert.AreEqual(MenuDraftStatus.Duplicate, duplicateRoot.Status);
+
+        // Προσθήκη υποκατηγορίας μόνο κάτω από κατηγορία του ίδιου μενού.
+        Guid drinksId = (await store.GetAsync(menuTenantId, menuId, token))!
+            .Categories.Single(x => x.Name == "Ποτά").CategoryId;
+        MenuDraftMutationResult subcategory = await store.ApplyAsync(menuTenantId, ownerId,
+            new(MenuDraftAction.AddCategory, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: rootItem.Revision, Name: "Καφές",
+                ParentCategoryId: drinksId), token);
+        Assert.AreEqual(MenuDraftStatus.Saved, subcategory.Status);
+        Assert.AreEqual(drinksId, (await store.GetAsync(menuTenantId, menuId, token))!
+            .Categories.Single(x => x.CategoryId == subcategory.RecordId).ParentCategoryId);
+        MenuDraftMutationResult blockedParent = await store.ApplyAsync(menuTenantId,
+            ownerId, new(MenuDraftAction.RemoveCategory, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: subcategory.Revision, CategoryId: drinksId), token);
+        Assert.AreEqual(MenuDraftStatus.Invalid, blockedParent.Status);
+        MenuDraftMutationResult crossMenuParent = await store.ApplyAsync(menuTenantId,
+            ownerId, new(MenuDraftAction.AddCategory, Guid.NewGuid(), MenuId: legacy.Id,
+                ExpectedRevision: 3, Name: "Άκυρο", ParentCategoryId: drinksId), token);
+        Assert.AreEqual(MenuDraftStatus.Missing, crossMenuParent.Status);
 
         // Το σύνθετο SQL FK απορρίπτει σύνδεση με προϊόν άλλου Tenant.
         RestaurantMenu fkMenu = RestaurantMenu.Create(menuTenantId, "FK-PROBE", "Έλεγχος FK");
