@@ -44,7 +44,8 @@ public sealed record MenuDraftCommand(
     string? NameOverride = null,
     int? TargetPosition = null,
     bool? IsVisible = null,
-    Guid? StoreId = null);
+    Guid? StoreId = null,
+    Guid? ParentCategoryId = null);
 
 public sealed record MenuDraftMutationResult(
     MenuDraftStatus Status, Guid? RecordId = null, Guid? MenuId = null,
@@ -54,10 +55,10 @@ public sealed record MenuDraftSummary(
     Guid MenuId, string Code, string Name, long Revision, DateTime EditedUtc);
 
 public sealed record MenuDraftCategoryRecord(
-    Guid CategoryId, string Name, int Position, bool IsVisible);
+    Guid CategoryId, string Name, int Position, bool IsVisible, Guid? ParentCategoryId = null);
 
 public sealed record MenuDraftItemRecord(
-    Guid ItemId, Guid CategoryId, Guid CatalogItemId, string CatalogCode,
+    Guid ItemId, Guid? CategoryId, Guid CatalogItemId, string CatalogCode,
     string CatalogName, string? NameOverride, bool IsCatalogActive, int Position);
 
 public sealed record MenuCatalogOption(Guid CatalogItemId, string Code, string Name);
@@ -127,10 +128,13 @@ public sealed class MenuDraftManagementService(
             (command.Action == MenuDraftAction.CreateMenu &&
                 (command.Code is null || command.Name is null)) ||
             (command.Action == MenuDraftAction.UpdateMenu && command.Name is null) ||
+            (command.ParentCategoryId == Guid.Empty ||
+                (command.ParentCategoryId.HasValue && command.Action != MenuDraftAction.AddCategory)) ||
+            (command.CategoryId == Guid.Empty) ||
             (command.Action is MenuDraftAction.AddCategory or MenuDraftAction.UpdateCategory &&
                 command.Name is null) ||
             (command.Action is MenuDraftAction.UpdateCategory or MenuDraftAction.MoveCategory or
-                MenuDraftAction.RemoveCategory or MenuDraftAction.AddItem or
+                MenuDraftAction.RemoveCategory or
                 MenuDraftAction.RenameItem or MenuDraftAction.MoveItem or MenuDraftAction.RemoveItem &&
                 (command.CategoryId is not { } catId || catId == Guid.Empty)) ||
             (command.Action is MenuDraftAction.RenameItem or MenuDraftAction.MoveItem or
