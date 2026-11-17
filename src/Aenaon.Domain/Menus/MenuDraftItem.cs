@@ -31,7 +31,7 @@ public sealed class MenuDraftItem
             "menu.item.name.invalid", "Εμφανιζόμενο όνομα");
     }
 
-    public static MenuDraftItem Create(Guid tenantId, Guid menuId, Guid categoryId,
+    public static MenuDraftItem Create(Guid tenantId, Guid menuId, Guid? categoryId,
         Guid catalogItemId, int position, string? nameOverride = null) =>
         new(tenantId, menuId, categoryId, catalogItemId, position, nameOverride);
 
