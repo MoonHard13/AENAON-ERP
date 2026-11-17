@@ -70,6 +70,12 @@ public partial class MenuBuilderHierarchyAndRootItems : Migration
             principalColumns: new[] { "TenantId", "MenuId", "Id" },
             onDelete: ReferentialAction.Restrict);
 
+        migrationBuilder.DropForeignKey(
+            "FK_MenuDraftItems_MenuDraftCategories_TenantId_MenuId_MenuCategoryId",
+            "MenuDraftItems", "dbo");
+        migrationBuilder.DropIndex(
+            "IX_MenuDraftItems_TenantId_MenuId_MenuCategoryId_Position_Id",
+            "MenuDraftItems", "dbo");
         migrationBuilder.DropIndex(
             name: "IX_MenuDraftItems_TenantId_MenuId_MenuCategoryId_CatalogItemId",
             schema: "dbo", table: "MenuDraftItems");
@@ -87,6 +93,17 @@ public partial class MenuBuilderHierarchyAndRootItems : Migration
             schema: "dbo", table: "MenuDraftItems",
             columns: new[] { "TenantId", "MenuId", "CatalogItemId" },
             unique: true, filter: "[MenuCategoryId] IS NULL");
+        migrationBuilder.CreateIndex(
+            name: "IX_MenuDraftItems_TenantId_MenuId_MenuCategoryId_Position_Id",
+            schema: "dbo", table: "MenuDraftItems",
+            columns: new[] { "TenantId", "MenuId", "MenuCategoryId", "Position", "Id" });
+        migrationBuilder.AddForeignKey(
+            name: "FK_MenuDraftItems_MenuDraftCategories_TenantId_MenuId_MenuCategoryId",
+            schema: "dbo", table: "MenuDraftItems",
+            columns: new[] { "TenantId", "MenuId", "MenuCategoryId" },
+            principalSchema: "dbo", principalTable: "MenuDraftCategories",
+            principalColumns: new[] { "TenantId", "MenuId", "Id" },
+            onDelete: ReferentialAction.Restrict);
     }
 
     /// <inheritdoc />
@@ -97,6 +114,12 @@ public partial class MenuBuilderHierarchyAndRootItems : Migration
             IF EXISTS (SELECT 1 FROM dbo.MenuDraftItems WHERE MenuCategoryId IS NULL)
                 THROW 51000, 'Root items exist: move them before reverting this migration.', 1;
             """);
+        migrationBuilder.DropForeignKey(
+            "FK_MenuDraftItems_MenuDraftCategories_TenantId_MenuId_MenuCategoryId",
+            "MenuDraftItems", "dbo");
+        migrationBuilder.DropIndex(
+            "IX_MenuDraftItems_TenantId_MenuId_MenuCategoryId_Position_Id",
+            "MenuDraftItems", "dbo");
         migrationBuilder.DropIndex(
             "IX_MenuDraftItems_TenantId_MenuId_CatalogItemId", "MenuDraftItems", "dbo");
         migrationBuilder.DropIndex(
@@ -111,6 +134,17 @@ public partial class MenuBuilderHierarchyAndRootItems : Migration
             schema: "dbo", table: "MenuDraftItems",
             columns: new[] { "TenantId", "MenuId", "MenuCategoryId", "CatalogItemId" },
             unique: true);
+        migrationBuilder.CreateIndex(
+            name: "IX_MenuDraftItems_TenantId_MenuId_MenuCategoryId_Position_Id",
+            schema: "dbo", table: "MenuDraftItems",
+            columns: new[] { "TenantId", "MenuId", "MenuCategoryId", "Position", "Id" });
+        migrationBuilder.AddForeignKey(
+            name: "FK_MenuDraftItems_MenuDraftCategories_TenantId_MenuId_MenuCategoryId",
+            schema: "dbo", table: "MenuDraftItems",
+            columns: new[] { "TenantId", "MenuId", "MenuCategoryId" },
+            principalSchema: "dbo", principalTable: "MenuDraftCategories",
+            principalColumns: new[] { "TenantId", "MenuId", "Id" },
+            onDelete: ReferentialAction.Restrict);
         migrationBuilder.DropForeignKey(
             "FK_MenuDraftCategories_MenuDraftCategories_TenantId_MenuId_ParentCategoryId",
             "MenuDraftCategories", "dbo");
