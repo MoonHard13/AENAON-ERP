@@ -90,7 +90,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-menus --u
 1. Ελέγξτε στο CI το τελευταίο commit και τον ακριβή generated incremental SQL. Ελέγξτε FK/index/filtered uniqueness, row normalization και σύγκρουση δεδομένων.
 2. Επιβεβαιώστε αποκλειστικά `AenaonERP_Dev` και `12 applied / 1 pending` (αναμενόμενο πριν την #13, εφόσον δεν μεσολάβησαν άλλες αλλαγές).
 3. Πάρτε νέο `BACKUP DATABASE`, `RESTORE VERIFYONLY` και ιδανικά πραγματικό restore σε απομονωμένο SQL Server.
-4. Προετοιμάστε rollback/restore. Το `Down()` **αρνείται** επαναφορά όταν υπάρχουν root items, ώστε να μην απολεσθούν.
+4. Προετοιμάστε rollback/restore. Το `Down()` **αρνείται** επαναφορά όταν υπάρχουν root items **ή γονικές σχέσεις υποκατηγοριών**, πριν από οποιοδήποτε DDL, ώστε να μην απολεσθούν τα δεδομένα· απαιτείται εγκεκριμένη χειροκίνητη προετοιμασία/restore.
 5. Ζητήστε **ρητή έγκριση για τη συγκεκριμένη Development migration**. Δεν επιτρέπεται αυτόματη εφαρμογή σε καμία βάση.
 6. Μετά από approved APPLY κάντε read-only επιβεβαίωση 13/0, SQL persistence, tenant isolation και πλήρες browser E2E.
 
