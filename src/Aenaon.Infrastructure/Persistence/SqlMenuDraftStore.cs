@@ -15,7 +15,8 @@ namespace Aenaon.Infrastructure.Persistence;
 /// Προσπελαύνει αποκλειστικά στοιχεία ενός Tenant, προστατεύει τη revision και
 /// δεν μεταβάλλει ποτέ καταχωρίσεις του κύριου ERP Catalog.
 /// </summary>
-public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider clock) : IMenuDraftStore
+public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider clock,
+    ILogger<SqlMenuDraftStore> logger) : IMenuDraftStore
 {
     public async Task<IReadOnlyList<MenuDraftSummary>> ListAsync(Guid tenantId,
         CancellationToken cancellationToken = default) =>
@@ -163,10 +164,14 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
 
             await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+            logger.LogInformation("Menu draft write succeeded {TenantId} {UserId} {MenuId} {Action} {RequestId} {Revision}",
+                tenantId, userId, menu.Id, command.Action, command.RequestId, draft.Revision);
             return new(MenuDraftStatus.Saved, recordId, menu.Id, draft.Revision);
         }
         catch (DbUpdateConcurrencyException)
         {
+            logger.LogWarning("Menu draft concurrency conflict {TenantId} {UserId} {Action}",
+                tenantId, userId, command.Action);
             return new(MenuDraftStatus.Conflict, Error: "menu.draft.stale");
         }
         catch (DbUpdateException ex) when (SqlError(ex, 2601, 2627))
