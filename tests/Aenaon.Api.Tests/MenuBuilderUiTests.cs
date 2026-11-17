@@ -128,6 +128,58 @@ public sealed class MenuBuilderUiTests
         Assert.AreEqual(Tenant, factory.MenuDrafts.LastTenant);
     }
 
+    [TestMethod]
+    public async Task ExistingEmptyDraft_OffersOwnerImportForCategoriesAndItems()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.MenuDrafts.EmptyDraft = true;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}"));
+        Assert.Contains("Φόρτωση κατηγοριών και ειδών ERP", html);
+        Assert.Contains("value=\"import-catalog\"", html);
+        Assert.Contains("name=\"expectedRevision\"", html);
+
+        using var saved = await PostAsync(client, Token(html), new()
+        {
+            ["tenantId"] = Tenant.ToString("D"),
+            ["requestId"] = Guid.NewGuid().ToString("D"),
+            ["action"] = "import-catalog",
+            ["menuId"] = SessionMenuDraftFixture.MenuId.ToString("D"),
+            ["expectedRevision"] = "1"
+        });
+        Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
+        Assert.AreEqual(MenuDraftAction.ImportCatalogContents, factory.MenuDrafts.LastCommand?.Action);
+        Assert.AreEqual(1, factory.MenuDrafts.ApplyCalls);
+    }
+
+    [TestMethod]
+    public async Task Member_CannotImportCatalogIntoEmptyDraft()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.MenuDrafts.EmptyDraft = true;
+        factory.Access.GrantedRole = TenantMembershipRole.Member;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}"));
+        Assert.DoesNotContain("value=\"import-catalog\"", html);
+
+        using var response = await PostAsync(client, Token(html), new()
+        {
+            ["tenantId"] = Tenant.ToString("D"),
+            ["requestId"] = Guid.NewGuid().ToString("D"),
+            ["action"] = "import-catalog",
+            ["menuId"] = SessionMenuDraftFixture.MenuId.ToString("D"),
+            ["expectedRevision"] = "1"
+        });
+        Assert.AreEqual(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.AreEqual(0, factory.MenuDrafts.ApplyCalls);
+    }
+
     private static async Task LoginAsync(HttpClient client)
     {
         string html = await client.GetStringAsync("/login");
