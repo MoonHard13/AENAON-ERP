@@ -248,6 +248,40 @@ internal static class SqlServerMenuDraftAssertions
         Assert.IsFalse(await context.MenuDraftItems.AsNoTracking().AnyAsync(x =>
             x.TenantId == foreignTenant && x.CatalogItemId == newProduct.Id, token));
 
+        // Υπάρχον κατάστημα παίρνει default menu μία φορά μετά από ρητή
+        // Owner/CLI εντολή, χωρίς αλλαγή σε άλλα μενού ή ERP Catalog.
+        Store branch = menuTenant.AddStore("BRANCH", "Δεύτερο κατάστημα");
+        context.Stores.Add(branch);
+        await context.SaveChangesAsync(token);
+        context.ChangeTracker.Clear();
+
+        var provision = new MenuDraftCommand(MenuDraftAction.EnsureStoreDefault,
+            Guid.NewGuid(), StoreId: branch.Id);
+        MenuDraftMutationResult provisioned = await store.ApplyAsync(menuTenantId,
+            ownerId, provision, token);
+        Assert.AreEqual(MenuDraftStatus.Saved, provisioned.Status);
+        Assert.IsNotNull(provisioned.MenuId);
+        Guid storeDefault = provisioned.MenuId.Value;
+        Assert.AreEqual(storeDefault, await store.GetDefaultMenuIdAsync(
+            menuTenantId, branch.Id, token));
+        MenuDraftDetails? storeContent = await store.GetAsync(
+            menuTenantId, storeDefault, token);
+        Assert.IsNotNull(storeContent);
+        Assert.AreEqual("DEFAULT-BRANCH", storeContent.Menu.Code);
+        Assert.HasCount(4, storeContent.Categories);
+        Assert.HasCount(3, storeContent.Items);
+
+        MenuDraftMutationResult repeatedProvision = await store.ApplyAsync(
+            menuTenantId, ownerId,
+            new(MenuDraftAction.EnsureStoreDefault, Guid.NewGuid(), StoreId: branch.Id), token);
+        Assert.AreEqual(MenuDraftStatus.Saved, repeatedProvision.Status);
+        Assert.AreEqual(storeDefault, repeatedProvision.MenuId);
+        Assert.AreEqual(1, await context.StoreDefaultMenus.CountAsync(x =>
+            x.TenantId == menuTenantId && x.StoreId == branch.Id, token));
+        Assert.AreEqual(4, await context.MenuDraftCategories.CountAsync(x =>
+            x.TenantId == menuTenantId && x.MenuId == storeDefault, token));
+        Assert.IsNull(await store.GetDefaultMenuIdAsync(foreignTenant, branch.Id, token));
+
         // Το σύνθετο SQL FK απορρίπτει σύνδεση με προϊόν άλλου Tenant.
         RestaurantMenu fkMenu = RestaurantMenu.Create(menuTenantId, "FK-PROBE", "Έλεγχος FK");
         MenuDraftCategory fkCategory = MenuDraftCategory.Create(menuTenantId, fkMenu.Id,
