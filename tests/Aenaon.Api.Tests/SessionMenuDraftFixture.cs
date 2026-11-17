@@ -9,6 +9,8 @@ internal sealed class SessionMenuDraftFixture : IMenuDraftStore
     public static readonly Guid MenuId = Guid.Parse("e1d21dcb-4bbf-4b88-a403-0c0a19540b68");
     public static readonly Guid CategoryId = Guid.Parse("4e4ac1d7-5a9c-49d7-a1bd-67e6f0d7c2a8");
     public static readonly Guid ProductId = Guid.Parse("519f1811-6215-4841-81d2-62e921b22e3d");
+    public static readonly Guid SecondaryCategoryId = Guid.Parse("31377943-6f5a-4d9f-b238-cf4e0bc323e6");
+    public static readonly Guid SecondaryProductId = Guid.Parse("dcfa55da-480f-4bb8-9a23-8b22be790ed9");
 
     public int ApplyCalls { get; private set; }
     public MenuDraftCommand? LastCommand { get; private set; }
@@ -16,6 +18,8 @@ internal sealed class SessionMenuDraftFixture : IMenuDraftStore
     public int ReadCalls { get; private set; }
     public bool EmptyDraft { get; set; }
     public bool EmptyCategory { get; set; }
+    public bool ExtraCategory { get; set; }
+    public bool ExtraItem { get; set; }
 
     public Task<MenuDraftMutationResult> ApplyAsync(Guid tenantId, Guid userId,
         MenuDraftCommand command, CancellationToken cancellationToken = default)
@@ -50,9 +54,17 @@ internal sealed class SessionMenuDraftFixture : IMenuDraftStore
             ? new(
                 new(MenuId, "MAIN", "Κυρίως", 1,
                     new DateTime(2026, 11, 17, 8, 0, 0, DateTimeKind.Utc)),
-                EmptyDraft ? [] : [new MenuDraftCategoryRecord(CategoryId, "Ορεκτικά", 1, true)],
-                EmptyDraft || EmptyCategory ? [] : [new MenuDraftItemRecord(Guid.NewGuid(), CategoryId, ProductId,
-                    "SKU001", "Πίτσα", null, true, 1)])
+                EmptyDraft ? [] : ExtraCategory
+                    ? [new MenuDraftCategoryRecord(CategoryId, "Ορεκτικά", 1, true),
+                        new MenuDraftCategoryRecord(SecondaryCategoryId, "Ποτά", 2, false)]
+                    : [new MenuDraftCategoryRecord(CategoryId, "Ορεκτικά", 1, true)],
+                EmptyDraft || EmptyCategory ? [] : ExtraItem
+                    ? [new MenuDraftItemRecord(Guid.NewGuid(), CategoryId, ProductId,
+                            "SKU001", "Πίτσα", null, true, 1),
+                        new MenuDraftItemRecord(Guid.NewGuid(), CategoryId, SecondaryProductId,
+                            "SKU002", "Σαλάτα", null, true, 2)]
+                    : [new MenuDraftItemRecord(Guid.NewGuid(), CategoryId, ProductId,
+                        "SKU001", "Πίτσα", null, true, 1)])
             : null;
         return Task.FromResult(value);
     }
