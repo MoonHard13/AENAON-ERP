@@ -143,6 +143,46 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
 
                 recordId = menu.Id;
             }
+            else if (command.Action == MenuDraftAction.EnsureStoreDefault)
+            {
+                // Για παλαιά ήδη δημιουργημένα Stores, μόνο με ρητή διαχειριστική
+                // εντολή και αφού η νέα migration έχει εγκριθεί/εφαρμοστεί.
+                var ownerStore = await context.Stores.AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.TenantId == tenantId &&
+                        x.Id == command.StoreId, cancellationToken);
+                if (ownerStore is null)
+                {
+                    return new(MenuDraftStatus.Missing, Error: "menu.store.not_found");
+                }
+
+                Guid? existingMenu = await GetDefaultMenuIdAsync(tenantId,
+                    ownerStore.Id, cancellationToken);
+                if (existingMenu.HasValue)
+                {
+                    MenuDraft? existingDraft = await context.MenuDrafts.AsNoTracking()
+                        .SingleOrDefaultAsync(x => x.TenantId == tenantId &&
+                            x.MenuId == existingMenu.Value, cancellationToken);
+                    return existingDraft is null
+                        ? new(MenuDraftStatus.Invalid, Error: "menu.store.default_corrupt")
+                        : new(MenuDraftStatus.Saved, existingMenu, existingMenu,
+                            existingDraft.Revision);
+                }
+
+                menu = StoreDefaultMenuFactory.Add(
+                    context, ownerStore, clock.GetUtcNow().UtcDateTime);
+                draft = await context.MenuDrafts.Local
+                    .Where(x => x.TenantId == tenantId && x.MenuId == menu.Id)
+                    .SingleAsync(cancellationToken);
+
+                MenuDraftStatus copied = await CopyCatalogContentsAsync(
+                    tenantId, menu.Id, cancellationToken);
+                if (copied != MenuDraftStatus.Saved)
+                {
+                    return new(copied, Error: "menu.catalog.import_limit");
+                }
+
+                recordId = menu.Id;
+            }
             else
             {
                 menu = (await context.RestaurantMenus.SingleOrDefaultAsync(x =>
