@@ -299,6 +299,42 @@ internal static class SqlServerMenuDraftAssertions
                 ExpectedRevision: rootItem.Revision, CatalogItemId: activeParent.Id), token);
         Assert.AreEqual(MenuDraftStatus.Duplicate, duplicateRoot.Status);
 
+        // Πλήρης κύκλος είδους ρίζας: δεύτερο είδος, αναδιάταξη, αλλαγή ονόματος και αφαίρεση.
+        MenuDraftMutationResult secondRoot = await store.ApplyAsync(menuTenantId, ownerId,
+            new(MenuDraftAction.AddItem, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: rootItem.Revision, CatalogItemId: activeChild.Id), token);
+        Assert.AreEqual(MenuDraftStatus.Saved, secondRoot.Status);
+
+        MenuDraftMutationResult reorderedRoot = await store.ApplyAsync(menuTenantId, ownerId,
+            new(MenuDraftAction.MoveItem, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: secondRoot.Revision, ItemId: rootItem.RecordId,
+                TargetPosition: 2), token);
+        Assert.AreEqual(MenuDraftStatus.Saved, reorderedRoot.Status);
+        Assert.AreEqual(2, (await store.GetAsync(menuTenantId, menuId, token))!.Items
+            .Single(x => x.ItemId == rootItem.RecordId).Position);
+
+        MenuDraftMutationResult renamedRoot = await store.ApplyAsync(menuTenantId, ownerId,
+            new(MenuDraftAction.RenameItem, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: reorderedRoot.Revision, ItemId: rootItem.RecordId,
+                NameOverride: "Χωρίς κατηγορία"), token);
+        Assert.AreEqual(MenuDraftStatus.Saved, renamedRoot.Status);
+        Assert.AreEqual("Χωρίς κατηγορία", (await store.GetAsync(menuTenantId, menuId, token))!
+            .Items.Single(x => x.ItemId == rootItem.RecordId).NameOverride);
+
+        MenuDraftMutationResult removedRoot = await store.ApplyAsync(menuTenantId, ownerId,
+            new(MenuDraftAction.RemoveItem, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: renamedRoot.Revision, ItemId: rootItem.RecordId), token);
+        Assert.AreEqual(MenuDraftStatus.Saved, removedRoot.Status);
+        MenuDraftDetails rootAfterRemove = (await store.GetAsync(menuTenantId, menuId, token))!;
+        Assert.IsFalse(rootAfterRemove.Items.Any(x => x.ItemId == rootItem.RecordId));
+        Assert.AreEqual(1, rootAfterRemove.Items.Single(x =>
+            x.ItemId == secondRoot.RecordId).Position);
+
+        MenuDraftMutationResult staleRoot = await store.ApplyAsync(menuTenantId, ownerId,
+            new(MenuDraftAction.RemoveItem, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: renamedRoot.Revision, ItemId: secondRoot.RecordId), token);
+        Assert.AreEqual(MenuDraftStatus.Conflict, staleRoot.Status);
+
         // Προσθήκη υποκατηγορίας μόνο κάτω από κατηγορία του ίδιου μενού.
         Guid drinksId = (await store.GetAsync(menuTenantId, menuId, token))!
             .Categories.Single(x => x.Name == "Ποτά").CategoryId;
