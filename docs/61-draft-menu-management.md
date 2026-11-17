@@ -5,7 +5,7 @@
 **Πηγή απαιτήσεων:** [Manual 58 — Menu Architecture](58-menu-management-architecture.md), [Manual 60 — Approved Design](60-menu-management-final-design-review.md).
 
 {% hint style="warning" %}
-Το 9.6A.1 είναι **Draft-only**. Δεν προσφέρει Publish, Preview, modifiers, διαθεσιμότητα, POS, KDS, φορολογική έκδοση, IMPACT transmission, offline ή εκτύπωση. Η προτεινόμενη ενδέκατη migration βρίσκεται στον κώδικα του PR #62 αλλά **δεν εφαρμόστηκε στη δική σας SQL Server**. Μη χρησιμοποιήσετε `--apply` πριν από SQL review, επιβεβαίωση στόχου, backup και χωριστή έγκριση.
+Το 9.6A.1 είναι **Draft-only**. Δεν προσφέρει Publish, Preview, modifiers, διαθεσιμότητα, POS, KDS, φορολογική έκδοση, IMPACT transmission, offline ή εκτύπωση. Η ενδέκατη migration **εφαρμόστηκε αποκλειστικά στη Development `AenaonERP_Dev` από τον ιδιοκτήτη στις 17/11/2026**, κατόπιν SQL review, επιβεβαιωμένου από τον ίδιο backup/VERIFYONLY και ρητής έγκρισης. Το τελικό `--dry-run` εμφάνισε **11 applied / 0 pending**. **Δεν εφαρμόστηκε σε production**. Μην επανεκτελέσετε το παραγόμενο SQL script και μην υποθέσετε ότι το PR είναι αποδεκτό για merge.
 {% endhint %}
 
 ## 1. Σκοπός
@@ -18,7 +18,7 @@
 
 - Απομονωμένο περιβάλλον Development με .NET SDK από `global.json`, SQL Server 2022, GitHub `main` ενημερωμένο και έγκυρη συνεδρία Owner/Member.
 - Εξουσιοδοτημένος Tenant και το επιλεγμένο Store του ίδιου Tenant.
-- Επιτυχημένο review του PR #62 και **εγκεκριμένη** αλλαγή SQL πριν από οποιαδήποτε χρήση write forms. Χωρίς την ενδέκατη migration οι σελίδες μπορεί να εμφανίζουν ασφαλές σφάλμα βάσης.
+- Στη `AenaonERP_Dev` η ενδέκατη migration αναφέρεται εφαρμοσμένη (11/0, 17/11/2026). Σε κάθε **άλλο** περιβάλλον απαιτούνται ξεχωριστό review, backup, έγκριση και schema check. Το PR #62 παραμένει Draft και τα πραγματικά UI/SQL acceptance checks εκκρεμούν.
 - Ανενεργά είδη ERP δεν μπορούν να προστεθούν σε νέο προσχέδιο. Αν είδος απενεργοποιηθεί μεταγενέστερα, εμφανίζεται σχετική προειδοποίηση έως να αφαιρεθεί.
 
 ## 3. Διαθέσιμες στην προτεινόμενη υλοποίηση λειτουργίες
@@ -89,6 +89,10 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-menus --u
 ~~~
 
 Σημείωση: οι τιμές `TENANT_GUID` / `MENU_GUID` είναι υποδείγματα. Ο κωδικός χρήστη ζητείται διαδραστικά και δεν περνά ως command-line argument. Exit codes: `0` επιτυχία, `2` άκυρη εντολή, `3` άρνηση, `4` απουσία, `5` σύγκρουση, `6` duplicate, `130` ακύρωση.
+
+## Καταγεγραμμένη εφαρμογή στη Development — 17/11/2026
+
+Ο ιδιοκτήτης εκτέλεσε την εγκεκριμένη `--migrate-database --apply --confirm-database AenaonERP_Dev`. Το αποτέλεσμα έδειξε `11 applied / 0 pending`, καθώς και επιτυχή καταχώριση `20261117110000_MenuDraftManagement`. Η αμέσως επόμενη ανάγνωση `--dry-run` επιβεβαίωσε `11 applied / 0 pending` χωρίς αλλαγές. Τα στοιχεία είναι **user-provided console logs**, όχι ανεξάρτητη σύνδεση reviewer στη Development SQL. Η εφαρμογή schema **δεν αποτελεί UI/E2E acceptance** και δεν εξουσιοδοτεί merge του PR.
 
 ## 8. Database review και ασφαλής εγκατάσταση
 
