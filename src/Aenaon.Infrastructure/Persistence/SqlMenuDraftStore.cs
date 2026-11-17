@@ -123,6 +123,16 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
                 draft = MenuDraft.Create(tenantId, menu.Id, clock.GetUtcNow().UtcDateTime);
                 context.RestaurantMenus.Add(menu);
                 context.MenuDrafts.Add(draft);
+
+                // Οι ενεργές κατηγορίες και τα ενεργά είδη του ERP εισάγονται
+                // μέσα στην ίδια συναλλαγή με τη δημιουργία του προσχεδίου.
+                MenuDraftStatus imported = await CopyCatalogContentsAsync(
+                    tenantId, menu.Id, cancellationToken);
+                if (imported != MenuDraftStatus.Saved)
+                {
+                    return new(imported, Error: "menu.catalog.import_limit");
+                }
+
                 recordId = menu.Id;
             }
             else
@@ -203,6 +213,35 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
                 menu.Rename(command.Name);
                 return new(MenuDraftStatus.Saved, menu.Id);
 
+            case MenuDraftAction.ImportCatalogContents:
+                {
+                    // Η εκ των υστέρων εισαγωγή επιτρέπεται μόνο σε άδειο μενού,
+                    // για αποφυγή διπλών ειδών και απώλειας χειροκίνητων αλλαγών.
+                    bool hasCategories = await context.MenuDraftCategories.AnyAsync(x =>
+                        x.TenantId == tenantId && x.MenuId == menu.Id, token);
+                    bool hasItems = await context.MenuDraftItems.AnyAsync(x =>
+                        x.TenantId == tenantId && x.MenuId == menu.Id, token);
+                    if (hasCategories || hasItems)
+                    {
+                        return new(MenuDraftStatus.Duplicate, Error: "menu.catalog.import_not_empty");
+                    }
+
+                    MenuDraftStatus imported = await CopyCatalogContentsAsync(
+                        tenantId, menu.Id, token);
+                    if (imported != MenuDraftStatus.Saved)
+                    {
+                        return new(imported, Error: "menu.catalog.import_limit");
+                    }
+
+                    if (!context.ChangeTracker.Entries<MenuDraftCategory>().Any(x =>
+                        x.State == EntityState.Added && x.Entity.TenantId == tenantId &&
+                        x.Entity.MenuId == menu.Id))
+                    {
+                        return new(MenuDraftStatus.Invalid, Error: "menu.catalog.no_active_categories");
+                    }
+
+                    return new(MenuDraftStatus.Saved, menu.Id);
+                }
             case MenuDraftAction.AddCategory:
                 {
                     int count = await context.MenuDraftCategories.CountAsync(x =>
@@ -365,6 +404,73 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
             default:
                 return new(MenuDraftStatus.Invalid, Error: "menu.action.invalid");
         }
+    }
+
+    /// <summary>
+    /// Αντιγράφει την τρέχουσα δομή ενεργών κατηγοριών και ειδών ως ανεξάρτητο
+    /// προσχέδιο του ίδιου Tenant, χωρίς μεταφορά εμπορικών τιμών ή αλλαγές ERP.
+    /// </summary>
+    private async Task<MenuDraftStatus> CopyCatalogContentsAsync(
+        Guid tenantId, Guid menuId, CancellationToken token)
+    {
+        const int maxCategories = 10000;
+        const int maxTotalItems = 20000;
+
+        // Περιορισμένα και ταξινομημένα SQL queries, χωρίς ανάκτηση άλλου Tenant.
+        List<CatalogCategory> categories = await context.CatalogCategories.AsNoTracking()
+            .Where(x => x.TenantId == tenantId && x.IsActive)
+            .OrderBy(x => x.Name).ThenBy(x => x.Code).ThenBy(x => x.Id)
+            .Take(maxCategories + 1).ToListAsync(token);
+        if (categories.Count > maxCategories)
+        {
+            return MenuDraftStatus.Invalid;
+        }
+
+        var catalogItems = await
+            (from item in context.CatalogItems.AsNoTracking()
+             join category in context.CatalogCategories.AsNoTracking()
+                 on new { item.TenantId, CategoryId = item.CategoryId }
+                 equals new { category.TenantId, CategoryId = category.Id }
+             where item.TenantId == tenantId && item.IsActive && category.IsActive
+             orderby item.CategoryId, item.Name, item.Code, item.Id
+             select new { item.Id, item.CategoryId })
+            .Take(maxTotalItems + 1).ToListAsync(token);
+        if (catalogItems.Count > maxTotalItems)
+        {
+            return MenuDraftStatus.Invalid;
+        }
+
+        var byCategory = catalogItems.ToLookup(x => x.CategoryId);
+        if (categories.Any(x => byCategory[x.Id].Count() > 10000))
+        {
+            return MenuDraftStatus.Invalid;
+        }
+
+        // Στις ιεραρχικές κατηγορίες το πλήρες μονοπάτι βοηθά να ξεχωρίζουν
+        // ομώνυμες υποκατηγορίες. Δεν μετατρέπεται σε νέα ιεραρχία ERP.
+        Dictionary<Guid, string> paths = await CatalogCategoryPaths.ResolveAsync(
+            context, tenantId,
+            categories.Select(x => (x.Id, x.ParentCategoryId, x.Name)), token);
+
+        int categoryPosition = 0;
+        foreach (CatalogCategory source in categories)
+        {
+            string candidate = paths[source.Id];
+            string categoryName = candidate.Length <= MenuDraftCategory.MaxNameLength
+                ? candidate : source.Name;
+            MenuDraftCategory destination = MenuDraftCategory.Create(
+                tenantId, menuId, categoryName, ++categoryPosition);
+            context.MenuDraftCategories.Add(destination);
+
+            int itemPosition = 0;
+            foreach (var item in byCategory[source.Id])
+            {
+                context.MenuDraftItems.Add(MenuDraftItem.Create(
+                    tenantId, menuId, destination.Id, item.Id, ++itemPosition));
+            }
+        }
+
+        return MenuDraftStatus.Saved;
     }
 
     private Task<MenuDraftCategory?> FindCategoryAsync(Guid tenantId, Guid menuId,
