@@ -193,7 +193,7 @@
                                         <h2 id="menu-categories-title">Κατηγορίες μενού</h2>
                                         <p>Επιλέξτε κατηγορία για να διαχειριστείτε τα είδη της.</p>
                                     </div>
-                                    <span class="menu-builder__counter">@details.Categories.Count κατηγορίες · @details.Items.Count είδη</span>
+                                    <span class="menu-builder__counter">Κατηγορίες: @details.Categories.Count · Είδη: @details.Items.Count</span>
                                 </header>
                                 @if (details.Categories.Count == 0)
                                 {
@@ -206,7 +206,7 @@
                                         <a class="menu-builder__tile-link" href="@Url(details.Menu.MenuId, menuCategory.CategoryId, "items")"
                                            aria-current="@(SelectedCategory?.CategoryId == menuCategory.CategoryId ? "true" : null)">
                                             <span class="menu-builder__tile-symbol" aria-hidden="true"><AppIcon Name="folder-tree" /></span>
-                                            <span class="menu-builder__tile-name">@menuCategory.Name</span><span class="menu-builder__tile-count">@(details.Items.Count(x => x.CategoryId == menuCategory.CategoryId)) είδη</span>
+                                            <span class="menu-builder__tile-name">@menuCategory.Name</span><span class="menu-builder__tile-count">@ItemCountLabel(details.Items.Count(x => x.CategoryId == menuCategory.CategoryId)) · Θέση @menuCategory.Position</span>
                                         </a>
                                         @if (!menuCategory.IsVisible)
                                         {
@@ -214,7 +214,7 @@
                                         }
                                         @if (CanManage && _csrfToken is not null)
                                         {
-                                            <details class="menu-builder__tile-menu"><summary class="menu-builder__tile-more" aria-label="Ενέργειες κατηγορίας @menuCategory.Name" title="Ενέργειες κατηγορίας"><AppIcon Name="settings" /></summary><div class="menu-builder__entry-actions">
+                                            <details class="menu-builder__tile-menu" name="menu-tile-actions"><summary class="menu-builder__tile-more" aria-label="Ενέργειες κατηγορίας @menuCategory.Name" title="Ενέργειες κατηγορίας"><AppIcon Name="settings" /></summary><div class="menu-builder__entry-actions">
                                                 @foreach (int target in CategoryMoves(menuCategory.Position, details.Categories.Count))
                                                 {
                                                     <form method="post" action="/ui/menus/draft">
@@ -312,7 +312,7 @@
                                         <p>Είδη κατηγορίας · επιλέξτε το γρανάζι ενός πλακιδίου για επεξεργασία και σειρά.</p>
                                     </div>
                                     <div class="menu-builder__workspace-actions">
-                                        <span class="menu-builder__counter">@categoryItems.Count είδη</span>
+                                        <span class="menu-builder__counter">@ItemCountLabel(categoryItems.Count)</span>
                                         <a class="menu-builder__compact-action" href="@Url(details.Menu.MenuId, selectedCategory.CategoryId, "catalog")"
                                            title="Αναζήτηση και προσθήκη ενεργών ειδών από το ERP Catalog">
                                             <AppIcon Name="plus" /> <span>Από ERP Catalog</span>
@@ -331,14 +331,14 @@
                                                 <span class="menu-builder__tile-symbol" aria-hidden="true"><AppIcon Name="catalog" /></span>
                                                 <span class="menu-builder__tile-name">@(item.NameOverride ?? item.CatalogName)</span>
                                             </div>
-                                            <small class="menu-builder__subtext">@item.CatalogCode · @item.CatalogName</small>
+                                            <small class="menu-builder__subtext">@item.CatalogCode · @item.CatalogName · Θέση @item.Position</small>
                                             @if (!item.IsCatalogActive)
                                             {
                                                 <span class="menu-builder__warning">Ανενεργό ERP είδος</span>
                                             }
                                             @if (CanManage && _csrfToken is not null)
                                             {
-                                                <details class="menu-builder__tile-menu"><summary class="menu-builder__tile-more" aria-label="Ενέργειες είδους @(item.NameOverride ?? item.CatalogName)" title="Ενέργειες είδους"><AppIcon Name="settings" /></summary><div class="menu-builder__entry-actions">
+                                                <details class="menu-builder__tile-menu" name="menu-tile-actions"><summary class="menu-builder__tile-more" aria-label="Ενέργειες είδους @(item.NameOverride ?? item.CatalogName)" title="Ενέργειες είδους"><AppIcon Name="settings" /></summary><div class="menu-builder__entry-actions">
                                                     @foreach (int target in CategoryMoves(item.Position, categoryItems.Count))
                                                     {
                                                         <form method="post" action="/ui/menus/draft">
@@ -526,6 +526,8 @@
         "invalid" => "Τα στοιχεία δεν είναι έγκυρα ή η κατηγορία περιέχει είδη.",
         _ => null
     };
+
+    private static string ItemCountLabel(int count) => count == 1 ? "1 είδος" : $"{count} είδη";
 
     private static IEnumerable<int> CategoryMoves(int position, int count)
     {
