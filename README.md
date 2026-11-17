@@ -6,6 +6,8 @@ Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες ε�
 
 **Νέο στο feature branch, όχι στο `main`:** κύριες κατηγορίες μόνο στην αρχική προβολή, υποκατηγορίες μέσα στον γονέα, είδη και στη ρίζα χωρίς κατηγορία, πραγματικό native drag & drop ταξινόμησης **εντός ίδιου επιπέδου** με πλήκτρα ↑/↓ και keyboard, modular Razor πλακίδια. Το μοντέλο παραμένει multi-tenant, με Owner-only writes, antiforgery, revision, idempotency, SQL FKs και ευθυγράμμιση ERP Catalog auto-sync.
 
+**Verified code CI:** [#44108994465](https://github.com/MoonHard13/AENAON-ERP/actions/runs/44108994465) **PASS**, Ubuntu/Windows Release χωρίς warnings/errors, 536/536 μη-SQL tests ανά OS (Domain 112 / Application 145 / Infrastructure 42 / API 237), Ubuntu απομονωμένο SQL Server 2022 1/1, formatting/JS/publish/HTTPS. Δεν υποκαθιστά πραγματικό browser/Developer DB acceptance.
+
 **Κρίσιμο:** Απαιτεί την νέα **13η SQL migration** `20261117170000_MenuBuilderHierarchyAndRootItems`, η οποία **δεν έχει εγκριθεί / εφαρμοστεί στην `AenaonERP_Dev`**. Η προηγούμενη #12 έχει εφαρμοστεί σύμφωνα με owner-provided στοιχεία. **Μην εφαρμόσετε #13 χωρίς νέο backup, review ακριβούς SQL, dry-run, restore plan και ρητή άδεια.** Δεν έγινε merge, Production, POS, Publish ή fiscal. Η πραγματική οπτική/SQL E2E αποδοχή παραμένει **NOT VERIFIED**. [Manual 64](docs/64-menu-builder-hierarchy-and-drag-drop.md) · [Draft PR #62](https://github.com/MoonHard13/AENAON-ERP/pull/62).
 
 
