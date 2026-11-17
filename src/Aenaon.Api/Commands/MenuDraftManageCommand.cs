@@ -2,7 +2,6 @@ using System.Globalization;
 using Aenaon.Application.Identity;
 using Aenaon.Application.Menus;
 using Aenaon.Application.Tenancy;
-using Aenaon.Domain.Tenancy;
 using Aenaon.Infrastructure.Database;
 using Microsoft.Extensions.Logging;
 
@@ -23,6 +22,7 @@ public static class MenuDraftManageCommand
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
         var flags = new HashSet<string>(StringComparer.Ordinal);
         bool invalid = false;
+        Guid tenantId = Guid.Empty;
         for (int i = 0; i < args.Length && !invalid;)
         {
             string key = args[i++];
@@ -52,7 +52,7 @@ public static class MenuDraftManageCommand
             (!read || dryRun) &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--username")) &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--confirm-database")) &&
-            Guid.TryParse(values.GetValueOrDefault("--tenant-id"), out Guid tenantId) &&
+            Guid.TryParse(values.GetValueOrDefault("--tenant-id"), out tenantId) &&
             tenantId != Guid.Empty &&
             actionName is ("list" or "details" or "catalog" or
                 "create-menu" or "update-menu" or "add-category" or "update-category" or
