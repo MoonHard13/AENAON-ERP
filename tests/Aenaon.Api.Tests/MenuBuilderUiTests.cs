@@ -25,7 +25,7 @@ public sealed class MenuBuilderUiTests
     }
 
     [TestMethod]
-    public async Task Owner_SeesThreeColumnsAndNativeDraftForms()
+    public async Task Owner_SeesCompactCategoryGridAndPreservesProtectedDraftForms()
     {
         await using var factory = new SessionApiFactory();
         using var client = factory.CreateHttpsClient();
@@ -33,18 +33,97 @@ public sealed class MenuBuilderUiTests
 
         string html = WebUtility.HtmlDecode(await client.GetStringAsync(
             $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}"));
-        Assert.Contains("menu-builder__column--categories", html);
-        Assert.Contains("menu-builder__column--items", html);
-        Assert.Contains("menu-builder__column--catalog", html);
-        Assert.Contains("menu-builder__mobile-tabs", html);
+        Assert.Contains("menu-builder__breadcrumbs", html);
+        Assert.Contains("menu-builder__tiles--categories", html);
+        Assert.Contains("menu-builder__tile--category", html);
+        Assert.Contains("menu-builder__tile-menu", html);
+        Assert.Contains("Νέα κατηγορία", html);
+        Assert.DoesNotContain("menu-builder__mobile-tabs", html);
+        Assert.DoesNotContain("menu-builder__tile--item", html);
         Assert.Contains("Δημιουργία μενού με είδη ERP", html);
         Assert.Contains("DRAFT ONLY", html);
         Assert.Contains("name=\"expectedRevision\"", html);
         Assert.Contains("name=\"requestId\"", html);
         Assert.Contains("name=\"__RequestVerificationToken\"", html);
         Assert.Contains("action=\"/ui/menus/draft\"", html);
-        Assert.Contains("Προσθήκη", html);
+        Assert.Contains("value=\"update-category\"", html);
+        Assert.Contains("value=\"move-category\"", html);
+        Assert.Contains("name=\"isVisible\"", html);
         Assert.DoesNotContain("name=\"unitPrice\"", html);
+    }
+
+    [TestMethod]
+    public async Task Owner_SelectsCategoryAndSeesItemGridWithBreadcrumb()
+    {
+        await using var factory = new SessionApiFactory();
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}" +
+            $"&categoryId={SessionMenuDraftFixture.CategoryId:D}&tab=items"));
+
+        Assert.Contains("menu-builder__breadcrumbs", html);
+        Assert.Contains("menu-builder__tiles--items", html);
+        Assert.Contains("menu-builder__tile--item", html);
+        Assert.Contains("Ορεκτικά", html);
+        Assert.Contains("Επιπλέον είδη από ERP Catalog", html);
+        Assert.Contains("value=\"rename-item\"", html);
+        Assert.Contains("value=\"remove-item\"", html);
+        Assert.DoesNotContain("menu-builder__tile--category", html);
+        Assert.DoesNotContain("menu-builder__mobile-tabs", html);
+        Assert.DoesNotContain("name=\"unitPrice\"", html);
+    }
+
+    [TestMethod]
+    public async Task Owner_CanRevealCatalogAndAddItemToEmptyCategory()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.MenuDrafts.EmptyCategory = true;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}" +
+            $"&categoryId={SessionMenuDraftFixture.CategoryId:D}&tab=catalog&search=SKU001"));
+
+        Assert.Contains("menu-builder__catalog-drawer", html);
+        Assert.Contains("menu-erp-catalog", html);
+        Assert.Contains("menu-builder__catalog-entry", html);
+        Assert.Contains("value=\"add-item\"", html);
+        Assert.Contains($"value=\"{SessionMenuDraftFixture.ProductId:D}\"", html);
+        Assert.Contains("name=\"expectedRevision\"", html);
+
+        using var saved = await PostAsync(client, Token(html), new()
+        {
+            ["tenantId"] = Tenant.ToString("D"),
+            ["requestId"] = Guid.NewGuid().ToString("D"),
+            ["action"] = "add-item",
+            ["menuId"] = SessionMenuDraftFixture.MenuId.ToString("D"),
+            ["categoryId"] = SessionMenuDraftFixture.CategoryId.ToString("D"),
+            ["catalogItemId"] = SessionMenuDraftFixture.ProductId.ToString("D"),
+            ["expectedRevision"] = "1"
+        });
+        Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
+        Assert.AreEqual(MenuDraftAction.AddItem, factory.MenuDrafts.LastCommand?.Action);
+        Assert.Contains("tab=items", saved.Headers.Location?.OriginalString ?? "");
+    }
+
+    [TestMethod]
+    public async Task Member_CanNavigateItemGridWithoutEditControls()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.Access.GrantedRole = TenantMembershipRole.Member;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}" +
+            $"&categoryId={SessionMenuDraftFixture.CategoryId:D}&tab=catalog"));
+        Assert.Contains("menu-builder__tile--item", html);
+        Assert.Contains("menu-builder__catalog-drawer", html);
+        Assert.DoesNotContain("menu-builder__tile-menu", html);
+        Assert.DoesNotContain("action=\"/ui/menus/draft\"", html);
     }
 
     [TestMethod]
