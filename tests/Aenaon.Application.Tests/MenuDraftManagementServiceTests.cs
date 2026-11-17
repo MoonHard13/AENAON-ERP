@@ -67,6 +67,39 @@ public sealed class MenuDraftManagementServiceTests
     }
 
     [TestMethod]
+    public async Task Owner_ValidatesParentAndAllowsRootItems()
+    {
+        var store = new FakeMenuStore();
+        MenuDraftManagementService service = CreateService(TenantMembershipRole.Owner, store);
+        Guid menuId = Guid.NewGuid();
+        Guid parentId = Guid.NewGuid();
+        MenuDraftMutationResult nested = await service.ApplyAsync(User, Tenant,
+            new(MenuDraftAction.AddCategory, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: 1, Name: "Υποκατηγορία", ParentCategoryId: parentId));
+        Assert.AreEqual(MenuDraftStatus.Saved, nested.Status);
+        Assert.AreEqual(parentId, store.LastCommand?.ParentCategoryId);
+
+        MenuDraftMutationResult root = await service.ApplyAsync(User, Tenant,
+            new(MenuDraftAction.AddItem, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: 1, CatalogItemId: Guid.NewGuid()));
+        Assert.AreEqual(MenuDraftStatus.Saved, root.Status);
+        Assert.IsNull(store.LastCommand?.CategoryId);
+
+        int calls = store.ApplyCalls;
+        MenuDraftMutationResult invalid = await service.ApplyAsync(User, Tenant,
+            new(MenuDraftAction.AddCategory, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: 1, Name: "Άκυρη", ParentCategoryId: Guid.Empty));
+        Assert.AreEqual(MenuDraftStatus.Invalid, invalid.Status);
+        Assert.AreEqual(calls, store.ApplyCalls);
+
+        MenuDraftMutationResult wrongAction = await service.ApplyAsync(User, Tenant,
+            new(MenuDraftAction.MoveItem, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: 1, ItemId: Guid.NewGuid(), TargetPosition: 2,
+                ParentCategoryId: parentId));
+        Assert.AreEqual(MenuDraftStatus.Invalid, wrongAction.Status);
+    }
+
+    [TestMethod]
     public async Task Member_CanReadButForeignTenantCannot()
     {
         var store = new FakeMenuStore();
