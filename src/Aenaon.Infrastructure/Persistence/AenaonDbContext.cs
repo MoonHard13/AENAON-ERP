@@ -19,6 +19,7 @@ public sealed class AenaonDbContext(DbContextOptions<AenaonDbContext> options) :
     public DbSet<PriceListItem> PriceListItems => Set<PriceListItem>();
     public DbSet<PriceListAuditEntry> PriceListAuditEntries => Set<PriceListAuditEntry>();
     public DbSet<RestaurantMenu> RestaurantMenus => Set<RestaurantMenu>();
+    public DbSet<StoreDefaultMenu> StoreDefaultMenus => Set<StoreDefaultMenu>();
     public DbSet<MenuDraft> MenuDrafts => Set<MenuDraft>();
     public DbSet<MenuDraftCategory> MenuDraftCategories => Set<MenuDraftCategory>();
     public DbSet<MenuDraftItem> MenuDraftItems => Set<MenuDraftItem>();
@@ -42,6 +43,7 @@ public sealed class AenaonDbContext(DbContextOptions<AenaonDbContext> options) :
         modelBuilder.ApplyConfiguration(new PriceListItemConfiguration());
         modelBuilder.ApplyConfiguration(new PriceListAuditEntryConfiguration());
         modelBuilder.ApplyConfiguration(new RestaurantMenuConfiguration());
+        modelBuilder.ApplyConfiguration(new StoreDefaultMenuConfiguration());
         modelBuilder.ApplyConfiguration(new MenuDraftConfiguration());
         modelBuilder.ApplyConfiguration(new MenuDraftCategoryConfiguration());
         modelBuilder.ApplyConfiguration(new MenuDraftItemConfiguration());
