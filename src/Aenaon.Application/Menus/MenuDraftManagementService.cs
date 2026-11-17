@@ -16,7 +16,8 @@ public enum MenuDraftAction
     RenameItem = 8,
     MoveItem = 9,
     RemoveItem = 10,
-    ImportCatalogContents = 11
+    ImportCatalogContents = 11,
+    EnsureStoreDefault = 12
 }
 
 public enum MenuDraftStatus
@@ -42,7 +43,8 @@ public sealed record MenuDraftCommand(
     string? Name = null,
     string? NameOverride = null,
     int? TargetPosition = null,
-    bool? IsVisible = null);
+    bool? IsVisible = null,
+    Guid? StoreId = null);
 
 public sealed record MenuDraftMutationResult(
     MenuDraftStatus Status, Guid? RecordId = null, Guid? MenuId = null,
@@ -106,16 +108,20 @@ public sealed class MenuDraftManagementService(
     {
         cancellationToken.ThrowIfCancellationRequested();
         TenantAccessResult access = await authorization.CheckAsync(
-            userId, tenantId, null, TenantPermission.Manage, cancellationToken);
+            userId, tenantId,
+            command.Action == MenuDraftAction.EnsureStoreDefault ? command.StoreId : null,
+            TenantPermission.Manage, cancellationToken);
         if (access.Status != TenantAccessStatus.Granted)
         {
             return new(MenuDraftStatus.Denied);
         }
 
         if (command.RequestId == Guid.Empty || !Enum.IsDefined(command.Action) ||
-            (command.Action == MenuDraftAction.CreateMenu &&
+            (command.Action is MenuDraftAction.CreateMenu or MenuDraftAction.EnsureStoreDefault &&
                 (command.MenuId.HasValue || command.ExpectedRevision.HasValue)) ||
-            (command.Action != MenuDraftAction.CreateMenu &&
+            (command.Action == MenuDraftAction.EnsureStoreDefault &&
+                command.StoreId is not { } store || store == Guid.Empty) ||
+            (command.Action is not (MenuDraftAction.CreateMenu or MenuDraftAction.EnsureStoreDefault) &&
                 (command.MenuId is not { } menuId || menuId == Guid.Empty ||
                  command.ExpectedRevision is not > 0)) ||
             (command.Action == MenuDraftAction.CreateMenu &&
