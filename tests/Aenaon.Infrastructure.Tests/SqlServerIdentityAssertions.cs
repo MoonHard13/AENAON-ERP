@@ -74,6 +74,60 @@ internal static class SqlServerIdentityAssertions
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
 
+        // Πραγματικό fixture παλαιάς δομής (#12), πριν προστεθεί το ParentCategoryId.
+        // Ελέγχει ότι η #13 διατηρεί τον σύνδεσμο είδους και αναγνωρίζει τον γονέα από τα ERP IDs.
+        Guid legacyMenuId = Guid.NewGuid();
+        Guid legacySourceParent = Guid.NewGuid();
+        Guid legacySourceChild = Guid.NewGuid();
+        Guid legacyMenuParent = Guid.NewGuid();
+        Guid legacyMenuChild = Guid.NewGuid();
+        Guid legacyMenuItem = Guid.NewGuid();
+        await using (var twelfth = new AenaonDbContext(options))
+        {
+            await twelfth.GetService<IMigrator>().MigrateAsync(
+                "20261117130000_DefaultStoreMenuCatalogSync", cancellationToken);
+        }
+
+        await using (var legacyConnection = new SqlConnection(connectionString))
+        {
+            await legacyConnection.OpenAsync(cancellationToken);
+            await using var command = legacyConnection.CreateCommand();
+            command.CommandText = """
+                INSERT dbo.CatalogCategories (Id, TenantId, Code, Name, IsActive, ParentCategoryId)
+                VALUES (@sourceParent, @tenant, N'UPG-FOOD', N'Φαγητά', 1, NULL);
+                INSERT dbo.CatalogCategories (Id, TenantId, Code, Name, IsActive, ParentCategoryId)
+                VALUES (@sourceChild, @tenant, N'UPG-MAIN', N'Κυρίως', 1, @sourceParent);
+                INSERT dbo.RestaurantMenus (Id, TenantId, Code, Name, IsArchived)
+                VALUES (@menu, @tenant, N'UPG-MENU', N'Μενού πριν τη migration', 0);
+                INSERT dbo.MenuDrafts (TenantId, MenuId, Revision, EditedUtc)
+                VALUES (@tenant, @menu, 1, SYSUTCDATETIME());
+                INSERT dbo.MenuDraftCategories
+                    (Id, TenantId, MenuId, Name, Position, IsVisible, CatalogCategoryId)
+                VALUES
+                    (@menuParent, @tenant, @menu, N'Φαγητά', 1, 1, @sourceParent),
+                    (@menuChild, @tenant, @menu, N'Φαγητά / Κυρίως', 2, 1, @sourceChild);
+                INSERT dbo.MenuDraftItems
+                    (Id, TenantId, MenuId, MenuCategoryId, CatalogItemId, Position, NameOverride)
+                VALUES (@menuItem, @tenant, @menu, @menuParent, @oldProduct, 1, N'Παλαιό είδος');
+                """;
+            command.Parameters.Add("@tenant", SqlDbType.UniqueIdentifier).Value = original.Id;
+            command.Parameters.Add("@sourceParent", SqlDbType.UniqueIdentifier).Value = legacySourceParent;
+            command.Parameters.Add("@sourceChild", SqlDbType.UniqueIdentifier).Value = legacySourceChild;
+            command.Parameters.Add("@menu", SqlDbType.UniqueIdentifier).Value = legacyMenuId;
+            command.Parameters.Add("@menuParent", SqlDbType.UniqueIdentifier).Value = legacyMenuParent;
+            command.Parameters.Add("@menuChild", SqlDbType.UniqueIdentifier).Value = legacyMenuChild;
+            command.Parameters.Add("@menuItem", SqlDbType.UniqueIdentifier).Value = legacyMenuItem;
+            command.Parameters.Add("@oldProduct", SqlDbType.UniqueIdentifier).Value = oldProduct;
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        var beforeHierarchy = await schema.ExecuteAsync(false, null, cancellationToken);
+        Assert.AreEqual(DatabaseSchemaStatus.Ready, beforeHierarchy.Status);
+        Assert.HasCount(12, beforeHierarchy.AppliedMigrations!);
+        Assert.HasCount(1, beforeHierarchy.PendingMigrations!);
+        Assert.AreEqual("20261117170000_MenuBuilderHierarchyAndRootItems",
+            beforeHierarchy.PendingMigrations![0]);
+
         Assert.AreEqual(DatabaseSchemaStatus.Updated,
             (await schema.ExecuteAsync(true, "AenaonERP_Identity_CI", cancellationToken)).Status);
 
@@ -85,6 +139,29 @@ internal static class SqlServerIdentityAssertions
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<AenaonDbContext>();
+
+        // Η #13 πρέπει να μεταφέρει στο σωστό επίπεδο μόνο το συνδεδεμένο παιδί.
+        var upgradedParent = await context.MenuDraftCategories.AsNoTracking()
+            .SingleAsync(x => x.TenantId == original.Id && x.MenuId == legacyMenuId &&
+                x.Id == legacyMenuParent, cancellationToken);
+        var upgradedChild = await context.MenuDraftCategories.AsNoTracking()
+            .SingleAsync(x => x.TenantId == original.Id && x.MenuId == legacyMenuId &&
+                x.Id == legacyMenuChild, cancellationToken);
+        Assert.IsNull(upgradedParent.ParentCategoryId);
+        Assert.AreEqual(legacyMenuParent, upgradedChild.ParentCategoryId);
+        Assert.AreEqual(1, upgradedParent.Position);
+        Assert.AreEqual(1, upgradedChild.Position);
+        Assert.AreEqual("Φαγητά / Κυρίως", upgradedChild.Name);
+
+        var preservedMenuItem = await context.MenuDraftItems.SingleAsync(x =>
+            x.TenantId == original.Id && x.MenuId == legacyMenuId &&
+            x.Id == legacyMenuItem, cancellationToken);
+        Assert.AreEqual(legacyMenuParent, preservedMenuItem.MenuCategoryId);
+        Assert.AreEqual("Παλαιό είδος", preservedMenuItem.NameOverride);
+
+        // Αφαίρεση αποκλειστικά του δοκιμαστικού συνδέσμου πριν το αρχικό fixture cleanup.
+        context.MenuDraftItems.Remove(preservedMenuItem);
+        await context.SaveChangesAsync(cancellationToken);
 
         // Η πραγματική αναβάθμιση διατηρεί είδη και αποδίδει ασφαλή αρχικά προφίλ.
         CatalogItem migratedProduct = await context.CatalogItems
