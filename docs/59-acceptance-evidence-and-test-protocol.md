@@ -4,7 +4,7 @@
 **Current main:** 3af56b94d0758f59386f6437be5330ff681b0b53  
 **Merged change:** [PR #60](https://github.com/MoonHard13/AENAON-ERP/pull/60) στις 16/11/2026 09:06 UTC.  
 **Push main CI:** [run 43836751173](https://github.com/MoonHard13/AENAON-ERP/actions/runs/43836751173), success σε Ubuntu/Windows.  
-**Τελική κατάσταση:** IMPLEMENTED — **NOT FULLY ACCEPTED**. Τα πραγματικά Development E2E/UI/SQL gates παραμένουν **NOT VERIFIED**.
+**Τελική κατάσταση (17/11/2026): OWNER ACCEPTED — USER-ATTESTED REAL DEVELOPMENT E2E/UI/SQL PASS.** Δεν υπάρχουν εδώ ανεξάρτητα εκτελεσμένα tests ή αναλυτικό per-case report.
 
 {% hint style="warning" %}
 Το πράσινο CI και η ύπαρξη unit/integration tests **δεν** αποτελούν ανθρώπινη αποδοχή. Δεν υπήρξε πρόσβαση στον πραγματικό Development browser, στα διαπιστευτήρια Owner/Member ή στην AenaonERP_Dev σε αυτόν τον έλεγχο. Δεν κατασκευάστηκαν screenshots ή SQL evidence και δεν εκτελέστηκε καμία εντολή μεταβολής δεδομένων.
@@ -12,11 +12,11 @@
 
 ## Ρητή αποδοχή ιδιοκτήτη
 
-**Απόφαση ιδιοκτήτη (16/11/2026):** Ο ιδιοκτήτης δήλωσε ρητά **«accept 9.5C.5»**. Καταγράφεται ως **OWNER ACCEPTED — WITH UNVERIFIED E2E/SQL GATES**, όχι ως δήλωση ότι εκτελέστηκαν οι ελλείπουσες δοκιμές. Τα Browser/Development SQL/Owner–Member/Mobile/Keyboard/Zoom/Concurrency gates παραμένουν **NOT VERIFIED**· η πλήρης τεχνική αποδοχή και η υλοποίηση 9.6A.1 εξακολουθούν να απαιτούν τεκμήρια και ξεχωριστή ρητή έγκριση. Καμία εξουσιοδότηση για merge, migration ή Menu implementation δεν δόθηκε.
+**Αποδοχή ιδιοκτήτη (16–17/11/2026):** Στις 16/11 ο ιδιοκτήτης δήλωσε **«accept 9.5C.5»** και στις **17/11/2026** δήλωσε ρητά ότι **εκτέλεσε ο ίδιος τα πραγματικά Development E2E/SQL acceptance checks του 9.5C.5 και ήταν όλα εντάξει**. Κατάσταση: **9.5C.5 OWNER ACCEPTED — USER-ATTESTED DEVELOPMENT E2E/SQL PASS**. Η διαπίστωση προέρχεται από τον χειριστή και **δεν έχει επανεκτελεστεί ανεξάρτητα** σε αυτό το περιβάλλον· δεν δόθηκαν εδώ αναλυτικά αποτελέσματα ανά test case, SQL outputs, test logs ή screenshots. Τα ιστορικά `NOT VERIFIED` αφορούν **τον ανεξάρτητο έλεγχο που δεν έγινε εδώ**, όχι άρνηση της επιβεβαίωσης του ιδιοκτήτη. Παραμένει απαραίτητη **ξεχωριστή ρητή έγκριση** για έναρξη 9.6A.1, SQL migration, merge PR #61 ή δημοσίευση GitBook.
 
 ## Σκοπός και σχέση με το Manual 57
 
-Η σελίδα συμπληρώνει το [Manual 57](57-catalog-pricing-final-acceptance.md), το οποίο δημιουργήθηκε πριν από το merge του PR #60. Διατηρεί την ιστορική διάκριση αρχικού baseline και PR, αλλά διορθώνει τη **σημερινή** κατάσταση του main. Το [Menu 9.6A.0 Design](58-menu-management-architecture.md) είναι design-only έως να κλείσει η αποδοχή.
+Η σελίδα συμπληρώνει το [Manual 57](57-catalog-pricing-final-acceptance.md), το οποίο δημιουργήθηκε πριν από το merge του PR #60. Διατηρεί την ιστορική διάκριση αρχικού baseline και PR, αλλά διορθώνει τη **σημερινή** κατάσταση του main. Το [Menu 9.6A.0 Design](58-menu-management-architecture.md) είναι **DESIGN APPROVED (10/10)**· η owner acceptance του 9.5C.5 επιβεβαιώθηκε και με δήλωση επιτυχών Dev E2E/SQL στις 17/11, αλλά το Menu παραμένει design-only μέχρι ξεχωριστή έγκριση.
 
 ## Τι επαληθεύτηκε σήμερα
 
@@ -27,9 +27,13 @@
 - Το CI εκτελεί Google Chrome JS smoke scripts με συνθετικό browser fixture και **όχι το πραγματικό Development Back Office με συνδεδεμένο χρήστη και SQL**. Δεν λογίζεται ως πλήρες browser/E2E acceptance.
 - Αρχεία GitHub docs/ είναι πρωτογενή τεχνικά manuals. Ο πραγματικός live GitBook space **AENAON ERP Documentation**, ξεχωριστός από τα Git-synced starter templates, είχε στις 16/11/2026 κείμενα που αναφέρονται σε PR #50/#51, χαρακτήριζαν Barcode/LongDescription/Audit μη υλοποιημένα και δεν περιείχαν νέα αντίστοιχα manuals. Δεν τροποποιήθηκε live GitBook ή δεν επιβεβαιώθηκε οπτικά η εμφάνισή του.
 
+## Owner-reported πραγματικά Development E2E/SQL αποτελέσματα — 17/11/2026
+
+Ο ιδιοκτήτης ανέφερε ότι **εκτέλεσε τους πραγματικούς Development E2E και SQL acceptance ελέγχους του 9.5C.5 και όλοι ήταν εντάξει**. Το γεγονός καταγράφεται ως **USER-ATTESTED PASS / OWNER ACCEPTED** και προηγείται χρονικά της παρούσας ενημέρωσης. Δεν γνωστοποιήθηκαν αναλυτικές per-case δοκιμές, timestamps, screenshots ή exports SQL, άρα **δεν επιτρέπεται να αντιστοιχίσουμε αυθαίρετα PASS σε κάθε ιστορική γραμμή** ή να ισχυριστούμε ανεξάρτητο review. Ο παρακάτω αρχικός πίνακας κρατιέται ως **στιγμιότυπο προηγούμενης επιθεώρησης**, στο οποίο ο reviewer δεν είχε πρόσβαση στο Dev. Η ιδιοκτησιακή δήλωση είναι πρόσθετη αποδοχή και δεν τροποποιεί το ιστορικό audit.
+
 ## Acceptance matrix — ξεχωριστό evidence ανά τύπο
 
-**PASS (code/CI)** σημαίνει μόνο επιβεβαιωμένο implementation και σχετικό automated check. **NOT VERIFIED (Dev)** σημαίνει ότι δεν υπήρξε πραγματική δοκιμή μετά από authentic login, browser και βάση. **FAIL** χρησιμοποιείται μόνο για αναπαραχθέν ελάττωμα· δεν επινοούνται FAIL σε ανέλεγκτη οθόνη.
+**PASS (code/CI)** σημαίνει μόνο επιβεβαιωμένο implementation και σχετικό automated check. **NOT VERIFIED (Dev)** στον ιστορικό πίνακα σημαίνει ότι **ο reviewer δεν είχε προσωπική πρόσβαση/επαληθεύσιμα artifacts** από authentic login, browser και βάση όταν συνέταξε το report. **Στις 17/11/2026 ο ιδιοκτήτης δήλωσε συνολικά PASS των πραγματικών Dev E2E/SQL tests**, χωρίς αναλυτική ανά-case απόδειξη στον reviewer. **FAIL** χρησιμοποιείται μόνο για αναπαραχθέν ελάττωμα· δεν επινοούνται FAIL σε ανέλεγκτη οθόνη.
 
 | Κριτήριο | Code / CI | Real Dev user / SQL |
 | --- | --- | --- |
@@ -135,7 +139,7 @@ ORDER BY OccurredUtc DESC, Id DESC;
 ## Blockers και υπολειπόμενα ρίσκα
 
 **B1 — Blocking:** πραγματικός authenticated browser/SQL test σε Dev δεν εκτελέστηκε.  
-**B2 — Blocking:** αναλυτικό Owner/Member, cross-tenant, stale edit, double submit, responsive/light/dark/keyboard/zoom evidence λείπει.  
+**B2 — Evidence not independently reviewed (owner reports PASS):** αναλυτικό Owner/Member, cross-tenant, stale edit, double submit, responsive/light/dark/keyboard/zoom evidence δεν παραδόθηκε στον reviewer. Η έλλειψη ανεξάρτητου evidence **δεν ανατρέπει την owner δήλωση αποδοχής**· αν χρειαστεί ανεξάρτητο QA certification, παραμένει προς εξέταση.  
 **B3 — Documentation:** Live GitBook content βασίζεται σε PR #50/#51 και χρειάζεται ανεξάρτητη εγκεκριμένη GitBook change request μετά από συγχρονισμό κειμένου.  
 **B4 — Risk:** μη ανεξάρτητα επαληθευμένο τοπικό 10 applied / 0 pending· πρόκειται για ιστορική δήλωση χειριστή, όχι τρέχουσα σύνδεση στην DB.  
 **B5 — Risk:** καμία μετρημένη απόδοση υπό πολλά concurrent tenant/store queries.  
@@ -150,7 +154,7 @@ ORDER BY OccurredUtc DESC, Id DESC;
 - Ενημερωμένο QA report και ρητή ιδιοκτησιακή αποδοχή Catalog & Pricing.
 - Μόνο τότε έγκριση 9.6A.1. Ο σχεδιασμός 9.6A.0 μπορεί να ελεγχθεί τώρα αλλά **δεν επιτρέπει υλοποίηση**.
 
-**Πότε χρησιμοποιείται:** για εκτέλεση/καταγραφή πραγματικών acceptance tests. **Δεν χρησιμοποιείται:** ως δήλωση ότι τα tests εκτελέστηκαν, ως έγκριση migration ή ως production runbook.
+**Πότε χρησιμοποιείται:** για πρωτόκολλο πραγματικών acceptance tests και καταγραφή της **δήλωσης του ιδιοκτήτη ότι τα εκτέλεσε επιτυχώς**. **Δεν χρησιμοποιείται:** ως ανεξάρτητο E2E/SQL test report, ως έγκριση migration ή ως production runbook.
 
 {% hint style="info" %}
 Βέλτιστη πρακτική: κάθε δοκιμή έχει έναν επώνυμο χειριστή, timestamp, ακριβές main SHA, browser/version, πραγματικό screenshot σε αποτυχία και επαληθεύσιμα δεδομένα Dev. Δεν καταγράφουμε «PASS» χωρίς αποτέλεσμα πραγματικής εκτέλεσης.
