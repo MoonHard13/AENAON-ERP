@@ -40,6 +40,7 @@ public static class MenuDraftManagementEndpoints
             !TryGuid(form, "menuId", required: false, out Guid? menuId) ||
             !TryGuid(form, "categoryId", required: false, out Guid? categoryId) ||
              !TryGuid(form, "parentCategoryId", required: false, out Guid? parentCategoryId) ||
+             !TryGuid(form, "returnCategoryId", required: false, out Guid? returnCategoryId) ||
             !TryGuid(form, "itemId", required: false, out Guid? itemId) ||
             !TryGuid(form, "catalogItemId", required: false, out Guid? catalogItemId) ||
             !TryGuid(form, "requestId", required: true, out Guid? requestId) ||
@@ -153,6 +154,11 @@ public static class MenuDraftManagementEndpoints
                 ? result.MenuId ?? menuId : menuId;
             Guid? destinationCategory = action == MenuDraftAction.AddCategory
                 ? parentCategoryId : categoryId;
+            if (action is MenuDraftAction.UpdateCategory or MenuDraftAction.MoveCategory or
+                MenuDraftAction.RemoveCategory && form.ContainsKey("returnCategoryId"))
+            {
+                destinationCategory = returnCategoryId;
+            }
             if (action is MenuDraftAction.AddItem or MenuDraftAction.RenameItem or
                 MenuDraftAction.MoveItem or MenuDraftAction.RemoveItem)
             {
