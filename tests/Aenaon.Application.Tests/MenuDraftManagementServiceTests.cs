@@ -332,8 +332,13 @@ public sealed class MenuDraftManagementServiceTests
             CancellationToken cancellationToken = default) =>
             Task.FromResult<MenuDraftDetails?>(null);
 
+        public Task<IReadOnlyList<MenuCatalogCategoryOption>> ListCatalogCategoriesAsync(
+            Guid tenantId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<MenuCatalogCategoryOption>>([]);
+
         public Task<IReadOnlyList<MenuCatalogOption>> SearchCatalogAsync(Guid tenantId,
-            string? search, CancellationToken cancellationToken = default)
+            string? search, CancellationToken cancellationToken = default,
+            Guid? catalogCategoryId = null)
         {
             CatalogCalls++;
             return Task.FromResult<IReadOnlyList<MenuCatalogOption>>([]);
