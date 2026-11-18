@@ -19,7 +19,8 @@ public enum MenuDraftAction
     RemoveItem = 10,
     ImportCatalogContents = 11,
     EnsureStoreDefault = 12,
-    AddItems = 13
+    AddItems = 13,
+    LinkCatalogCategory = 14
 }
 
 public enum MenuDraftStatus
@@ -52,7 +53,9 @@ public sealed record MenuDraftCommand(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     IReadOnlyList<Guid>? CatalogItemIds = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    bool RemoveContents = false);
+    bool RemoveContents = false,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    Guid? SourceCatalogCategoryId = null);
 
 public sealed record MenuDraftMutationResult(
     MenuDraftStatus Status, Guid? RecordId = null, Guid? MenuId = null,
@@ -62,13 +65,16 @@ public sealed record MenuDraftSummary(
     Guid MenuId, string Code, string Name, long Revision, DateTime EditedUtc);
 
 public sealed record MenuDraftCategoryRecord(
-    Guid CategoryId, string Name, int Position, bool IsVisible, Guid? ParentCategoryId = null);
+    Guid CategoryId, string Name, int Position, bool IsVisible, Guid? ParentCategoryId = null,
+    Guid? CatalogCategoryId = null);
 
 public sealed record MenuDraftItemRecord(
     Guid ItemId, Guid? CategoryId, Guid CatalogItemId, string CatalogCode,
     string CatalogName, string? NameOverride, bool IsCatalogActive, int Position);
 
 public sealed record MenuCatalogOption(Guid CatalogItemId, string Code, string Name);
+public sealed record MenuCatalogCategoryOption(
+    Guid CatalogCategoryId, string Code, string Name, Guid? ParentCategoryId);
 
 public sealed record MenuDraftDetails(
     MenuDraftSummary Menu,
@@ -79,7 +85,8 @@ public sealed record MenuDraftReadResult(
     bool IsAuthorized,
     IReadOnlyList<MenuDraftSummary> Menus,
     MenuDraftDetails? Details,
-    IReadOnlyList<MenuCatalogOption> Catalog)
+    IReadOnlyList<MenuCatalogOption> Catalog,
+    IReadOnlyList<MenuCatalogCategoryOption>? CatalogCategories = null)
 {
     public static MenuDraftReadResult Denied => new(false, [], null, []);
 }
@@ -100,7 +107,11 @@ public interface IMenuDraftStore
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<MenuCatalogOption>> SearchCatalogAsync(Guid tenantId,
-        string? search, CancellationToken cancellationToken = default);
+        string? search, CancellationToken cancellationToken = default,
+        Guid? catalogCategoryId = null);
+
+    Task<IReadOnlyList<MenuCatalogCategoryOption>> ListCatalogCategoriesAsync(Guid tenantId,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -136,8 +147,14 @@ public sealed class MenuDraftManagementService(
                 (command.Code is null || command.Name is null)) ||
             (command.Action == MenuDraftAction.UpdateMenu && command.Name is null) ||
             (command.ParentCategoryId == Guid.Empty ||
-                (command.ParentCategoryId.HasValue && command.Action != MenuDraftAction.AddCategory)) ||
+                (command.ParentCategoryId.HasValue && command.Action is not
+                    (MenuDraftAction.AddCategory or MenuDraftAction.LinkCatalogCategory))) ||
             (command.RemoveContents && command.Action != MenuDraftAction.RemoveCategory) ||
+            (command.SourceCatalogCategoryId.HasValue &&
+                command.Action != MenuDraftAction.LinkCatalogCategory) ||
+            (command.Action == MenuDraftAction.LinkCatalogCategory &&
+                command.SourceCatalogCategoryId is not { } sourceId) ||
+            (command.SourceCatalogCategoryId == Guid.Empty) ||
             (command.CatalogItemIds is not null && command.Action != MenuDraftAction.AddItems) ||
             (command.CategoryId == Guid.Empty) ||
             (command.Action is MenuDraftAction.AddCategory or MenuDraftAction.UpdateCategory &&
@@ -180,7 +197,7 @@ public sealed class MenuDraftManagementService(
 
     public async Task<MenuDraftReadResult> ReadAsync(Guid userId, Guid tenantId,
         Guid? menuId, string? catalogSearch, CancellationToken cancellationToken = default,
-        Guid? storeId = null)
+        Guid? storeId = null, Guid? catalogCategoryId = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         TenantAccessResult access = await authorization.CheckAsync(
@@ -198,8 +215,11 @@ public sealed class MenuDraftManagementService(
         MenuDraftDetails? details = selected.HasValue
             ? await store.GetAsync(tenantId, selected.Value, cancellationToken)
             : null;
+        IReadOnlyList<MenuCatalogCategoryOption> categories =
+            await store.ListCatalogCategoriesAsync(tenantId, cancellationToken);
         IReadOnlyList<MenuCatalogOption> catalog =
-            await store.SearchCatalogAsync(tenantId, catalogSearch, cancellationToken);
-        return new(true, menus, details, catalog);
+            await store.SearchCatalogAsync(tenantId, catalogSearch, cancellationToken,
+                catalogCategoryId);
+        return new(true, menus, details, catalog, categories);
     }
 }
