@@ -10,6 +10,7 @@ public sealed class UiAssetVersions
     public string JavaScript { get; }
     public string CategoryPickerJavaScript { get; }
     public string CommercialPickerJavaScript { get; }
+    public string MenuShortcutsJavaScript { get; }
     public string ThemeInitialization { get; }
     public string Favicon { get; }
 
@@ -20,6 +21,7 @@ public sealed class UiAssetVersions
         JavaScript = Fingerprint(environment, logger, "js/aenaon.js");
         CategoryPickerJavaScript = Fingerprint(environment, logger, "js/aenaon-category-picker.js");
         CommercialPickerJavaScript = Fingerprint(environment, logger, "js/aenaon-commercial-picker.js");
+        MenuShortcutsJavaScript = Fingerprint(environment, logger, "js/aenaon-menu-shortcuts.js");
         ThemeInitialization = Fingerprint(environment, logger, "js/aenaon-theme-init.js");
         Favicon = Fingerprint(environment, logger, "images/aenaon-favicon.png");
     }

@@ -1,5 +1,6 @@
 using System.Data;
 using Aenaon.Application.Tenancy;
+using Aenaon.Domain.Menus;
 using Aenaon.Domain.Tenancy;
 using Aenaon.Infrastructure.Database;
 using Microsoft.Data.SqlClient;
@@ -84,9 +85,15 @@ public sealed class SqlInitialBusinessStore(string? connectionString, bool isDev
 
             logger.LogInformation("Initial business creation started");
             context.Tenants.Add(tenant);
+
+            // Το αρχικό κατάστημα αποκτά ένα Draft προεπιλεγμένο μενού
+            // στην ίδια ατομική συναλλαγή με την αρχικοποίηση της επιχείρησης.
+            Store firstStore = tenant.Stores[0];
+            RestaurantMenu defaultMenu = StoreDefaultMenuFactory.Add(
+                context, firstStore, DateTime.UtcNow);
             await context.SaveChangesAsync(timeout.Token);
             await transaction.CommitAsync(timeout.Token);
-            logger.LogInformation("Initial business created: {TenantId}, {StoreId}", tenant.Id, tenant.Stores[0].Id);
+            logger.LogInformation("Initial business and default draft menu created: {TenantId}, {StoreId}, {MenuId}", tenant.Id, tenant.Stores[0].Id, defaultMenu.Id);
             return new(InitialBusinessStatus.Created, tenant.Id, tenant.Stores[0].Id, settings.InitialCatalog);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

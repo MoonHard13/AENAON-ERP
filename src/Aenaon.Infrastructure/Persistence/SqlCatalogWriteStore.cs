@@ -300,6 +300,16 @@ public sealed class SqlCatalogWriteStore(AenaonDbContext context) : ICatalogWrit
         }
 
         await context.SaveChangesAsync(cancellationToken);
+
+        // Νέα κατηγορία εισάγεται αυτόματα σε όλα τα πρόχειρα μενού του Tenant.
+        // Αποτυχία συγχρονισμού ακυρώνει και τη δημιουργία κατηγορίας.
+        if (command.Action == CatalogChangeAction.Create &&
+            !await MenuCatalogSynchronizer.CategoryCreatedAsync(
+                context, category, cancellationToken))
+        {
+            return new(CatalogChangeStatus.Invalid, Error: "catalog.menu_sync.limit");
+        }
+
         return new(CatalogChangeStatus.Saved, category.Id, Code: category.Code);
     }
 
@@ -397,6 +407,15 @@ public sealed class SqlCatalogWriteStore(AenaonDbContext context) : ICatalogWrit
         }
 
         await context.SaveChangesAsync(cancellationToken);
+
+        // Νέο ενεργό είδος μπαίνει μόνο σε κατηγορίες που διατηρούν ERP πηγή.
+        if (command.Action == CatalogChangeAction.Create &&
+            !await MenuCatalogSynchronizer.ItemCreatedAsync(
+                context, item, cancellationToken))
+        {
+            return new(CatalogChangeStatus.Invalid, Error: "catalog.menu_sync.limit");
+        }
+
         return new(CatalogChangeStatus.Saved, item.Id, Code: item.Code);
     }
 

@@ -31,6 +31,8 @@ internal static class SqlServerInitialBusinessAssertions
         Assert.AreEqual("MAIN", preview.Summary.StoreCode);
         Assert.AreEqual(0, await context.Tenants.CountAsync(cancellationToken));
         Assert.AreEqual(0, await context.Stores.CountAsync(cancellationToken));
+        Assert.AreEqual(0, await context.RestaurantMenus.CountAsync(cancellationToken));
+        Assert.AreEqual(0, await context.StoreDefaultMenus.CountAsync(cancellationToken));
 
         var unconfirmed = await service.ExecuteAsync("Demo", "MAIN", "Κεντρικό", true, "WrongDatabase", cancellationToken);
         Assert.AreEqual(InitialBusinessStatus.InvalidConfiguration, unconfirmed.Status);
@@ -44,6 +46,8 @@ internal static class SqlServerInitialBusinessAssertions
         Assert.AreEqual(547, failed.SqlErrorNumber);
         Assert.AreEqual(0, await context.Tenants.CountAsync(cancellationToken));
         Assert.AreEqual(0, await context.Stores.CountAsync(cancellationToken));
+        Assert.AreEqual(0, await context.RestaurantMenus.CountAsync(cancellationToken));
+        Assert.AreEqual(0, await context.StoreDefaultMenus.CountAsync(cancellationToken));
         await ExecuteAsync(connection, "ALTER TABLE dbo.Stores DROP CONSTRAINT CK_Stores_StartupFixture;", cancellationToken);
 
         // Δύο ταυτόχρονες εντολές πρέπει να παράγουν μία μόνο αρχική επιχείρηση/κατάστημα.
@@ -62,11 +66,27 @@ internal static class SqlServerInitialBusinessAssertions
         Assert.AreEqual("MAIN", store.Code);
         Assert.AreEqual(1, await context.Stores.CountAsync(cancellationToken));
 
+        // Το Store αποκτά default Menu και Draft ατομικά, ακόμη χωρίς κατηγορίες.
+        var defaultLink = await context.StoreDefaultMenus.AsNoTracking()
+            .SingleAsync(x => x.TenantId == tenant.Id && x.StoreId == store.Id,
+                cancellationToken);
+        var defaultMenu = await context.RestaurantMenus.AsNoTracking()
+            .SingleAsync(x => x.Id == defaultLink.MenuId, cancellationToken);
+        Assert.AreEqual("DEFAULT-MAIN", defaultMenu.Code);
+        Assert.AreEqual(tenant.Id, defaultMenu.TenantId);
+        Assert.IsTrue(await context.MenuDrafts.AsNoTracking().AnyAsync(x =>
+            x.TenantId == tenant.Id && x.MenuId == defaultMenu.Id &&
+            x.Revision == 1, cancellationToken));
+        Assert.AreEqual(0, await context.MenuDraftCategories.CountAsync(x =>
+            x.TenantId == tenant.Id && x.MenuId == defaultMenu.Id, cancellationToken));
+
         var repeated = await service.ExecuteAsync("Other name", "OTHER", "Άλλο κατάστημα", true, "AenaonERP_Startup_CI", cancellationToken);
         Assert.AreEqual(InitialBusinessStatus.ExistingData, repeated.Status);
         Assert.AreEqual(tenant.Name, (await context.Tenants.AsNoTracking().SingleAsync(cancellationToken)).Name);
         Assert.AreEqual(1, await context.Tenants.CountAsync(cancellationToken));
         Assert.AreEqual(1, await context.Stores.CountAsync(cancellationToken));
+        Assert.AreEqual(1, await context.StoreDefaultMenus.CountAsync(cancellationToken));
+        Assert.AreEqual(1, await context.RestaurantMenus.CountAsync(cancellationToken));
     }
 
     private static async Task ExecuteAsync(SqlConnection connection, string sql, CancellationToken cancellationToken)

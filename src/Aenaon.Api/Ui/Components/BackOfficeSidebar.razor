@@ -24,6 +24,10 @@
            aria-current="@(ActivePage == "price-lists" ? "page" : null)" title="Τιμοκατάλογοι" aria-label="Τιμοκατάλογοι">
             <AppIcon Name="sales" /> <span class="sidebar__link-label">Τιμοκατάλογοι</span>
         </a>
+        <a class="@LinkClass("menus")" href="@MenusHref"
+           aria-current="@(ActivePage == "menus" ? "page" : null)" title="Μενού εστίασης" aria-label="Μενού εστίασης">
+            <AppIcon Name="catalog" /> <span class="sidebar__link-label">Μενού εστίασης</span>
+        </a>
         <details class="sidebar__upcoming">
             <summary><AppIcon Name="settings" /> Επόμενες λειτουργίες <AppIcon Name="chevron" /></summary>
             <div class="sidebar__upcoming-list" aria-label="Λειτουργίες υπό ανάπτυξη">
@@ -55,6 +59,7 @@
     private string DashboardHref => Href("/dashboard");
     private string CatalogHref => Href("/catalog");
     private string PriceListsHref => Href("/price-lists");
+    private string MenusHref => Href("/menus");
 
     private string LinkClass(string page) =>
         ActivePage == page ? "sidebar__link sidebar__link--active" : "sidebar__link";

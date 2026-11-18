@@ -1,0 +1,125 @@
+@using Aenaon.Application.Menus
+
+<article class="menu-builder__tile menu-builder__tile--category @(Category.IsVisible ? "" : "is-hidden")"
+         data-menu-drag-tile="category">
+    <a class="menu-builder__tile-link" href="@Href">
+        <span class="menu-builder__tile-symbol" aria-hidden="true"><AppIcon Name="folder-tree" /></span>
+        <span class="menu-builder__tile-name">@DisplayName</span>
+        <span class="menu-builder__tile-count">@ChildCount υποκατηγορίες · @ItemCount είδη</span>
+    </a>
+    @if (!Category.IsVisible)
+    {
+        <span class="menu-builder__warning">Κρυφή</span>
+    }
+    @if (CanManage && !string.IsNullOrEmpty(CsrfToken))
+    {
+        <span class="menu-builder__drag-handle" draggable="true" tabindex="0" role="button"
+              aria-label="Αλλαγή σειράς κατηγορίας @DisplayName"
+              title="Σύρετε για ταξινόμηση ή χρησιμοποιήστε ↑/↓">⠿</span>
+        <form method="post" action="/ui/menus/draft" class="menu-builder__drag-form"
+              data-menu-drag-form>
+            <MenuDraftFormFields TenantId="@TenantId" StoreId="@StoreId"
+                                 MenuId="@MenuId" CategoryId="@Category.CategoryId"
+                                 Revision="@Revision" CsrfToken="@CsrfToken" />
+            <input type="hidden" name="action" value="move-category" />
+            <input type="hidden" name="targetPosition" value="@Category.Position" />
+            <input type="hidden" name="returnCategoryId" value="@ReturnCategoryId" />
+        </form>
+        <details class="menu-builder__tile-menu" name="menu-tile-actions">
+            <summary class="menu-builder__tile-more"
+                     aria-label="Ενέργειες κατηγορίας @DisplayName" title="Ενέργειες">
+                <AppIcon Name="settings" />
+            </summary>
+            <div class="menu-builder__entry-actions">
+                @foreach (int target in Moves)
+                {
+                    <form method="post" action="/ui/menus/draft">
+                        <MenuDraftFormFields TenantId="@TenantId" StoreId="@StoreId"
+                                             MenuId="@MenuId" CategoryId="@Category.CategoryId"
+                                             Revision="@Revision" CsrfToken="@CsrfToken" />
+                        <input type="hidden" name="action" value="move-category" />
+                        <input type="hidden" name="targetPosition" value="@target" />
+                        <input type="hidden" name="returnCategoryId" value="@ReturnCategoryId" />
+                        <button class="menu-builder__move" type="submit"
+                                aria-label="Μετακίνηση @DisplayName @(target < Category.Position ? "πάνω" : "κάτω")">
+                            @(target < Category.Position ? "↑" : "↓")
+                        </button>
+                    </form>
+                }
+                <details>
+                    <summary class="menu-builder__text-action">Επεξεργασία</summary>
+                    <form method="post" action="/ui/menus/draft"
+                          class="menu-builder__inline-form" data-menu-save="true">
+                        <MenuDraftFormFields TenantId="@TenantId" StoreId="@StoreId"
+                                             MenuId="@MenuId" CategoryId="@Category.CategoryId"
+                                             Revision="@Revision" CsrfToken="@CsrfToken" />
+                        <input type="hidden" name="returnCategoryId" value="@ReturnCategoryId" />
+                        <input type="hidden" name="action" value="update-category" />
+                        <label for="@($"menu-category-name-{Category.CategoryId:N}")">Όνομα</label>
+                        <input id="@($"menu-category-name-{Category.CategoryId:N}")"
+                               name="name" maxlength="160" required value="@Category.Name" />
+                        <label for="@($"menu-category-visible-{Category.CategoryId:N}")">Ορατότητα</label>
+                        <select id="@($"menu-category-visible-{Category.CategoryId:N}")" name="isVisible">
+                            <option value="true" selected="@Category.IsVisible">Ορατή</option>
+                            <option value="false" selected="@(!Category.IsVisible)">Κρυφή</option>
+                        </select>
+                        <button type="submit" class="button button--primary">Αποθήκευση</button>
+                    </form>
+                </details>
+                <details>
+                    <summary class="menu-builder__text-action menu-builder__text-action--danger">Αφαίρεση από μενού</summary>
+                    <form method="post" action="/ui/menus/draft" class="menu-builder__inline-form"
+                          data-menu-save="true">
+                        <MenuDraftFormFields TenantId="@TenantId" StoreId="@StoreId"
+                                             MenuId="@MenuId" CategoryId="@Category.CategoryId"
+                                             Revision="@Revision" CsrfToken="@CsrfToken" />
+                        <input type="hidden" name="returnCategoryId" value="@ReturnCategoryId" />
+                        <input type="hidden" name="action" value="remove-category" />
+                        <strong>Θα αφαιρεθεί η κατηγορία «@DisplayName» από αυτό το μενού.</strong>
+                        <p class="menu-builder__hint">
+                            Μαζί της θα αφαιρεθούν @DescendantCategoryCount υποκατηγορίες
+                            και @SubtreeItemCount συνδεδεμένα είδη από το προσχέδιο.
+                            Ο κεντρικός ERP Catalog δεν αλλάζει.
+                        </p>
+                        <label class="menu-builder__confirmation">
+                            <input type="checkbox" name="removeContents" value="true" required />
+                            Επιβεβαιώνω την αφαίρεση αυτής της κατηγορίας και του περιεχομένου της από το μενού.
+                        </label>
+                        <button type="submit" class="button button--outline">
+                            Αφαίρεση κατηγορίας από το μενού
+                        </button>
+                    </form>
+                </details>
+            </div>
+        </details>
+    }
+</article>
+
+@code {
+    [Parameter, EditorRequired] public MenuDraftCategoryRecord Category { get; set; } = default!;
+    [Parameter, EditorRequired] public Guid TenantId { get; set; }
+    [Parameter] public Guid? StoreId { get; set; }
+    [Parameter, EditorRequired] public Guid MenuId { get; set; }
+    [Parameter] public Guid? ReturnCategoryId { get; set; }
+    [Parameter, EditorRequired] public long Revision { get; set; }
+    [Parameter, EditorRequired] public string CsrfToken { get; set; } = "";
+    [Parameter] public bool CanManage { get; set; }
+    [Parameter] public int ItemCount { get; set; }
+    [Parameter] public int ChildCount { get; set; }
+    [Parameter] public int DescendantCategoryCount { get; set; }
+    [Parameter] public int SubtreeItemCount { get; set; }
+    [Parameter] public int SiblingCount { get; set; }
+    [Parameter, EditorRequired] public string Href { get; set; } = "";
+    private string DisplayName => Category.ParentCategoryId.HasValue &&
+        Category.Name.Contains(" / ", StringComparison.Ordinal)
+        ? Category.Name[(Category.Name.LastIndexOf(" / ", StringComparison.Ordinal) + 3)..]
+        : Category.Name;
+    private IEnumerable<int> Moves
+    {
+        get
+        {
+            if (Category.Position > 1) yield return Category.Position - 1;
+            if (Category.Position < SiblingCount) yield return Category.Position + 1;
+        }
+    }
+}

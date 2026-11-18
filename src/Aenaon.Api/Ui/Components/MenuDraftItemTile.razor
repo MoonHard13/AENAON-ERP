@@ -1,0 +1,95 @@
+@using Aenaon.Application.Menus
+
+<article class="menu-builder__tile menu-builder__tile--item" data-menu-drag-tile="item">
+    <div class="menu-builder__tile-main">
+        <span class="menu-builder__tile-symbol" aria-hidden="true"><AppIcon Name="catalog" /></span>
+        <span class="menu-builder__tile-name">@(Item.NameOverride ?? Item.CatalogName)</span>
+    </div>
+    <small class="menu-builder__subtext">@Item.CatalogCode · Θέση @Item.Position</small>
+    @if (!Item.IsCatalogActive)
+    {
+        <span class="menu-builder__warning">Ανενεργό ERP είδος</span>
+    }
+    @if (CanManage && !string.IsNullOrEmpty(CsrfToken))
+    {
+        <span class="menu-builder__drag-handle" draggable="true" tabindex="0" role="button"
+              aria-label="Αλλαγή σειράς είδους @(Item.NameOverride ?? Item.CatalogName)"
+              title="Σύρετε για ταξινόμηση ή χρησιμοποιήστε ↑/↓">⠿</span>
+        <form method="post" action="/ui/menus/draft" class="menu-builder__drag-form" data-menu-drag-form>
+            <MenuDraftFormFields TenantId="@TenantId" StoreId="@StoreId" MenuId="@MenuId"
+                                 CategoryId="@CategoryId" Revision="@Revision" CsrfToken="@CsrfToken" />
+            <input type="hidden" name="action" value="move-item" />
+            <input type="hidden" name="itemId" value="@Item.ItemId" />
+            <input type="hidden" name="targetPosition" value="@Item.Position" />
+        </form>
+        <details class="menu-builder__tile-menu" name="menu-tile-actions">
+            <summary class="menu-builder__tile-more"
+                     aria-label="Ενέργειες είδους @(Item.NameOverride ?? Item.CatalogName)"
+                     title="Ενέργειες"><AppIcon Name="settings" /></summary>
+            <div class="menu-builder__entry-actions">
+                @foreach (int target in Moves)
+                {
+                    <form method="post" action="/ui/menus/draft">
+                        <MenuDraftFormFields TenantId="@TenantId" StoreId="@StoreId"
+                                             MenuId="@MenuId" CategoryId="@CategoryId"
+                                             Revision="@Revision" CsrfToken="@CsrfToken" />
+                        <input type="hidden" name="action" value="move-item" />
+                        <input type="hidden" name="itemId" value="@Item.ItemId" />
+                        <input type="hidden" name="targetPosition" value="@target" />
+                        <button type="submit" class="menu-builder__move"
+                                aria-label="Μετακίνηση @(Item.NameOverride ?? Item.CatalogName) @(target < Item.Position ? "πάνω" : "κάτω")">
+                            @(target < Item.Position ? "↑" : "↓")
+                        </button>
+                    </form>
+                }
+                <details>
+                    <summary class="menu-builder__text-action">Όνομα</summary>
+                    <form method="post" action="/ui/menus/draft"
+                          class="menu-builder__inline-form" data-menu-save="true">
+                        <MenuDraftFormFields TenantId="@TenantId" StoreId="@StoreId"
+                                             MenuId="@MenuId" CategoryId="@CategoryId"
+                                             Revision="@Revision" CsrfToken="@CsrfToken" />
+                        <input type="hidden" name="action" value="rename-item" />
+                        <input type="hidden" name="itemId" value="@Item.ItemId" />
+                        <label for="@($"menu-item-name-{Item.ItemId:N}")">Όνομα παρουσίασης (προαιρετικό)</label>
+                        <input id="@($"menu-item-name-{Item.ItemId:N}")"
+                               name="nameOverride" maxlength="200" value="@Item.NameOverride" />
+                        <button type="submit" class="button button--primary">Αποθήκευση</button>
+                    </form>
+                </details>
+                <details>
+                    <summary class="menu-builder__text-action menu-builder__text-action--danger">Αφαίρεση</summary>
+                    <form method="post" action="/ui/menus/draft" class="menu-builder__inline-form">
+                        <MenuDraftFormFields TenantId="@TenantId" StoreId="@StoreId"
+                                             MenuId="@MenuId" CategoryId="@CategoryId"
+                                             Revision="@Revision" CsrfToken="@CsrfToken" />
+                        <input type="hidden" name="action" value="remove-item" />
+                        <input type="hidden" name="itemId" value="@Item.ItemId" />
+                        <strong>Αφαιρείται μόνο από το μενού — όχι από το ERP Catalog.</strong>
+                        <button type="submit" class="button button--outline">Επιβεβαίωση</button>
+                    </form>
+                </details>
+            </div>
+        </details>
+    }
+</article>
+
+@code {
+    [Parameter, EditorRequired] public MenuDraftItemRecord Item { get; set; } = default!;
+    [Parameter, EditorRequired] public Guid TenantId { get; set; }
+    [Parameter] public Guid? StoreId { get; set; }
+    [Parameter, EditorRequired] public Guid MenuId { get; set; }
+    [Parameter] public Guid? CategoryId { get; set; }
+    [Parameter, EditorRequired] public long Revision { get; set; }
+    [Parameter, EditorRequired] public string CsrfToken { get; set; } = "";
+    [Parameter] public bool CanManage { get; set; }
+    [Parameter] public int SiblingCount { get; set; }
+    private IEnumerable<int> Moves
+    {
+        get
+        {
+            if (Item.Position > 1) yield return Item.Position - 1;
+            if (Item.Position < SiblingCount) yield return Item.Position + 1;
+        }
+    }
+}

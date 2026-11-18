@@ -17,7 +17,32 @@ public sealed class DatabaseSchemaTests
             "Server=example.invalid;Database=AenaonERP_Unit;User ID=unit;Password=unit-only;Encrypt=True;", false));
 
         Assert.IsFalse(context.Database.HasPendingModelChanges());
-        Assert.HasCount(10, context.Database.GetMigrations().ToArray());
+        Assert.HasCount(13, context.Database.GetMigrations().ToArray());
+    }
+
+    [TestMethod]
+    public void MenuHierarchyMigration_GeneratedSqlContainsExpectedScopedChanges()
+    {
+        using var context = new AenaonDbContext(AenaonDbContextOptions.Create(
+            "Server=example.invalid;Database=AenaonERP_Unit;User ID=unit;Password=unit-only;Encrypt=True;", false));
+
+        // Εξετάζεται το παραγόμενο incremental SQL από την #12 στη #13 χωρίς βάση ή εφαρμογή.
+        string sql = context.GetService<IMigrator>().GenerateScript(
+            "20261117130000_DefaultStoreMenuCatalogSync",
+            "20261117170000_MenuBuilderHierarchyAndRootItems",
+            MigrationsSqlGenerationOptions.Default);
+
+        Assert.IsTrue(sql.Contains("CK_MenuDraftCategories_NotOwnParent", StringComparison.Ordinal));
+        Assert.IsTrue(sql.Contains("UPDATE child SET ParentCategoryId", StringComparison.Ordinal));
+        Assert.IsTrue(sql.Contains("ROW_NUMBER() OVER", StringComparison.Ordinal));
+        Assert.IsTrue(sql.Contains("FK_MenuDraftCategories_MenuDraftCategories_TenantId_MenuId_ParentCategoryId",
+            StringComparison.Ordinal));
+        Assert.IsTrue(sql.Contains("FK_MenuDraftItems_MenuDrafts_TenantId_MenuId",
+            StringComparison.Ordinal));
+        Assert.IsTrue(sql.Contains("IX_MenuDraftItems_TenantId_MenuId_CatalogItemId",
+            StringComparison.Ordinal));
+        Assert.IsFalse(sql.Contains("DROP TABLE", StringComparison.OrdinalIgnoreCase));
+        Assert.IsFalse(sql.Contains("DELETE FROM [dbo].[MenuDraft", StringComparison.OrdinalIgnoreCase));
     }
 
     [TestMethod]

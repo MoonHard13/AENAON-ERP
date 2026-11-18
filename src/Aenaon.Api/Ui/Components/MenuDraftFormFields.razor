@@ -1,0 +1,31 @@
+@* Ανεξάρτητο idempotency token και ασφαλές Tenant context ανά φόρμα. *@
+<input type="hidden" name="__RequestVerificationToken" value="@CsrfToken" />
+<input type="hidden" name="requestId" value="@_requestId" />
+<input type="hidden" name="tenantId" value="@TenantId" />
+@if (StoreId.HasValue)
+{
+    <input type="hidden" name="storeId" value="@StoreId" />
+}
+@if (MenuId.HasValue)
+{
+    <input type="hidden" name="menuId" value="@MenuId" />
+}
+@if (CategoryId.HasValue)
+{
+    <input type="hidden" name="categoryId" value="@CategoryId" />
+}
+@if (Revision.HasValue)
+{
+    <input type="hidden" name="expectedRevision" value="@Revision" />
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid TenantId { get; set; }
+    [Parameter] public Guid? StoreId { get; set; }
+    [Parameter] public Guid? MenuId { get; set; }
+    [Parameter] public Guid? CategoryId { get; set; }
+    [Parameter] public long? Revision { get; set; }
+    [Parameter, EditorRequired] public string CsrfToken { get; set; } = string.Empty;
+
+    private readonly Guid _requestId = Guid.NewGuid();
+}
