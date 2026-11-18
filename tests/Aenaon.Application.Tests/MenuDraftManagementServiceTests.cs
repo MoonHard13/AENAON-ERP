@@ -215,16 +215,56 @@ public sealed class MenuDraftManagementServiceTests
     }
 
     [TestMethod]
+    public async Task Owner_CanLinkERPSourceCategoryWhileMemberCannot()
+    {
+        var store = new FakeMenuStore();
+        MenuDraftManagementService owner = CreateService(TenantMembershipRole.Owner, store);
+        MenuDraftManagementService member = CreateService(TenantMembershipRole.Member, store);
+        Guid menuId = Guid.NewGuid();
+        Guid parentId = Guid.NewGuid();
+        Guid sourceId = Guid.NewGuid();
+
+        var linked = new MenuDraftCommand(MenuDraftAction.LinkCatalogCategory,
+            Guid.NewGuid(), MenuId: menuId, ExpectedRevision: 1,
+            ParentCategoryId: parentId, SourceCatalogCategoryId: sourceId);
+        Assert.AreEqual(MenuDraftStatus.Saved,
+            (await owner.ApplyAsync(User, Tenant, linked)).Status);
+        Assert.AreEqual(parentId, store.LastCommand?.ParentCategoryId);
+        Assert.AreEqual(sourceId, store.LastCommand?.SourceCatalogCategoryId);
+
+        int calls = store.ApplyCalls;
+        MenuDraftCommand[] invalid =
+        [
+            linked with { RequestId = Guid.NewGuid(), SourceCatalogCategoryId = null },
+            linked with { RequestId = Guid.NewGuid(), SourceCatalogCategoryId = Guid.Empty },
+            linked with { RequestId = Guid.NewGuid(), Action = MenuDraftAction.AddCategory },
+            linked with { RequestId = Guid.NewGuid(), ParentCategoryId = Guid.Empty }
+        ];
+        foreach (MenuDraftCommand command in invalid)
+        {
+            Assert.AreEqual(MenuDraftStatus.Invalid,
+                (await owner.ApplyAsync(User, Tenant, command)).Status);
+        }
+        Assert.AreEqual(calls, store.ApplyCalls);
+        Assert.AreEqual(MenuDraftStatus.Denied,
+            (await member.ApplyAsync(User, Tenant, linked)).Status);
+    }
+
+    [TestMethod]
     public async Task Member_CanReadButForeignTenantCannot()
     {
         var store = new FakeMenuStore();
         MenuDraftManagementService service = CreateService(TenantMembershipRole.Member, store);
-        MenuDraftReadResult allowed = await service.ReadAsync(User, Tenant, null, "ITEM");
+        Guid catalogCategoryId = Guid.NewGuid();
+        MenuDraftReadResult allowed = await service.ReadAsync(
+            User, Tenant, null, "ITEM", catalogCategoryId: catalogCategoryId);
         MenuDraftReadResult denied = await service.ReadAsync(User, Guid.NewGuid(), null, "ITEM");
         Assert.IsTrue(allowed.IsAuthorized);
         Assert.IsFalse(denied.IsAuthorized);
         Assert.AreEqual(1, store.ListCalls);
         Assert.AreEqual(1, store.CatalogCalls);
+        Assert.AreEqual(catalogCategoryId, store.LastCatalogCategoryFilter);
+        Assert.IsNotNull(allowed.CatalogCategories);
     }
 
     [TestMethod]
@@ -305,6 +345,7 @@ public sealed class MenuDraftManagementServiceTests
         public int ApplyCalls { get; private set; }
         public int ListCalls { get; private set; }
         public int CatalogCalls { get; private set; }
+        public Guid? LastCatalogCategoryFilter { get; private set; }
         public Guid LastTenant { get; private set; }
         public MenuDraftCommand? LastCommand { get; private set; }
 
@@ -341,6 +382,7 @@ public sealed class MenuDraftManagementServiceTests
             Guid? catalogCategoryId = null)
         {
             CatalogCalls++;
+            LastCatalogCategoryFilter = catalogCategoryId;
             return Task.FromResult<IReadOnlyList<MenuCatalogOption>>([]);
         }
     }
