@@ -2,6 +2,14 @@
 
 Cloud ERP υπό ανάπτυξη για πολλές ανεξάρτητες επιχειρήσεις εστίασης. Διαθέτει Development Back Office και υποστήριξη προϊόντων/υπηρεσιών· το POS και η εφαρμογή σερβιτόρων είναι **μελλοντικές λειτουργίες**, όχι διαθέσιμο προϊόν.
 
+## Τρέχον Development checkpoint — 18/11/2026
+
+**Current main verified:** `374b04b6f67ae34d98ac03ddab7be85ff9d460d9` (merged PR #61). **Draft PR #62 παραμένει unmerged**, με owner-reported migration #13 εφαρμοσμένη αποκλειστικά στην `AenaonERP_Dev` (**13/0**). Η λειτουργικότητα του Builder βελτιώθηκε με πραγματικό owner video, αλλά η συνολική οπτική/SQL acceptance παραμένει εκκρεμής.
+
+**Next feature — 9.6A.2A Read-only Menu Pricing Preview:** ανάπτυξη σε [Draft PR #63](https://github.com/MoonHard13/AENAON-ERP/pull/63), `feature/step-9-6a-2-menu-preview`, **stacked πάνω στο #62 (όχι ανεξάρτητο από main)**. Εξουσιοδοτημένη προεπισκόπηση Draft ανά Store/Channel/BusinessDate, ενιαία `PriceResolutionPolicy`, Missing/Ambiguous/Hidden/Inactive fail-closed, bounded SQL batching, GET SSR + CLI `--preview-menu --dry-run`. **Καμία νέα migration, SQL write, Publish, Order/POS, φορολογική έκδοση ή ωράρια.** Οι πραγματικοί Development browser/SQL έλεγχοι παραμένουν NOT VERIFIED. [Manual 68](docs/68-menu-preview-price-preflight.md).
+
+**Συνολικό UI/UX redesign:** ρητή απόφαση ιδιοκτήτη να μεταφερθεί σε μεταγενέστερη φάση, χωρίς waiver των λειτουργικών/accessibility gates. Οι blockers διορθώνονται άμεσα, τα καθαρά αισθητικά issues συγκεντρώνονται στο [UI/UX backlog](docs/69-ui-ux-redesign-deferred-backlog.md). **Κανένα PR merge χωρίς χωριστή έγκριση.**
+
 ## Επέκταση Menu Builder — Ιεραρχία, drag & drop, root items, μαζική προσθήκη (Draft PR #62)
 
 **Νέο στο feature branch, όχι στο `main`:** κύριες κατηγορίες μόνο στην αρχική προβολή, υποκατηγορίες μέσα στον γονέα, είδη και στη ρίζα χωρίς κατηγορία, πραγματικό native drag & drop ταξινόμησης **εντός ίδιου επιπέδου** με πλήκτρα ↑/↓ και keyboard, modular Razor πλακίδια. **Επέκταση 18/11/2026:** ο Owner μπορεί να επιλέξει έως 50 είδη ERP με checkboxes και να τα προσθέσει ατομικά σε μία εντολή ή να αφαιρέσει κατηγορία μαζί με όλες τις υποκατηγορίες/συνδέσεις ειδών μόνο από το προσχέδιο, με υποχρεωτική επιβεβαίωση. Οι προσθήκες/αφαιρέσεις **δεν επηρεάζουν τον ERP Catalog και δεν απαιτούν νέα migration**. [Manual 66](docs/66-menu-bulk-add-and-safe-category-removal.md). Το μοντέλο παραμένει multi-tenant, με Owner-only writes, antiforgery, revision, idempotency, SQL FKs και ευθυγράμμιση ERP Catalog auto-sync.

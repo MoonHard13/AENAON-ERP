@@ -1,3 +1,4 @@
+using Aenaon.Application.Menus;
 using Aenaon.Domain.Catalog;
 using Aenaon.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -36,6 +37,24 @@ internal static class SqlServerPriceResolutionAssertions
         Assert.AreEqual(12.3456m, chosen.Selected?.UnitPrice);
         Assert.AreEqual(PriceListChannel.Retail, chosen.Selected?.Channel);
 
+        // Ο πραγματικός batched preview reader πρέπει να αποδίδει την ίδια πολιτική.
+        var menuPreviewStore = new SqlMenuPreviewPricingStore(context);
+        Guid unrelatedItem = Guid.NewGuid();
+        IReadOnlyList<MenuPreviewPriceCandidate> priceRows =
+            await menuPreviewStore.FindCandidatesAsync(tenantId,
+                [itemId, unrelatedItem], storeId, PriceListChannel.Retail, day, token);
+        Assert.IsTrue(priceRows.Count > 0);
+        Assert.IsTrue(priceRows.All(x => x.CatalogItemId == itemId));
+        PriceSelectionResult batched = PriceResolutionPolicy.Select(
+            priceRows.Select(x => x.Candidate), storeId, PriceListChannel.Retail, day);
+        Assert.AreEqual(PriceSelectionStatus.Unique, batched.Status);
+        Assert.AreEqual(chosen.Selected?.UnitPrice, batched.Selected?.UnitPrice);
+        Assert.AreEqual(0, (await menuPreviewStore.FindCandidatesAsync(
+            foreignTenantId, [itemId], storeId, PriceListChannel.Retail, day, token)).Count);
+        Assert.AreEqual(0, (await menuPreviewStore.FindCandidatesAsync(
+            tenantId, [itemId], storeId, PriceListChannel.Retail,
+            new DateOnly(2020, 1, 1), token)).Count);
+
         IReadOnlyList<PriceResolutionCandidate> delivery = await store.FindCandidatesAsync(
             tenantId, itemId, null, PriceListChannel.Delivery, day, token);
         PriceSelectionResult global = PriceResolutionPolicy.Select(
@@ -68,5 +87,13 @@ internal static class SqlServerPriceResolutionAssertions
         Assert.AreEqual(PriceSelectionStatus.Ambiguous, chosen.Status);
         Assert.AreEqual(2, chosen.ConflictingPriceListIds?.Count);
         Assert.IsNull(chosen.Selected);
+
+        // Αμφισημία στο ίδιο πραγματικό SQL snapshot αποτυπώνεται και από το batch API.
+        priceRows = await menuPreviewStore.FindCandidatesAsync(tenantId,
+            [itemId], storeId, PriceListChannel.Retail, day, token);
+        batched = PriceResolutionPolicy.Select(
+            priceRows.Select(x => x.Candidate), storeId, PriceListChannel.Retail, day);
+        Assert.AreEqual(PriceSelectionStatus.Ambiguous, batched.Status);
+        Assert.AreEqual(2, batched.ConflictingPriceListIds?.Count);
     }
 }

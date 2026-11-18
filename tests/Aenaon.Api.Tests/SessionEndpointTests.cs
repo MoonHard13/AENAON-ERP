@@ -221,6 +221,7 @@ internal sealed class SessionApiFactory(string environment = "Development") : We
     public SessionPriceListFixture PriceLists { get; } = new();
     public SessionPriceResolutionFixture PriceResolution { get; } = new();
     public SessionMenuDraftFixture MenuDrafts { get; } = new();
+    public SessionMenuPreviewPricingFixture MenuPreviewPrices { get; } = new();
     public SessionTenancyFixture Access { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -244,6 +245,8 @@ internal sealed class SessionApiFactory(string environment = "Development") : We
             services.AddSingleton<IPriceResolutionStore>(PriceResolution);
             services.RemoveAll<IMenuDraftStore>();
             services.AddSingleton<IMenuDraftStore>(MenuDrafts);
+            services.RemoveAll<IMenuPreviewPricingStore>();
+            services.AddSingleton<IMenuPreviewPricingStore>(MenuPreviewPrices);
         });
     }
 
