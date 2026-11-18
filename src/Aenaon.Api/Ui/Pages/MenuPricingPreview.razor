@@ -1,0 +1,384 @@
+@page "/menus/preview"
+@attribute [Authorize]
+@attribute [StreamRendering]
+@layout MainLayout
+@using System.Globalization
+@using Aenaon.Application.Menus
+@using Aenaon.Application.Tenancy
+@using Aenaon.Domain.Catalog
+@using Aenaon.Domain.Exceptions
+@using Aenaon.Domain.Tenancy
+@inject IHttpContextAccessor HttpContextAccessor
+@inject TenantWorkspaceResolver WorkspaceResolver
+@inject WorkspacePreferenceService Preference
+@inject MenuPreviewService Preview
+@inject ILogger<MenuPricingPreview> Logger
+
+<PageTitle>Προεπισκόπηση Μενού | Aenaon ERP</PageTitle>
+
+<main class="dashboard">
+    <BackOfficeSidebar ActivePage="menus" TenantId="@TenantId" StoreId="@StoreId" />
+    <div class="dashboard__content">
+        <BackOfficeTopbar ActivePage="menus" PageTitle="Προεπισκόπηση Μενού"
+                          UserName="@_userName" Workspace="@_workspace"
+                          TenantId="@TenantId" StoreId="@StoreId" />
+        <div class="dashboard__body catalog-page">
+            @if (_loading)
+            {
+                <section class="surface-card catalog-loading" role="status" aria-busy="true">
+                    <span class="catalog-loading__indicator" aria-hidden="true"></span>
+                    <span>Έλεγχος προσχεδίου και εμπορικών τιμών…</span>
+                </section>
+            }
+            else if (_workspace is null || _error == "database")
+            {
+                <div class="form-alert" role="alert">
+                    Δεν ήταν δυνατή η φόρτωση της προεπισκόπησης. Ελέγξτε τη σύνδεση με τη βάση.
+                </div>
+            }
+            else if (_error == "access" ||
+                     _workspace.Status is not (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores) ||
+                     _result?.Status == MenuPreviewStatus.Denied)
+            {
+                <div class="workspace-alert" role="alert">
+                    Δεν έχετε πρόσβαση στην επιχείρηση ή στο συγκεκριμένο κατάστημα.
+                </div>
+            }
+            else
+            {
+                <section class="surface-card catalog-surface" aria-labelledby="menu-preview-title">
+                    <header class="catalog-surface__header">
+                        <div>
+                            <h1 id="menu-preview-title">Προεπισκόπηση προσχεδίου μενού</h1>
+                            <p>Έλεγχος εμπορικών τιμών ανά κατάστημα, κανάλι και ημερομηνία.</p>
+                            <span class="catalog-readonly"><AppIcon Name="shield" /> Μόνο ανάγνωση — DRAFT</span>
+                        </div>
+                        <a class="button button--outline" href="@BackUrl">
+                            <AppIcon Name="chevron" /> Επιστροφή στο μενού
+                        </a>
+                    </header>
+
+                    <form method="get" action="/menus/preview" class="catalog-filters"
+                          aria-label="Φίλτρα προεπισκόπησης μενού">
+                        <input type="hidden" name="tenantId" value="@_workspace.Tenant!.TenantId" />
+                        @if (MenuId is { } menuId)
+                        {
+                            <input type="hidden" name="menuId" value="@menuId" />
+                        }
+                        <div class="catalog-field">
+                            <label for="menu-preview-store">Κατάστημα *</label>
+                            <select id="menu-preview-store" name="storeId" required>
+                                <option value="">Επιλέξτε κατάστημα</option>
+                                @foreach (AccessibleStore store in _workspace.Stores)
+                                {
+                                    <option value="@store.StoreId"
+                                            selected="@(store.StoreId == _selectedStore)">
+                                        @store.Code — @store.Name
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="catalog-field">
+                            <label for="menu-preview-channel">Κανάλι *</label>
+                            <select id="menu-preview-channel" name="channel" required>
+                                @foreach (PriceListChannel channel in SellingChannels)
+                                {
+                                    <option value="@channel" selected="@(channel == _channel)">
+                                        @ChannelLabel(channel)
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="catalog-field">
+                            <label for="menu-preview-date">Εμπορική ημερομηνία *</label>
+                            <input id="menu-preview-date" name="businessDate" type="date"
+                                   value="@BusinessDate" required />
+                        </div>
+                        <button class="button button--primary" type="submit">
+                            <AppIcon Name="search" /> Προεπισκόπηση
+                        </button>
+                    </form>
+
+                    @if (_error == "invalid")
+                    {
+                        <div class="form-alert" role="alert">
+                            Απαιτείται έγκυρο μενού, κατάστημα, κανάλι και ημερομηνία.
+                        </div>
+                    }
+                    else if (_result?.Status == MenuPreviewStatus.Missing)
+                    {
+                        <div class="form-alert" role="alert">
+                            Το προσχέδιο δεν βρέθηκε στην επιλεγμένη επιχείρηση.
+                        </div>
+                    }
+                    else if (_result?.Status == MenuPreviewStatus.TooLarge)
+                    {
+                        <div class="form-alert" role="alert">
+                            Το μενού ξεπερνά το όριο προεπισκόπησης. Δεν εμφανίζονται μερικά αποτελέσματα.
+                        </div>
+                    }
+                    else if (_result?.Status == MenuPreviewStatus.Ready)
+                    {
+                        <div class="catalog-surface__header">
+                            <div>
+                                <h2>@_result.Menu!.Name</h2>
+                                <p>Κωδικός: @_result.Menu.Code · Αναθεώρηση @_result.Menu.Revision</p>
+                            </div>
+                            <div aria-live="polite">
+                                <strong>@_result.ResolvedCount</strong> με έγκυρη τιμή ·
+                                <strong>@_result.BlockedCount</strong> αποκλεισμένα
+                            </div>
+                        </div>
+                        @if (_result.HasBlockingIssues)
+                        {
+                            <div class="form-alert" role="alert">
+                                Υπάρχουν είδη χωρίς ασφαλή εμπορική τιμή ή με περιορισμό ορατότητας.
+                                Η προεπισκόπηση δεν δημοσιεύει κανένα είδος.
+                            </div>
+                        }
+                        @if (_result.Items is { Count: 0 })
+                        {
+                            <div class="catalog-empty" role="status">
+                                Το επιλεγμένο προσχέδιο δεν περιέχει είδη.
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="overflow-x:auto">
+                                <table class="catalog-table" aria-label="Διαγνωστικά εμπορικών τιμών μενού">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Επίπεδο μενού</th>
+                                            <th scope="col">Κωδικός</th>
+                                            <th scope="col">Είδος</th>
+                                            <th scope="col">Κατάσταση</th>
+                                            <th scope="col">Τιμή</th>
+                                            <th scope="col">Τιμοκατάλογος</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (MenuPreviewItem item in _result.Items ?? [])
+                                        {
+                                            <tr>
+                                                <td>@CategoryPath(item.CategoryId)</td>
+                                                <td>@item.Code</td>
+                                                <td>@item.Name</td>
+                                                <td>@StatusLabel(item.Status)</td>
+                                                <td>
+                                                    @if (item.Status == MenuPreviewItemStatus.Resolved)
+                                                    {
+                                                        @item.UnitPrice!.Value.ToString("N2", Greek)
+                                                        <span>@item.Currency</span>
+                                                        <small>@(item.PricesIncludeVat == true ? "με ΦΠΑ" : "χωρίς ΦΠΑ")</small>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>—</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (item.Status == MenuPreviewItemStatus.Resolved)
+                                                    {
+                                                        @item.PriceListCode
+                                                    }
+                                                    else if (item.Status == MenuPreviewItemStatus.AmbiguousPrice)
+                                                    {
+                                                        <span>Ισοβαθμία: @item.ConflictingPriceListIds?.Count τιμοκατάλογοι</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>—</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    }
+                    else if (_error is null)
+                    {
+                        <div class="catalog-empty" role="status">
+                            Επιλέξτε συγκεκριμένο κατάστημα, κανάλι πώλησης και ημερομηνία για τον έλεγχο.
+                        </div>
+                    }
+                    <div class="menu-builder__footnote">
+                        Μόνο εσωτερική προεπισκόπηση. Δεν εφαρμόζεται ωράριο, timezone ή
+                        προγραμματισμένη διαθεσιμότητα. Οι τιμές δεν αποτελούν κλειδωμένη
+                        τιμή παραγγελίας και δεν υπολογίζεται νόμιμος ΦΠΑ.
+                        Καμία δημοσίευση, παραγγελία, POS ή διαβίβαση.
+                    </div>
+                </section>
+            }
+        </div>
+    </div>
+</main>
+
+@code {
+    [SupplyParameterFromQuery(Name = "tenantId")] public Guid? TenantId { get; set; }
+    [SupplyParameterFromQuery(Name = "storeId")] public Guid? StoreId { get; set; }
+    [SupplyParameterFromQuery(Name = "menuId")] public Guid? MenuId { get; set; }
+    [SupplyParameterFromQuery(Name = "channel")] public string? Channel { get; set; }
+    [SupplyParameterFromQuery(Name = "businessDate")] public string? BusinessDate { get; set; }
+
+    private static readonly CultureInfo Greek = CultureInfo.GetCultureInfo("el-GR");
+    private static readonly PriceListChannel[] SellingChannels =
+    [
+        PriceListChannel.DineIn, PriceListChannel.Takeaway,
+        PriceListChannel.Delivery, PriceListChannel.Retail, PriceListChannel.Online
+    ];
+
+    private TenantWorkspaceSnapshot? _workspace;
+    private MenuPreviewResult? _result;
+    private Guid? _selectedStore;
+    private PriceListChannel _channel = PriceListChannel.DineIn;
+    private string _userName = "Χρήστης";
+    private string? _error;
+    private bool _loading = true;
+
+    private string BackUrl
+    {
+        get
+        {
+            string result = $"/menus?tenantId={_workspace!.Tenant!.TenantId:D}";
+            if (_selectedStore is { } storeId)
+            {
+                result += $"&storeId={storeId:D}";
+            }
+            if (MenuId is { } menuId)
+            {
+                result += $"&menuId={menuId:D}";
+            }
+            return result;
+        }
+    }
+
+    private string CategoryPath(Guid? id)
+    {
+        if (id is null)
+        {
+            return "Αρχικό μενού";
+        }
+        Dictionary<Guid, MenuDraftCategoryRecord> categoryMap =
+            (_result?.Categories ?? []).ToDictionary(x => x.CategoryId);
+        var names = new List<string>();
+        var seen = new HashSet<Guid>();
+        while (id is { } categoryId && seen.Add(categoryId) &&
+            categoryMap.TryGetValue(categoryId, out MenuDraftCategoryRecord? category))
+        {
+            names.Add(category.Name);
+            id = category.ParentCategoryId;
+        }
+        names.Reverse();
+        return names.Count == 0 ? "Άγνωστη κατηγορία" :
+            string.Join(" / ", names);
+    }
+
+    private static string ChannelLabel(PriceListChannel channel) => channel switch
+    {
+        PriceListChannel.DineIn => "Εντός καταστήματος",
+        PriceListChannel.Takeaway => "Πακέτο",
+        PriceListChannel.Delivery => "Διανομή",
+        PriceListChannel.Retail => "Λιανική",
+        PriceListChannel.Online => "Online",
+        _ => "Άγνωστο"
+    };
+
+    private static string StatusLabel(MenuPreviewItemStatus status) => status switch
+    {
+        MenuPreviewItemStatus.Resolved => "Έγκυρη τιμή",
+        MenuPreviewItemStatus.MissingPrice => "Δεν βρέθηκε τιμή",
+        MenuPreviewItemStatus.AmbiguousPrice => "Αμφίσημη τιμή",
+        MenuPreviewItemStatus.HiddenCategory => "Κρυφή κατηγορία",
+        MenuPreviewItemStatus.InactiveCatalogItem => "Ανενεργό είδος ERP",
+        _ => "Μη έγκυρη ιεραρχία"
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _result = null;
+        _workspace = null;
+        _error = null;
+        HttpContext? context = HttpContextAccessor.HttpContext;
+        if (context?.Request.IsHttps != true ||
+            context.User.Identity?.IsAuthenticated != true ||
+            !Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid userId) ||
+            userId == Guid.Empty)
+        {
+            _error = "access";
+            _loading = false;
+            return;
+        }
+
+        _userName = context.User.Identity.Name ?? "Χρήστης";
+        context.Response.Headers.CacheControl = "no-store";
+        try
+        {
+            Guid? tenant = TenantId;
+            Guid? store = StoreId;
+            if (!tenant.HasValue && !store.HasValue &&
+                Preference.TryRead(context, userId, out Guid rememberedTenant,
+                    out Guid? rememberedStore))
+            {
+                tenant = rememberedTenant;
+                store = rememberedStore;
+            }
+
+            _workspace = await WorkspaceResolver.ResolveAsync(
+                userId, tenant, store, context.RequestAborted);
+            if (_workspace.Status is not (TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores))
+            {
+                _error = "access";
+                return;
+            }
+
+            _selectedStore = StoreId ?? _workspace.Store?.StoreId;
+            if (!string.IsNullOrWhiteSpace(Channel) &&
+                (!Enum.TryParse(Channel, false, out _channel) ||
+                 !SellingChannels.Contains(_channel)))
+            {
+                _error = "invalid";
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(BusinessDate))
+            {
+                if (MenuId is not { } menuId || menuId == Guid.Empty ||
+                    _selectedStore is not { } storeId ||
+                    !DateOnly.TryParseExact(BusinessDate, "yyyy-MM-dd",
+                        CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly date))
+                {
+                    _error = "invalid";
+                    return;
+                }
+
+                _result = await Preview.PreviewAsync(userId,
+                    _workspace.Tenant!.TenantId, menuId, storeId, _channel,
+                    date, context.RequestAborted);
+                if (_result.Status == MenuPreviewStatus.Invalid)
+                {
+                    _error = "invalid";
+                }
+            }
+        }
+        catch (DomainRuleException)
+        {
+            _error = "invalid";
+        }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Menu pricing preview failed");
+            _error = "database";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}
