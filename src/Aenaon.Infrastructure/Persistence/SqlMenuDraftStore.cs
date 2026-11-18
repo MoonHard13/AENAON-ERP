@@ -59,7 +59,8 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
             .AsNoTracking()
             .Where(x => x.TenantId == tenantId && x.MenuId == menuId)
             .OrderBy(x => x.Position).ThenBy(x => x.Id)
-            .Select(x => new MenuDraftCategoryRecord(x.Id, x.Name, x.Position, x.IsVisible, x.ParentCategoryId))
+            .Select(x => new MenuDraftCategoryRecord(x.Id, x.Name, x.Position, x.IsVisible,
+                 x.ParentCategoryId, x.CatalogCategoryId))
             .ToListAsync(cancellationToken);
 
         List<MenuDraftItemRecord> items = await
@@ -76,11 +77,34 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
         return new(menu, categories, items);
     }
 
+    public async Task<IReadOnlyList<MenuCatalogCategoryOption>> ListCatalogCategoriesAsync(
+        Guid tenantId, CancellationToken cancellationToken = default) =>
+        await context.CatalogCategories.AsNoTracking()
+            .Where(x => x.TenantId == tenantId && x.IsActive)
+            .OrderBy(x => x.Name).ThenBy(x => x.Code).ThenBy(x => x.Id)
+            .Select(x => new MenuCatalogCategoryOption(x.Id, x.Code, x.Name,
+                x.ParentCategoryId))
+            .Take(10000).ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<MenuCatalogOption>> SearchCatalogAsync(Guid tenantId,
-        string? search, CancellationToken cancellationToken = default)
+        string? search, CancellationToken cancellationToken = default,
+        Guid? catalogCategoryId = null)
     {
         IQueryable<CatalogItem> query = context.CatalogItems.AsNoTracking()
             .Where(x => x.TenantId == tenantId && x.IsActive);
+        if (catalogCategoryId.HasValue)
+        {
+            // Η επιλογή ελέγχεται επιπλέον στη βάση ως ενεργή κατηγορία του Tenant.
+            bool categoryExists = await context.CatalogCategories.AsNoTracking()
+                .AnyAsync(x => x.TenantId == tenantId &&
+                    x.Id == catalogCategoryId && x.IsActive, cancellationToken);
+            if (!categoryExists)
+            {
+                return [];
+            }
+            query = query.Where(x => x.CategoryId == catalogCategoryId.Value);
+        }
+
         if (!string.IsNullOrWhiteSpace(search))
         {
             string term = search.Trim();
@@ -312,6 +336,49 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
                     MenuDraftCategory category = MenuDraftCategory.Create(
                         tenantId, menu.Id, command.Name, siblings + 1,
                         parentCategoryId: command.ParentCategoryId);
+                    context.MenuDraftCategories.Add(category);
+                    return new(MenuDraftStatus.Saved, category.Id);
+                }
+            case MenuDraftAction.LinkCatalogCategory:
+                {
+                    // Συνδέεται αποκλειστικά μία ενεργή ERP κατηγορία του Tenant.
+                    // Δεν αντιγράφονται αυτόματα είδη: ο χρήστης τα επιλέγει από τον κατάλογο.
+                    CatalogCategory? source = await context.CatalogCategories.AsNoTracking()
+                        .SingleOrDefaultAsync(x => x.TenantId == tenantId &&
+                            x.Id == command.SourceCatalogCategoryId &&
+                            x.IsActive, token);
+                    if (source is null)
+                    {
+                        return new(MenuDraftStatus.Missing, Error: "menu.catalog.category.not_found");
+                    }
+
+                    bool linked = await context.MenuDraftCategories.AnyAsync(x =>
+                        x.TenantId == tenantId && x.MenuId == menu.Id &&
+                        x.CatalogCategoryId == source.Id, token);
+                    if (linked)
+                    {
+                        return new(MenuDraftStatus.Duplicate, Error: "menu.catalog.category.already_linked");
+                    }
+
+                    if (command.ParentCategoryId is { } parentId &&
+                        await FindCategoryAsync(tenantId, menu.Id, parentId, token) is null)
+                    {
+                        return new(MenuDraftStatus.Missing, Error: "menu.category.parent.not_found");
+                    }
+
+                    int total = await context.MenuDraftCategories.CountAsync(x =>
+                        x.TenantId == tenantId && x.MenuId == menu.Id, token);
+                    int siblings = await context.MenuDraftCategories.CountAsync(x =>
+                        x.TenantId == tenantId && x.MenuId == menu.Id &&
+                        x.ParentCategoryId == command.ParentCategoryId, token);
+                    if (total >= 10000 || siblings >= 10000)
+                    {
+                        return new(MenuDraftStatus.Invalid, Error: "menu.category.limit");
+                    }
+
+                    MenuDraftCategory category = MenuDraftCategory.Create(
+                        tenantId, menu.Id, source.Name, siblings + 1,
+                        source.Id, command.ParentCategoryId);
                     context.MenuDraftCategories.Add(category);
                     return new(MenuDraftStatus.Saved, category.Id);
                 }
