@@ -66,21 +66,29 @@
                         <button type="submit" class="button button--primary">Αποθήκευση</button>
                     </form>
                 </details>
-                @if (ItemCount == 0 && ChildCount == 0)
-                {
-                    <details>
-                        <summary class="menu-builder__text-action menu-builder__text-action--danger">Αφαίρεση</summary>
-                        <form method="post" action="/ui/menus/draft" class="menu-builder__inline-form">
-                            <MenuDraftFormFields TenantId="@TenantId" StoreId="@StoreId"
-                                                 MenuId="@MenuId" CategoryId="@Category.CategoryId"
-                                                 Revision="@Revision" CsrfToken="@CsrfToken" />
-                            <input type="hidden" name="returnCategoryId" value="@ReturnCategoryId" />
-                            <input type="hidden" name="action" value="remove-category" />
-                            <strong>Επιβεβαίωση αφαίρεσης άδειας κατηγορίας</strong>
-                            <button type="submit" class="button button--outline">Επιβεβαίωση</button>
-                        </form>
-                    </details>
-                }
+                <details>
+                    <summary class="menu-builder__text-action menu-builder__text-action--danger">Αφαίρεση από μενού</summary>
+                    <form method="post" action="/ui/menus/draft" class="menu-builder__inline-form">
+                        <MenuDraftFormFields TenantId="@TenantId" StoreId="@StoreId"
+                                             MenuId="@MenuId" CategoryId="@Category.CategoryId"
+                                             Revision="@Revision" CsrfToken="@CsrfToken" />
+                        <input type="hidden" name="returnCategoryId" value="@ReturnCategoryId" />
+                        <input type="hidden" name="action" value="remove-category" />
+                        <strong>Θα αφαιρεθεί η κατηγορία «@DisplayName» από αυτό το μενού.</strong>
+                        <p class="menu-builder__hint">
+                            Μαζί της θα αφαιρεθούν @DescendantCategoryCount υποκατηγορίες
+                            και @SubtreeItemCount συνδεδεμένα είδη από το προσχέδιο.
+                            Ο κεντρικός ERP Catalog δεν αλλάζει.
+                        </p>
+                        <label class="menu-builder__confirmation">
+                            <input type="checkbox" name="removeContents" value="true" required />
+                            Επιβεβαιώνω την αφαίρεση αυτής της κατηγορίας και του περιεχομένου της από το μενού.
+                        </label>
+                        <button type="submit" class="button button--outline">
+                            Αφαίρεση κατηγορίας από το μενού
+                        </button>
+                    </form>
+                </details>
             </div>
         </details>
     }
@@ -97,6 +105,8 @@
     [Parameter] public bool CanManage { get; set; }
     [Parameter] public int ItemCount { get; set; }
     [Parameter] public int ChildCount { get; set; }
+    [Parameter] public int DescendantCategoryCount { get; set; }
+    [Parameter] public int SubtreeItemCount { get; set; }
     [Parameter] public int SiblingCount { get; set; }
     [Parameter, EditorRequired] public string Href { get; set; } = "";
     private string DisplayName => Category.ParentCategoryId.HasValue &&
