@@ -1,5 +1,6 @@
 using Aenaon.Application.Tenancy;
 using Aenaon.Domain.Exceptions;
+using System.Text.Json.Serialization;
 
 namespace Aenaon.Application.Menus;
 
@@ -47,7 +48,10 @@ public sealed record MenuDraftCommand(
     bool? IsVisible = null,
     Guid? StoreId = null,
     Guid? ParentCategoryId = null,
+    // Τα νέα προαιρετικά πεδία δεν μεταβάλλουν το hash παλιών idempotent αιτημάτων.
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     IReadOnlyList<Guid>? CatalogItemIds = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     bool RemoveContents = false);
 
 public sealed record MenuDraftMutationResult(
