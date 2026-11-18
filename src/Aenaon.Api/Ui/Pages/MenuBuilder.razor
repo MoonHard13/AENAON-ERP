@@ -263,7 +263,7 @@
                                             </button>
                                         </form>
                                     </details>
-                                    @if (availableErpCategories.Count > 0)
+                                    @if ((_data.CatalogCategories?.Count ?? 0) > 0)
                                     {
                                         <details class="menu-builder__tile menu-builder__tile--create menu-builder__tile--erp"
                                                  id="menu-link-erp-category">
@@ -288,7 +288,8 @@
                                                 }
                                                 <input type="hidden" name="action" value="link-catalog-category" />
                                                 <label for="menu-existing-category">Επιλογή κατηγορίας ERP</label>
-                                                <select id="menu-existing-category" name="sourceCatalogCategoryId" required>
+                                                <select id="menu-existing-category" name="sourceCatalogCategoryId"
+                                                        required disabled="@(availableErpCategories.Count == 0)">
                                                     <option value="">Επιλέξτε κατηγορία…</option>
                                                     @foreach (MenuCatalogCategoryOption source in availableErpCategories)
                                                     {
@@ -297,11 +298,22 @@
                                                         </option>
                                                     }
                                                 </select>
-                                                <p class="menu-builder__hint">
-                                                    Προστίθεται η υπάρχουσα κατηγορία στο τρέχον επίπεδο.
-                                                    Τα είδη της επιλέγονται χωριστά, χωρίς αλλαγή στον ERP Catalog.
-                                                </p>
-                                                <button type="submit" class="button button--primary">
+                                                @if (availableErpCategories.Count == 0)
+                                                {
+                                                    <p class="menu-builder__hint" role="status">
+                                                        Όλες οι ενεργές κατηγορίες ERP υπάρχουν ήδη στο μενού.
+                                                        Μια κατηγορία ERP συνδέεται μία φορά ανά μενού.
+                                                    </p>
+                                                }
+                                                else
+                                                {
+                                                    <p class="menu-builder__hint">
+                                                        Η κατηγορία προστίθεται στο τρέχον επίπεδο.
+                                                        Τα είδη της επιλέγονται χωριστά, χωρίς αλλαγή στον ERP Catalog.
+                                                    </p>
+                                                }
+                                                <button type="submit" class="button button--primary"
+                                                        disabled="@(availableErpCategories.Count == 0)">
                                                     <AppIcon Name="plus" /> Προσθήκη από ERP
                                                 </button>
                                             </form>
