@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Aenaon.Application.Menus;
 using Aenaon.Application.Tenancy;
 using Aenaon.Domain.Tenancy;
@@ -11,6 +12,40 @@ public sealed class MenuDraftManagementServiceTests
 {
     private static readonly Guid User = Guid.Parse("c4dbe076-0125-438d-9bf1-8e8ddc18f46f");
     private static readonly Guid Tenant = Guid.Parse("1fe9efcb-2aa9-4538-9530-254431b841a0");
+
+    [TestMethod]
+    public void NewMenuCommandOptions_PreserveLegacyIdempotencyJson()
+    {
+        // Η παλαιά σειρά/μορφή JSON χρησιμοποιείται για υπάρχουσες αποδείξεις RequestId.
+        var command = new MenuDraftCommand(MenuDraftAction.AddItem, Guid.NewGuid(),
+            MenuId: Guid.NewGuid(), ExpectedRevision: 1,
+            CategoryId: Guid.NewGuid(), CatalogItemId: Guid.NewGuid());
+        string priorJson = JsonSerializer.Serialize(new
+        {
+            command.Action, command.RequestId, command.MenuId,
+            command.ExpectedRevision, command.CategoryId, command.ItemId,
+            command.CatalogItemId, command.Code, command.Name,
+            command.NameOverride, command.TargetPosition, command.IsVisible,
+            command.StoreId, command.ParentCategoryId
+        });
+        Assert.AreEqual(priorJson, JsonSerializer.Serialize(command));
+
+        string newJson = JsonSerializer.Serialize(command with
+        {
+            Action = MenuDraftAction.AddItems,
+            CatalogItemId = null,
+            CatalogItemIds = [Guid.NewGuid(), Guid.NewGuid()]
+        });
+        Assert.Contains("CatalogItemIds", newJson);
+        Assert.DoesNotContain("RemoveContents", newJson);
+
+        string removalJson = JsonSerializer.Serialize(command with
+        {
+            Action = MenuDraftAction.RemoveCategory,
+            RemoveContents = true
+        });
+        Assert.Contains("RemoveContents", removalJson);
+    }
 
     [TestMethod]
     public async Task Owner_CanCreateDraftThroughSharedService()
