@@ -1834,3 +1834,41 @@ html {
 @media (prefers-reduced-motion: reduce) {
     .menu-builder__tile { transition: none; }
 }
+
+/* Ασφαλής, responsive πολλαπλή επιλογή ειδών σε ένα προσχέδιο μενού. */
+.menu-builder__bulk-actions {
+    grid-column: 1 / -1; display: grid; gap: 8px;
+    padding: 12px; border: 1px solid var(--border);
+    border-radius: 12px; background: var(--surface); min-width: 0;
+}
+.menu-builder__bulk-actions > small { font-size: 11px; color: var(--muted-strong); line-height: 1.5; }
+.menu-builder__bulk-toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0;
+}
+.menu-builder__bulk-toolbar > strong { font-size: 13px; }
+.menu-builder__bulk-toolbar > output {
+    font-size: 12px; font-weight: 700; color: var(--muted-strong); margin-right: auto;
+}
+.menu-builder__bulk-toolbar .button { min-height: 40px; white-space: normal; }
+.menu-builder__bulk-toolbar .button:disabled { opacity: .55; cursor: not-allowed; }
+.menu-builder__bulk-option {
+    display: inline-flex; align-items: center; gap: 7px; min-height: 40px;
+    padding: 6px 8px; border: 1px solid var(--border);
+    border-radius: 9px; font-weight: 700; font-size: 12px;
+    color: var(--text); cursor: pointer; background: var(--surface-alt);
+}
+.menu-builder__bulk-option input, .menu-builder__confirmation input {
+    accent-color: var(--positive); width: 18px; height: 18px; flex: 0 0 auto;
+}
+.menu-builder__confirmation {
+    display: flex; gap: 9px; align-items: flex-start; font-size: 12px;
+    font-weight: 650; line-height: 1.45; cursor: pointer;
+}
+.menu-builder__bulk-option:focus-within, .menu-builder__confirmation:focus-within {
+    outline: 2px solid var(--positive); outline-offset: 2px;
+}
+@media (max-width: 390px) {
+    .menu-builder__bulk-toolbar > strong, .menu-builder__bulk-toolbar > output { flex: 1 1 100%; }
+    .menu-builder__bulk-toolbar .button { flex: 1 1 calc(50% - 8px); }
+    .menu-builder__bulk-toolbar [data-menu-bulk-submit] { flex: 1 1 100%; }
+}
