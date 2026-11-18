@@ -94,15 +94,34 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
             .Where(x => x.TenantId == tenantId && x.IsActive);
         if (catalogCategoryId.HasValue)
         {
-            // Η επιλογή ελέγχεται επιπλέον στη βάση ως ενεργή κατηγορία του Tenant.
-            bool categoryExists = await context.CatalogCategories.AsNoTracking()
-                .AnyAsync(x => x.TenantId == tenantId &&
-                    x.Id == catalogCategoryId && x.IsActive, cancellationToken);
-            if (!categoryExists)
+            // Το φίλτρο κύριας κατηγορίας περιλαμβάνει και ενεργές υποκατηγορίες.
+            // Ο κύκλος κόβεται με HashSet, χωρίς ανάμιξη Tenant ή ανενεργών πηγών.
+            var categories = await context.CatalogCategories.AsNoTracking()
+                .Where(x => x.TenantId == tenantId && x.IsActive)
+                .Select(x => new { x.Id, x.ParentCategoryId })
+                .ToListAsync(cancellationToken);
+            if (!categories.Any(x => x.Id == catalogCategoryId.Value))
             {
                 return [];
             }
-            query = query.Where(x => x.CategoryId == catalogCategoryId.Value);
+
+            var byParent = categories.ToLookup(x => x.ParentCategoryId);
+            var included = new HashSet<Guid>();
+            var pending = new Stack<Guid>();
+            pending.Push(catalogCategoryId.Value);
+            while (pending.TryPop(out Guid currentId))
+            {
+                if (!included.Add(currentId))
+                {
+                    continue;
+                }
+                foreach (var child in byParent[currentId])
+                {
+                    pending.Push(child.Id);
+                }
+            }
+            Guid[] includedIds = included.ToArray();
+            query = query.Where(x => includedIds.Contains(x.CategoryId));
         }
 
         if (!string.IsNullOrWhiteSpace(search))
