@@ -336,7 +336,7 @@
                                             item.CategoryId == currentCategoryId && item.CatalogItemId == x.CatalogItemId)))
                                     {
                                         <form id="menu-bulk-add" method="post" action="/ui/menus/draft"
-                                              class="menu-builder__bulk-actions" data-menu-bulk-form>
+                                              class="menu-builder__bulk-actions" data-menu-bulk-form data-menu-save="true">
                                             <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
                                                                  StoreId="@_workspace.Store?.StoreId"
                                                                  MenuId="@details.Menu.MenuId"
