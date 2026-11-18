@@ -107,6 +107,69 @@ public sealed class MenuBuilderUiTests
     }
 
     [TestMethod]
+    public async Task Owner_CanFilterERPItemsAndAddExistingERPMenuCategory()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.MenuDrafts.EmptyCategory = true;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string url = $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}" +
+            $"&tab=catalog&catalogCategoryId={SessionMenuDraftFixture.SourceCategoryId:D}";
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(url));
+        Assert.Contains("name=\"catalogCategoryId\"", html);
+        Assert.Contains("Κατηγορία ERP", html);
+        Assert.Contains($"value=\"{SessionMenuDraftFixture.SourceCategoryId:D}\"", html);
+        Assert.Contains("menu-builder__catalog-list", html);
+        Assert.Contains("menu-builder__catalog-pick", html);
+        Assert.Contains("menu-builder__search-grid", html);
+        Assert.Contains("value=\"link-catalog-category\"", html);
+        Assert.Contains("name=\"sourceCatalogCategoryId\"", html);
+        Assert.Contains("Υπάρχουσα κατηγορία ERP", html);
+        Assert.Contains("name=\"catalogItemIds\"", html);
+
+        string empty = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}" +
+            $"&tab=catalog&catalogCategoryId={SessionMenuDraftFixture.OtherSourceCategoryId:D}"));
+        Assert.Contains("Δεν βρέθηκαν ενεργά είδη για τα συγκεκριμένα φίλτρα", empty);
+        Assert.DoesNotContain("menu-builder__catalog-pick", empty);
+
+        using var saved = await PostAsync(client, Token(html), new()
+        {
+            ["tenantId"] = Tenant.ToString("D"),
+            ["requestId"] = Guid.NewGuid().ToString("D"),
+            ["action"] = "link-catalog-category",
+            ["menuId"] = SessionMenuDraftFixture.MenuId.ToString("D"),
+            ["sourceCatalogCategoryId"] = SessionMenuDraftFixture.SourceCategoryId.ToString("D"),
+            ["expectedRevision"] = "1"
+        });
+        Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
+        Assert.AreEqual(MenuDraftAction.LinkCatalogCategory,
+            factory.MenuDrafts.LastCommand?.Action);
+        Assert.AreEqual(SessionMenuDraftFixture.SourceCategoryId,
+            factory.MenuDrafts.LastCommand?.SourceCatalogCategoryId);
+        Assert.Contains("result=category-linked", saved.Headers.Location?.OriginalString ?? "");
+
+        string child = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}" +
+            $"&categoryId={SessionMenuDraftFixture.CategoryId:D}&tab=items"));
+        Assert.Contains("Υπάρχουσα κατηγορία ERP", child);
+        using var nested = await PostAsync(client, Token(child), new()
+        {
+            ["tenantId"] = Tenant.ToString("D"),
+            ["requestId"] = Guid.NewGuid().ToString("D"),
+            ["action"] = "link-catalog-category",
+            ["menuId"] = SessionMenuDraftFixture.MenuId.ToString("D"),
+            ["parentCategoryId"] = SessionMenuDraftFixture.CategoryId.ToString("D"),
+            ["sourceCatalogCategoryId"] = SessionMenuDraftFixture.OtherSourceCategoryId.ToString("D"),
+            ["expectedRevision"] = "1"
+        });
+        Assert.AreEqual(HttpStatusCode.Redirect, nested.StatusCode);
+        Assert.AreEqual(SessionMenuDraftFixture.CategoryId,
+            factory.MenuDrafts.LastCommand?.ParentCategoryId);
+    }
+
+    [TestMethod]
     public async Task Owner_CanAddItemDirectlyToRootAndNestedCategory()
     {
         await using var factory = new SessionApiFactory();
@@ -353,6 +416,7 @@ public sealed class MenuBuilderUiTests
         Assert.Contains("menu-builder__tile--item", html);
         Assert.Contains("menu-builder__catalog-drawer", html);
         Assert.DoesNotContain("menu-builder__tile-menu", html);
+        Assert.DoesNotContain("value=\"link-catalog-category\"", html);
         Assert.DoesNotContain("action=\"/ui/menus/draft\"", html);
     }
 
