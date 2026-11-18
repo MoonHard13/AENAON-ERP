@@ -11,6 +11,8 @@ internal sealed class SessionMenuDraftFixture : IMenuDraftStore
     public static readonly Guid ProductId = Guid.Parse("519f1811-6215-4841-81d2-62e921b22e3d");
     public static readonly Guid SecondaryCategoryId = Guid.Parse("31377943-6f5a-4d9f-b238-cf4e0bc323e6");
     public static readonly Guid SecondaryProductId = Guid.Parse("dcfa55da-480f-4bb8-9a23-8b22be790ed9");
+    public static readonly Guid SourceCategoryId = Guid.Parse("9d75fab2-d478-4c7c-a3bb-84911d19a54b");
+    public static readonly Guid OtherSourceCategoryId = Guid.Parse("618eb187-d012-4441-812a-a5d4df4634c6");
 
     public int ApplyCalls { get; private set; }
     public MenuDraftCommand? LastCommand { get; private set; }
@@ -78,11 +80,21 @@ internal sealed class SessionMenuDraftFixture : IMenuDraftStore
         return Task.FromResult(value);
     }
 
+    public Task<IReadOnlyList<MenuCatalogCategoryOption>> ListCatalogCategoriesAsync(
+        Guid tenantId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<MenuCatalogCategoryOption>>(
+            tenantId == Tenant
+                ? [new(SourceCategoryId, "FOOD", "Φαγητά", null),
+                    new(OtherSourceCategoryId, "DRINK", "Ροφήματα", null)]
+                : []);
+
     public Task<IReadOnlyList<MenuCatalogOption>> SearchCatalogAsync(Guid tenantId,
-        string? search, CancellationToken cancellationToken = default)
+        string? search, CancellationToken cancellationToken = default,
+        Guid? catalogCategoryId = null)
     {
         IReadOnlyList<MenuCatalogOption> items =
             tenantId == Tenant &&
+            (!catalogCategoryId.HasValue || catalogCategoryId == SourceCategoryId) &&
             (string.IsNullOrWhiteSpace(search) ||
              "Πίτσα".StartsWith(search, StringComparison.OrdinalIgnoreCase) ||
              "SKU001".StartsWith(search, StringComparison.OrdinalIgnoreCase))
