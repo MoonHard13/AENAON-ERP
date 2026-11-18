@@ -217,6 +217,7 @@
                             <div class="menu-builder__tiles menu-builder__tiles--categories" data-menu-sortable="category">
                                 @foreach (MenuDraftCategoryRecord menuCategory in childCategories)
                                 {
+                                    var categoryImpact = RemovalImpact(details, menuCategory.CategoryId);
                                     <MenuDraftCategoryTile Category="@menuCategory"
                                                            TenantId="@_workspace.Tenant!.TenantId"
                                                            StoreId="@_workspace.Store?.StoreId"
@@ -227,6 +228,8 @@
                                                            ReturnCategoryId="@currentCategoryId"
                                                            ItemCount="@details.Items.Count(x => x.CategoryId == menuCategory.CategoryId)"
                                                            ChildCount="@details.Categories.Count(x => x.ParentCategoryId == menuCategory.CategoryId)"
+                                                           DescendantCategoryCount="@categoryImpact.Descendants"
+                                                           SubtreeItemCount="@categoryImpact.Items"
                                                            SiblingCount="@childCategories.Count"
                                                            Href="@Url(details.Menu.MenuId, menuCategory.CategoryId, "items")" />
                                 }
@@ -328,6 +331,35 @@
                                             </button>
                                         </div>
                                     </form>
+                                    @if (CanManage && _csrfToken is not null &&
+                                        _data.Catalog.Any(x => !details.Items.Any(item =>
+                                            item.CategoryId == currentCategoryId && item.CatalogItemId == x.CatalogItemId)))
+                                    {
+                                        <form id="menu-bulk-add" method="post" action="/ui/menus/draft"
+                                              class="menu-builder__bulk-actions" data-menu-bulk-form>
+                                            <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                                 StoreId="@_workspace.Store?.StoreId"
+                                                                 MenuId="@details.Menu.MenuId"
+                                                                 CategoryId="@currentCategoryId"
+                                                                 Revision="@details.Menu.Revision"
+                                                                 CsrfToken="@_csrfToken" />
+                                            <input type="hidden" name="action" value="add-items" />
+                                            <div class="menu-builder__bulk-toolbar">
+                                                <strong>Επιλογή πολλών ειδών</strong>
+                                                <output data-menu-selected-count aria-live="polite">0 επιλεγμένα</output>
+                                                <button type="button" class="button button--outline" data-menu-select-all>
+                                                    Επιλογή όλων
+                                                </button>
+                                                <button type="button" class="button button--outline" data-menu-clear-selection>
+                                                    Καθαρισμός
+                                                </button>
+                                                <button type="submit" class="button button--primary" data-menu-bulk-submit disabled>
+                                                    Προσθήκη επιλεγμένων
+                                                </button>
+                                            </div>
+                                            <small>Μέχρι 50 διαφορετικά είδη ανά αποθήκευση, χωρίς αλλαγή στον ERP Catalog.</small>
+                                        </form>
+                                    }
                                     @if (_data.Catalog.Count == 0)
                                     {
                                         <div class="menu-builder__empty">Δεν βρέθηκαν ενεργά είδη καταλόγου.</div>
@@ -346,6 +378,15 @@
                                             }
                                             else if (CanManage && _csrfToken is not null)
                                             {
+                                                <label class="menu-builder__bulk-option"
+                                                       for="@($"menu-select-{catalogItem.CatalogItemId:N}")">
+                                                    <input id="@($"menu-select-{catalogItem.CatalogItemId:N}")"
+                                                           form="menu-bulk-add" type="checkbox"
+                                                           name="catalogItemIds" value="@catalogItem.CatalogItemId"
+                                                           data-menu-bulk-checkbox
+                                                           aria-label="Επιλογή @catalogItem.Name για μαζική προσθήκη" />
+                                                    Επιλογή
+                                                </label>
                                                 <form method="post" action="/ui/menus/draft">
                                                     <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
                                                                          StoreId="@_workspace.Store?.StoreId"
@@ -410,15 +451,40 @@
     private string? Message => Result switch
     {
         "saved" => "Το προσχέδιο αποθηκεύτηκε επιτυχώς.",
+        "items-added" => "Τα επιλεγμένα είδη προστέθηκαν μαζί στο μενού.",
         "duplicate" => "Η καταχώριση υπάρχει ήδη σε αυτό το μενού ή η τιμή κωδικού χρησιμοποιείται.",
         "conflict" => "Το προσχέδιο άλλαξε από άλλη συνεδρία. Φορτώστε ξανά τη σελίδα και επανελέγξτε τις αλλαγές σας.",
         "missing" => "Η επιλεγμένη εγγραφή δεν βρέθηκε. Ελέγξτε την τρέχουσα κατάσταση.",
         "empty-catalog" => "Ο ERP Catalog δεν έχει ενεργές κατηγορίες προς εισαγωγή.",
         "import-limit" => "Ο κατάλογος ξεπερνά το ασφαλές όριο αυτόματης εισαγωγής. Δεν αποθηκεύτηκε μερικό μενού.",
         "import-not-empty" => "Το μενού έχει ήδη κατηγορίες ή είδη. Η αυτόματη εισαγωγή επιτρέπεται μόνο σε κενό μενού.",
-        "invalid" => "Τα στοιχεία δεν είναι έγκυρα ή η κατηγορία περιέχει είδη.",
+        "confirm-remove" => "Για αφαίρεση κατηγορίας με περιεχόμενο απαιτείται ρητή επιβεβαίωση.",
+        "invalid" => "Τα στοιχεία δεν είναι έγκυρα. Ελέγξτε την επιλογή ειδών, τα δικαιώματα και την τρέχουσα αναθεώρηση.",
         _ => null
     };
+
+    // Υπολογισμός επίδρασης διαγραφής σε όλα τα επίπεδα, χωρίς αλλαγή δεδομένων.
+    private static (int Descendants, int Items) RemovalImpact(MenuDraftDetails details, Guid rootId)
+    {
+        ILookup<Guid?, MenuDraftCategoryRecord> byParent =
+            details.Categories.ToLookup(x => x.ParentCategoryId);
+        var ids = new HashSet<Guid>();
+        var pending = new Stack<Guid>();
+        pending.Push(rootId);
+        while (pending.TryPop(out Guid categoryId))
+        {
+            if (!ids.Add(categoryId))
+            {
+                continue;
+            }
+            foreach (MenuDraftCategoryRecord child in byParent[categoryId])
+            {
+                pending.Push(child.CategoryId);
+            }
+        }
+        int items = details.Items.Count(x => x.CategoryId is Guid categoryId && ids.Contains(categoryId));
+        return (ids.Count - 1, items);
+    }
 
     private static string ItemCountLabel(int count) => count == 1 ? "1 είδος" : $"{count} είδη";
 
