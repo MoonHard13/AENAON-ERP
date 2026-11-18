@@ -68,7 +68,8 @@
                 </details>
                 <details>
                     <summary class="menu-builder__text-action menu-builder__text-action--danger">Αφαίρεση από μενού</summary>
-                    <form method="post" action="/ui/menus/draft" class="menu-builder__inline-form">
+                    <form method="post" action="/ui/menus/draft" class="menu-builder__inline-form"
+                          data-menu-save="true">
                         <MenuDraftFormFields TenantId="@TenantId" StoreId="@StoreId"
                                              MenuId="@MenuId" CategoryId="@Category.CategoryId"
                                              Revision="@Revision" CsrfToken="@CsrfToken" />
