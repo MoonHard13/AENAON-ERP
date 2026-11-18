@@ -97,3 +97,53 @@ document.addEventListener("keydown", (event) => {
         reorderMenuTile(tile, target);
     }
 });
+
+/* Οι επιλογές ειδών συνδέονται με μία φόρμα και μία ατομική εντολή. */
+function menuBulkCheckboxes(form) {
+    return Array.from(document.querySelectorAll(
+        'input[data-menu-bulk-checkbox][form="' + form.id + '"]'));
+}
+function updateMenuBulkSelection(form) {
+    const selected = menuBulkCheckboxes(form).filter((input) => input.checked).length;
+    const counter = form.querySelector("[data-menu-selected-count]");
+    const submit = form.querySelector("[data-menu-bulk-submit]");
+    if (counter) {
+        counter.textContent = String(selected) + (selected === 1 ? " επιλεγμένο" : " επιλεγμένα");
+    }
+    if (submit) {
+        submit.disabled = selected === 0;
+    }
+}
+document.addEventListener("change", (event) => {
+    const input = event.target.closest?.("[data-menu-bulk-checkbox]");
+    const form = input?.form;
+    if (form?.matches("[data-menu-bulk-form]")) {
+        updateMenuBulkSelection(form);
+    }
+});
+document.addEventListener("click", (event) => {
+    const button = event.target.closest?.("[data-menu-select-all], [data-menu-clear-selection]");
+    const form = button?.closest("[data-menu-bulk-form]");
+    if (!form) {
+        return;
+    }
+    const checked = button.matches("[data-menu-select-all]");
+    for (const input of menuBulkCheckboxes(form)) {
+        input.checked = checked;
+    }
+    updateMenuBulkSelection(form);
+});
+document.querySelectorAll("[data-menu-bulk-form]").forEach((form) => {
+    updateMenuBulkSelection(form);
+    form.addEventListener("submit", (event) => {
+        if (!menuBulkCheckboxes(form).some((input) => input.checked)) {
+            event.preventDefault();
+            return;
+        }
+        const submit = form.querySelector("[data-menu-bulk-submit]");
+        if (submit) {
+            submit.disabled = true;
+            form.setAttribute("aria-busy", "true");
+        }
+    });
+});
