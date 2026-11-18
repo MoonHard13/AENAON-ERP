@@ -43,21 +43,27 @@ public static class MenuPricingPreviewCommand
             }
         }
 
+        Guid tenantId = Guid.Empty;
+        Guid menuId = Guid.Empty;
+        Guid storeId = Guid.Empty;
+        PriceListChannel channel = PriceListChannel.All;
+        DateOnly businessDate = default;
+
         valid = valid && dryRun &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--username")) &&
             !string.IsNullOrWhiteSpace(values.GetValueOrDefault("--confirm-database")) &&
-            Guid.TryParse(values.GetValueOrDefault("--tenant-id"), out Guid tenantId) &&
+            Guid.TryParse(values.GetValueOrDefault("--tenant-id"), out tenantId) &&
             tenantId != Guid.Empty &&
-            Guid.TryParse(values.GetValueOrDefault("--menu-id"), out Guid menuId) &&
+            Guid.TryParse(values.GetValueOrDefault("--menu-id"), out menuId) &&
             menuId != Guid.Empty &&
-            Guid.TryParse(values.GetValueOrDefault("--store-id"), out Guid storeId) &&
+            Guid.TryParse(values.GetValueOrDefault("--store-id"), out storeId) &&
             storeId != Guid.Empty &&
             Enum.TryParse(values.GetValueOrDefault("--channel"), false,
-                out PriceListChannel channel) &&
+                out channel) &&
             Enum.IsDefined(channel) && channel != PriceListChannel.All &&
             DateOnly.TryParseExact(values.GetValueOrDefault("--business-date"),
                 "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                out DateOnly businessDate);
+                out businessDate);
 
         if (!valid)
         {
