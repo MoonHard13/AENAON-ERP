@@ -393,6 +393,125 @@ internal static class SqlServerMenuDraftAssertions
 
         await AssertBulkAddAndCategoryRemovalAsync(context, store, menuTenantId,
             ownerId, activeParent.Id, activeChild.Id, foreignProductId, token);
+        await AssertCategoryFilterAndExistingCategoryLinkAsync(context, store,
+            menuTenantId, ownerId, parent, child, empty, inactive, activeParent,
+            activeChild, foodId, token);
+    }
+
+    private static async Task AssertCategoryFilterAndExistingCategoryLinkAsync(
+        AenaonDbContext context, SqlMenuDraftStore store, Guid tenantId, Guid userId,
+        CatalogCategory sourceParent, CatalogCategory sourceChild,
+        CatalogCategory emptySource, CatalogCategory inactiveSource,
+        CatalogItem parentItem, CatalogItem childItem,
+        Guid foreignMenuParentId, CancellationToken token)
+    {
+        // Τα φίλτρα αναζητούν μόνο είδη της επιλεγμένης ERP κατηγορίας του Tenant.
+        IReadOnlyList<MenuCatalogCategoryOption> categories =
+            await store.ListCatalogCategoriesAsync(tenantId, token);
+        Assert.IsTrue(categories.Any(x => x.CatalogCategoryId == sourceParent.Id));
+        Assert.IsTrue(categories.Any(x => x.CatalogCategoryId == sourceChild.Id));
+        Assert.IsFalse(categories.Any(x => x.CatalogCategoryId == inactiveSource.Id));
+
+        IReadOnlyList<MenuCatalogOption> parentResults =
+            await store.SearchCatalogAsync(tenantId, "P001", token, sourceParent.Id);
+        Assert.HasCount(1, parentResults);
+        Assert.AreEqual(parentItem.Id, parentResults[0].CatalogItemId);
+        Assert.HasCount(0, await store.SearchCatalogAsync(
+            tenantId, "P001", token, sourceChild.Id));
+        IReadOnlyList<MenuCatalogOption> childResults =
+            await store.SearchCatalogAsync(tenantId, null, token, sourceChild.Id);
+        Assert.HasCount(1, childResults);
+        Assert.AreEqual(childItem.Id, childResults[0].CatalogItemId);
+        Assert.HasCount(0, await store.SearchCatalogAsync(
+            tenantId, null, token, inactiveSource.Id));
+        Assert.HasCount(0, await store.SearchCatalogAsync(
+            tenantId, null, token, Guid.NewGuid()));
+
+        // Η νέα κατηγορία του μενού συνδέεται με το υπάρχον ERP record, χωρίς copy/delete.
+        RestaurantMenu menu = RestaurantMenu.Create(tenantId, "ERP-RELINK", "Δοκιμή κατηγορίας");
+        context.RestaurantMenus.Add(menu);
+        context.MenuDrafts.Add(MenuDraft.Create(tenantId, menu.Id, DateTime.UtcNow));
+        await context.SaveChangesAsync(token);
+        context.ChangeTracker.Clear();
+
+        var linkParent = new MenuDraftCommand(MenuDraftAction.LinkCatalogCategory,
+            Guid.NewGuid(), MenuId: menu.Id, ExpectedRevision: 1,
+            SourceCatalogCategoryId: sourceParent.Id);
+        MenuDraftMutationResult linkedParent = await store.ApplyAsync(
+            tenantId, userId, linkParent, token);
+        Assert.AreEqual(MenuDraftStatus.Saved, linkedParent.Status);
+        Assert.AreEqual(2L, linkedParent.Revision);
+
+        // Replay με ίδιο RequestId δεν διπλασιάζει τη σύνδεση.
+        MenuDraftMutationResult replay = await store.ApplyAsync(
+            tenantId, userId, linkParent, token);
+        Assert.AreEqual(MenuDraftStatus.Saved, replay.Status);
+        Assert.AreEqual(linkedParent.RecordId, replay.RecordId);
+
+        MenuDraftMutationResult duplicate = await store.ApplyAsync(
+            tenantId, userId, linkParent with
+            {
+                RequestId = Guid.NewGuid(),
+                ExpectedRevision = linkedParent.Revision
+            }, token);
+        Assert.AreEqual(MenuDraftStatus.Duplicate, duplicate.Status);
+
+        MenuDraftMutationResult nested = await store.ApplyAsync(
+            tenantId, userId,
+            new(MenuDraftAction.LinkCatalogCategory, Guid.NewGuid(), MenuId: menu.Id,
+                ExpectedRevision: linkedParent.Revision,
+                ParentCategoryId: linkedParent.RecordId,
+                SourceCatalogCategoryId: sourceChild.Id), token);
+        Assert.AreEqual(MenuDraftStatus.Saved, nested.Status);
+        MenuDraftDetails afterNested = (await store.GetAsync(tenantId, menu.Id, token))!;
+        Assert.HasCount(2, afterNested.Categories);
+        Assert.AreEqual(sourceChild.Id, afterNested.Categories.Single(x =>
+            x.CategoryId == nested.RecordId).CatalogCategoryId);
+        Assert.AreEqual(linkedParent.RecordId,
+            afterNested.Categories.Single(x =>
+                x.CategoryId == nested.RecordId).ParentCategoryId);
+        Assert.HasCount(0, afterNested.Items);
+
+        // Ξένη κατηγορία, ανενεργή ERP κατηγορία και γονέας άλλου μενού απορρίπτονται.
+        MenuDraftMutationResult inactive = await store.ApplyAsync(
+            tenantId, userId,
+            new(MenuDraftAction.LinkCatalogCategory, Guid.NewGuid(), MenuId: menu.Id,
+                ExpectedRevision: nested.Revision,
+                SourceCatalogCategoryId: inactiveSource.Id), token);
+        Assert.AreEqual(MenuDraftStatus.Missing, inactive.Status);
+        MenuDraftMutationResult foreignSource = await store.ApplyAsync(
+            tenantId, userId,
+            new(MenuDraftAction.LinkCatalogCategory, Guid.NewGuid(), MenuId: menu.Id,
+                ExpectedRevision: nested.Revision,
+                SourceCatalogCategoryId: Guid.NewGuid()), token);
+        Assert.AreEqual(MenuDraftStatus.Missing, foreignSource.Status);
+        MenuDraftMutationResult crossMenuParent = await store.ApplyAsync(
+            tenantId, userId,
+            new(MenuDraftAction.LinkCatalogCategory, Guid.NewGuid(), MenuId: menu.Id,
+                ExpectedRevision: nested.Revision,
+                ParentCategoryId: foreignMenuParentId,
+                SourceCatalogCategoryId: emptySource.Id), token);
+        Assert.AreEqual(MenuDraftStatus.Missing, crossMenuParent.Status);
+
+        // Αφαίρεση και επανασύνδεση ERP κατηγορίας επιτρέπεται στο ίδιο μενού.
+        MenuDraftMutationResult removed = await store.ApplyAsync(
+            tenantId, userId,
+            new(MenuDraftAction.RemoveCategory, Guid.NewGuid(), MenuId: menu.Id,
+                ExpectedRevision: nested.Revision, CategoryId: linkedParent.RecordId,
+                RemoveContents: true), token);
+        Assert.AreEqual(MenuDraftStatus.Saved, removed.Status);
+        Assert.HasCount(0, (await store.GetAsync(tenantId, menu.Id, token))!.Categories);
+        MenuDraftMutationResult relinked = await store.ApplyAsync(
+            tenantId, userId, linkParent with
+            {
+                RequestId = Guid.NewGuid(),
+                ExpectedRevision = removed.Revision
+            }, token);
+        Assert.AreEqual(MenuDraftStatus.Saved, relinked.Status);
+        Assert.AreEqual(sourceParent.Id, (await store.GetAsync(tenantId, menu.Id, token))!
+            .Categories.Single().CatalogCategoryId);
+        Assert.IsTrue(await context.CatalogCategories.AsNoTracking().AnyAsync(x =>
+            x.TenantId == tenantId && x.Id == sourceParent.Id, token));
     }
 
     private static async Task AssertBulkAddAndCategoryRemovalAsync(
