@@ -8,7 +8,7 @@
 Το 9.6A.1 είναι **Draft-only**. Δεν προσφέρει Publish, Preview, modifiers, διαθεσιμότητα, POS, KDS, φορολογική έκδοση, IMPACT transmission, offline ή εκτύπωση. Η ενδέκατη migration **εφαρμόστηκε αποκλειστικά στη Development `AenaonERP_Dev` από τον ιδιοκτήτη στις 17/11/2026**, κατόπιν SQL review, επιβεβαιωμένου από τον ίδιο backup/VERIFYONLY και ρητής έγκρισης. Το τελικό `--dry-run` εμφάνισε **11 applied / 0 pending**. **Δεν εφαρμόστηκε σε production**. Μην επανεκτελέσετε το παραγόμενο SQL script και μην υποθέσετε ότι το PR είναι αποδεκτό για merge.
 {% endhint %}
 
-**Ενημέρωση 17/11/2026:** Η νεότερη UI επέκταση στο ίδιο Draft PR προσθέτει **13η migration (μόνο κώδικας, ανεφάρμοστη)** για υποκατηγορίες και είδη ρίζας. Δείτε [Manual 64 — Hierarchy & Drag](64-menu-builder-hierarchy-and-drag-drop.md). Τα παρακάτω βήματα τεκμηριώνουν την αρχική φάση με τη migration #11/#12· δεν αποτελούν έγκριση για #13.
+**Ενημέρωση 18/11/2026:** Η νεότερη UI επέκταση στο ίδιο Draft PR περιλαμβάνει την **13η migration, εγκεκριμένη και εφαρμοσμένη από τον ιδιοκτήτη αποκλειστικά στην `AenaonERP_Dev` (owner-provided apply/dry-run 13/0)**. Δείτε [Manual 64 — Hierarchy & Drag](64-menu-builder-hierarchy-and-drag-drop.md) και [Manual 65 — SQL verification](65-menu-builder-hierarchy-sql-preflight-review.md). Τα παρακάτω βήματα τεκμηριώνουν ιστορικά την αρχική φάση #11/#12· το feature εξακολουθεί να απαιτεί πραγματικό browser/SQL postmigration acceptance και ξεχωριστή άδεια merge.
 
 ## 1. Σκοπός
 
