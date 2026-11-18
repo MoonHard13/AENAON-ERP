@@ -117,6 +117,60 @@ public sealed class MenuDraftManagementServiceTests
     }
 
     [TestMethod]
+    public async Task Owner_BulkAddAndSubtreeRemovalRequireValidatedCommands()
+    {
+        var store = new FakeMenuStore();
+        MenuDraftManagementService owner = CreateService(TenantMembershipRole.Owner, store);
+        MenuDraftManagementService member = CreateService(TenantMembershipRole.Member, store);
+        Guid menuId = Guid.NewGuid();
+        Guid first = Guid.NewGuid();
+        Guid second = Guid.NewGuid();
+
+        var validBatch = new MenuDraftCommand(MenuDraftAction.AddItems, Guid.NewGuid(),
+            MenuId: menuId, ExpectedRevision: 1, CatalogItemIds: [first, second]);
+        MenuDraftMutationResult accepted = await owner.ApplyAsync(User, Tenant, validBatch);
+        Assert.AreEqual(MenuDraftStatus.Saved, accepted.Status);
+        Assert.HasCount(2, store.LastCommand!.CatalogItemIds!);
+
+        int before = store.ApplyCalls;
+        MenuDraftCommand[] invalid =
+        [
+            new(MenuDraftAction.AddItems, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: 1, CatalogItemIds: []),
+            new(MenuDraftAction.AddItems, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: 1, CatalogItemIds: [first, first]),
+            new(MenuDraftAction.AddItems, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: 1, CatalogItemIds: [first, Guid.Empty]),
+            new(MenuDraftAction.AddItems, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: 1, CatalogItemIds: Enumerable.Repeat(first, 51).ToArray()),
+            new(MenuDraftAction.AddItems, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: 1, CatalogItemId: first, CatalogItemIds: [second]),
+            new(MenuDraftAction.AddItem, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: 1, CatalogItemId: first, CatalogItemIds: [second]),
+            new(MenuDraftAction.RemoveItem, Guid.NewGuid(), MenuId: menuId,
+                ExpectedRevision: 1, ItemId: Guid.NewGuid(), RemoveContents: true)
+        ];
+        foreach (MenuDraftCommand command in invalid)
+        {
+            Assert.AreEqual(MenuDraftStatus.Invalid,
+                (await owner.ApplyAsync(User, Tenant, command)).Status);
+        }
+        Assert.AreEqual(before, store.ApplyCalls);
+
+        var confirmed = new MenuDraftCommand(MenuDraftAction.RemoveCategory, Guid.NewGuid(),
+            MenuId: menuId, ExpectedRevision: 1, CategoryId: Guid.NewGuid(),
+            RemoveContents: true);
+        Assert.AreEqual(MenuDraftStatus.Saved,
+            (await owner.ApplyAsync(User, Tenant, confirmed)).Status);
+        Assert.IsTrue(store.LastCommand!.RemoveContents);
+
+        Assert.AreEqual(MenuDraftStatus.Denied,
+            (await member.ApplyAsync(User, Tenant, validBatch)).Status);
+        Assert.AreEqual(MenuDraftStatus.Denied,
+            (await member.ApplyAsync(User, Tenant, confirmed)).Status);
+    }
+
+    [TestMethod]
     public async Task Member_CanReadButForeignTenantCannot()
     {
         var store = new FakeMenuStore();
