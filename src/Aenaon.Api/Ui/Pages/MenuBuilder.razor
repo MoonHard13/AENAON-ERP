@@ -47,8 +47,8 @@
             {
                 @if (!string.IsNullOrEmpty(Message))
                 {
-                    <div class="@(Result == "saved" ? "catalog-success" : "form-alert")"
-                         role="@(Result == "saved" ? "status" : "alert")">@Message</div>
+                    <div class="@(IsSuccess ? "catalog-success" : "form-alert")"
+                         role="@(IsSuccess ? "status" : "alert")">@Message</div>
                 }
 
                 <section class="surface-card menu-builder__surface">
@@ -182,6 +182,9 @@
                                 x.CategoryId == currentCategoryId)
                                 .OrderBy(x => x.Position).ThenBy(x => x.ItemId).ToList();
                             var breadcrumbs = CategoryPath(details.Categories, SelectedCategory);
+                            var availableErpCategories = (_data.CatalogCategories ?? [])
+                                .Where(x => !details.Categories.Any(c =>
+                                    c.CatalogCategoryId == x.CatalogCategoryId)).ToList();
                         <nav class="menu-builder__breadcrumbs" aria-label="Διαδρομή μενού">
                             <a href="@Url(details.Menu.MenuId, null, "categories")"
                                aria-current="@(currentCategoryId is null ? "page" : null)">
@@ -260,6 +263,50 @@
                                             </button>
                                         </form>
                                     </details>
+                                    @if (availableErpCategories.Count > 0)
+                                    {
+                                        <details class="menu-builder__tile menu-builder__tile--create menu-builder__tile--erp"
+                                                 id="menu-link-erp-category">
+                                            <summary class="menu-builder__create-trigger"
+                                                     title="Χρήση υπάρχουσας κατηγορίας από τον ERP Catalog">
+                                                <span class="menu-builder__tile-symbol" aria-hidden="true">
+                                                    <AppIcon Name="folder-tree" />
+                                                </span>
+                                                <span>Υπάρχουσα κατηγορία ERP</span>
+                                            </summary>
+                                            <form method="post" action="/ui/menus/draft"
+                                                  class="menu-builder__inline-form" data-menu-save="true">
+                                                <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                                     StoreId="@_workspace.Store?.StoreId"
+                                                                     MenuId="@details.Menu.MenuId"
+                                                                     Revision="@details.Menu.Revision"
+                                                                     CsrfToken="@_csrfToken" />
+                                                @if (currentCategoryId.HasValue)
+                                                {
+                                                    <input type="hidden" name="parentCategoryId"
+                                                           value="@currentCategoryId" />
+                                                }
+                                                <input type="hidden" name="action" value="link-catalog-category" />
+                                                <label for="menu-existing-category">Επιλογή κατηγορίας ERP</label>
+                                                <select id="menu-existing-category" name="sourceCatalogCategoryId" required>
+                                                    <option value="">Επιλέξτε κατηγορία…</option>
+                                                    @foreach (MenuCatalogCategoryOption source in availableErpCategories)
+                                                    {
+                                                        <option value="@source.CatalogCategoryId">
+                                                            @source.Name (@source.Code)
+                                                        </option>
+                                                    }
+                                                </select>
+                                                <p class="menu-builder__hint">
+                                                    Προστίθεται η υπάρχουσα κατηγορία στο τρέχον επίπεδο.
+                                                    Τα είδη της επιλέγονται χωριστά, χωρίς αλλαγή στον ERP Catalog.
+                                                </p>
+                                                <button type="submit" class="button button--primary">
+                                                    <AppIcon Name="plus" /> Προσθήκη από ERP
+                                                </button>
+                                            </form>
+                                        </details>
+                                    }
                                 }
                             </div>
 
@@ -321,11 +368,26 @@
                                             <input type="hidden" name="categoryId" value="@currentCategoryId" />
                                         }
                                         <input type="hidden" name="tab" value="catalog" />
-                                        <label for="menu-catalog-search">Αναζήτηση είδους ή κωδικού</label>
-                                        <div class="menu-builder__search-fields">
-                                            <input id="menu-catalog-search" name="search" maxlength="80"
-                                                   type="search" value="@Search"
-                                                   placeholder="Αρχή κωδικού ή ονόματος…" />
+                                        <div class="menu-builder__search-grid">
+                                            <label for="menu-catalog-search">
+                                                Αναζήτηση είδους ή κωδικού
+                                                <input id="menu-catalog-search" name="search" maxlength="80"
+                                                       type="search" value="@Search"
+                                                       placeholder="Όνομα ή κωδικός…" />
+                                            </label>
+                                            <label for="menu-catalog-category-filter">
+                                                Κατηγορία ERP
+                                                <select id="menu-catalog-category-filter" name="catalogCategoryId">
+                                                    <option value="">Όλες οι κατηγορίες</option>
+                                                    @foreach (MenuCatalogCategoryOption category in _data.CatalogCategories ?? [])
+                                                    {
+                                                        <option value="@category.CatalogCategoryId"
+                                                                selected="@(CatalogCategoryId == category.CatalogCategoryId)">
+                                                            @category.Name (@category.Code)
+                                                        </option>
+                                                    }
+                                                </select>
+                                            </label>
                                             <button type="submit" class="button button--outline" accesskey="f">
                                                 <AppIcon Name="search" /> Αναζήτηση
                                             </button>
@@ -345,8 +407,10 @@
                                                                  CsrfToken="@_csrfToken" />
                                             <input type="hidden" name="action" value="add-items" />
                                             <div class="menu-builder__bulk-toolbar">
-                                                <strong>Επιλογή πολλών ειδών</strong>
-                                                <output data-menu-selected-count aria-live="polite">0 επιλεγμένα</output>
+                                                <div class="menu-builder__bulk-count">
+                                                    <strong>Πολλαπλή επιλογή</strong>
+                                                    <output data-menu-selected-count aria-live="polite">0 επιλεγμένα</output>
+                                                </div>
                                                 <button type="button" class="button button--outline" data-menu-select-all>
                                                     Επιλογή όλων
                                                 </button>
@@ -357,53 +421,74 @@
                                                     Προσθήκη επιλεγμένων
                                                 </button>
                                             </div>
-                                            <small>Μέχρι 50 διαφορετικά είδη ανά αποθήκευση, χωρίς αλλαγή στον ERP Catalog.</small>
                                         </form>
                                     }
                                     @if (_data.Catalog.Count == 0)
                                     {
-                                        <div class="menu-builder__empty">Δεν βρέθηκαν ενεργά είδη καταλόγου.</div>
+                                        <div class="menu-builder__empty" role="status">
+                                            Δεν βρέθηκαν ενεργά είδη για τα συγκεκριμένα φίλτρα.
+                                        </div>
                                     }
-                                    @foreach (MenuCatalogOption catalogItem in _data.Catalog)
+                                    else
                                     {
-                                        <article class="menu-builder__catalog-entry">
-                                            <div>
-                                                <strong>@catalogItem.Name</strong>
-                                                <small>@catalogItem.Code</small>
-                                            </div>
-                                            @if (details.Items.Any(x => x.CategoryId == currentCategoryId &&
-                                                x.CatalogItemId == catalogItem.CatalogItemId))
+                                        <div class="menu-builder__catalog-list" role="list"
+                                             aria-label="Αποτελέσματα αναζήτησης ERP ειδών">
+                                            @foreach (MenuCatalogOption catalogItem in _data.Catalog)
                                             {
-                                                <span class="menu-builder__already">Προστέθηκε</span>
+                                                bool alreadyAdded = details.Items.Any(x =>
+                                                    x.CategoryId == currentCategoryId &&
+                                                    x.CatalogItemId == catalogItem.CatalogItemId);
+                                                <div class="menu-builder__catalog-entry" role="listitem">
+                                                    @if (!alreadyAdded && CanManage && _csrfToken is not null)
+                                                    {
+                                                        <label class="menu-builder__catalog-pick"
+                                                               for="@($"menu-select-{catalogItem.CatalogItemId:N}")">
+                                                            <input id="@($"menu-select-{catalogItem.CatalogItemId:N}")"
+                                                                   form="menu-bulk-add" type="checkbox"
+                                                                   name="catalogItemIds" value="@catalogItem.CatalogItemId"
+                                                                   data-menu-bulk-checkbox
+                                                                   aria-label="Επιλογή @catalogItem.Name για προσθήκη" />
+                                                            <span class="menu-builder__catalog-info">
+                                                                <strong>@catalogItem.Name</strong>
+                                                                <small>@catalogItem.Code</small>
+                                                            </span>
+                                                        </label>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="menu-builder__catalog-info">
+                                                            <strong>@catalogItem.Name</strong>
+                                                            <small>@catalogItem.Code</small>
+                                                        </div>
+                                                    }
+                                                    <div class="menu-builder__catalog-entry-actions">
+                                                        @if (alreadyAdded)
+                                                        {
+                                                            <span class="menu-builder__already">Προστέθηκε</span>
+                                                        }
+                                                        else if (CanManage && _csrfToken is not null)
+                                                        {
+                                                            <form method="post" action="/ui/menus/draft">
+                                                                <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
+                                                                                     StoreId="@_workspace.Store?.StoreId"
+                                                                                     MenuId="@details.Menu.MenuId"
+                                                                                     CategoryId="@currentCategoryId"
+                                                                                     Revision="@details.Menu.Revision"
+                                                                                     CsrfToken="@_csrfToken" />
+                                                                <input type="hidden" name="action" value="add-item" />
+                                                                <input type="hidden" name="catalogItemId"
+                                                                       value="@catalogItem.CatalogItemId" />
+                                                                <button class="menu-builder__add-item" type="submit"
+                                                                        title="Μεμονωμένη προσθήκη"
+                                                                        aria-label="Προσθήκη @catalogItem.Name">
+                                                                    <AppIcon Name="plus" />
+                                                                </button>
+                                                            </form>
+                                                        }
+                                                    </div>
+                                                </div>
                                             }
-                                            else if (CanManage && _csrfToken is not null)
-                                            {
-                                                <label class="menu-builder__bulk-option"
-                                                       for="@($"menu-select-{catalogItem.CatalogItemId:N}")">
-                                                    <input id="@($"menu-select-{catalogItem.CatalogItemId:N}")"
-                                                           form="menu-bulk-add" type="checkbox"
-                                                           name="catalogItemIds" value="@catalogItem.CatalogItemId"
-                                                           data-menu-bulk-checkbox
-                                                           aria-label="Επιλογή @catalogItem.Name για μαζική προσθήκη" />
-                                                    Επιλογή
-                                                </label>
-                                                <form method="post" action="/ui/menus/draft">
-                                                    <MenuDraftFormFields TenantId="@_workspace.Tenant!.TenantId"
-                                                                         StoreId="@_workspace.Store?.StoreId"
-                                                                         MenuId="@details.Menu.MenuId"
-                                                                         CategoryId="@currentCategoryId"
-                                                                         Revision="@details.Menu.Revision"
-                                                                         CsrfToken="@_csrfToken" />
-                                                    <input type="hidden" name="action" value="add-item" />
-                                                    <input type="hidden" name="catalogItemId" value="@catalogItem.CatalogItemId" />
-                                                    <button class="menu-builder__add-item" type="submit"
-                                                            title="Προσθήκη στο τρέχον επίπεδο">
-                                                        <span aria-hidden="true">+</span>
-                                                        <span class="visually-hidden">Προσθήκη @catalogItem.Name</span>
-                                                    </button>
-                                                </form>
-                                            }
-                                        </article>
+                                        </div>
                                     }
                                 </section>
                             </details>
@@ -428,6 +513,7 @@
     [SupplyParameterFromQuery(Name = "menuId")] public Guid? MenuId { get; set; }
     [SupplyParameterFromQuery(Name = "categoryId")] public Guid? CategoryId { get; set; }
     [SupplyParameterFromQuery(Name = "search")] public string? Search { get; set; }
+    [SupplyParameterFromQuery(Name = "catalogCategoryId")] public Guid? CatalogCategoryId { get; set; }
     [SupplyParameterFromQuery(Name = "tab")] public string? Tab { get; set; }
     [SupplyParameterFromQuery(Name = "result")] public string? Result { get; set; }
 
@@ -448,10 +534,13 @@
 
     private string SelectedTab => Tab is "items" or "catalog" ? Tab : "categories";
 
+    private bool IsSuccess => Result is "saved" or "items-added" or "category-linked";
+
     private string? Message => Result switch
     {
         "saved" => "Το προσχέδιο αποθηκεύτηκε επιτυχώς.",
         "items-added" => "Τα επιλεγμένα είδη προστέθηκαν μαζί στο μενού.",
+        "category-linked" => "Η υπάρχουσα κατηγορία ERP προστέθηκε στο μενού.",
         "duplicate" => "Η καταχώριση υπάρχει ήδη σε αυτό το μενού ή η τιμή κωδικού χρησιμοποιείται.",
         "conflict" => "Το προσχέδιο άλλαξε από άλλη συνεδρία. Φορτώστε ξανά τη σελίδα και επανελέγξτε τις αλλαγές σας.",
         "missing" => "Η επιλεγμένη εγγραφή δεν βρέθηκε. Ελέγξτε την τρέχουσα κατάσταση.",
@@ -537,6 +626,10 @@
         {
             url += $"&search={Uri.EscapeDataString(Search.Trim())}";
         }
+        if (CatalogCategoryId is { } sourceCategoryId && sourceCategoryId != Guid.Empty)
+        {
+            url += $"&catalogCategoryId={sourceCategoryId:D}";
+        }
         return url + $"&tab={tab}";
     }
 
@@ -576,7 +669,8 @@
             if (_workspace.Status is TenantWorkspaceStatus.Ready or TenantWorkspaceStatus.NoStores)
             {
                 _data = await Menus.ReadAsync(userId, _workspace.Tenant!.TenantId,
-                    MenuId, Search, context.RequestAborted, _workspace.Store?.StoreId);
+                    MenuId, Search, context.RequestAborted, _workspace.Store?.StoreId,
+                    CatalogCategoryId);
                 if (!_data.IsAuthorized)
                 {
                     _error = "access";
