@@ -22,11 +22,20 @@ public sealed class MenuDraftManagementServiceTests
             CategoryId: Guid.NewGuid(), CatalogItemId: Guid.NewGuid());
         string priorJson = JsonSerializer.Serialize(new
         {
-            command.Action, command.RequestId, command.MenuId,
-            command.ExpectedRevision, command.CategoryId, command.ItemId,
-            command.CatalogItemId, command.Code, command.Name,
-            command.NameOverride, command.TargetPosition, command.IsVisible,
-            command.StoreId, command.ParentCategoryId
+            command.Action,
+            command.RequestId,
+            command.MenuId,
+            command.ExpectedRevision,
+            command.CategoryId,
+            command.ItemId,
+            command.CatalogItemId,
+            command.Code,
+            command.Name,
+            command.NameOverride,
+            command.TargetPosition,
+            command.IsVisible,
+            command.StoreId,
+            command.ParentCategoryId
         });
         Assert.AreEqual(priorJson, JsonSerializer.Serialize(command));
 
