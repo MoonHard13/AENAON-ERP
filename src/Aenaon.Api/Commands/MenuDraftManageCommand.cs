@@ -26,14 +26,14 @@ public static class MenuDraftManageCommand
         for (int i = 0; i < args.Length && !invalid;)
         {
             string key = args[i++];
-            if (key is "--dry-run" or "--apply")
+            if (key is "--dry-run" or "--apply" or "--remove-contents")
             {
                 invalid = !flags.Add(key);
                 continue;
             }
             if (key is not ("--username" or "--tenant-id" or "--confirm-database" or
                 "--action" or "--menu-id" or "--store-id" or "--category-id" or "--parent-category-id" or "--item-id" or
-                "--catalog-item-id" or "--expected-revision" or "--position" or
+                "--catalog-item-id" or "--catalog-item-ids" or "--expected-revision" or "--position" or
                 "--name" or "--code" or "--name-override" or "--visible" or
                 "--request-id" or "--search") || i >= args.Length ||
                 args[i].StartsWith("--", StringComparison.Ordinal))
@@ -56,7 +56,7 @@ public static class MenuDraftManageCommand
             tenantId != Guid.Empty &&
             actionName is ("list" or "details" or "catalog" or
                 "create-menu" or "import-catalog" or "ensure-store-default" or "update-menu" or "add-category" or "update-category" or
-                "move-category" or "remove-category" or "add-item" or "rename-item" or
+                "move-category" or "remove-category" or "add-item" or "add-items" or "rename-item" or
                 "move-item" or "remove-item");
 
         Guid? menuId = null;
@@ -73,6 +73,46 @@ public static class MenuDraftManageCommand
             !TryOptionalGuid(values, "--item-id", out itemId) ||
             !TryOptionalGuid(values, "--catalog-item-id", out catalogItemId) ||
             !TryOptionalGuid(values, "--request-id", out requestId))
+        {
+            valid = false;
+        }
+
+        // Η μαζική επιλογή δέχεται 1..50 διαφορετικούς GUIDs.
+        IReadOnlyList<Guid>? catalogItemIds = null;
+        if (values.TryGetValue("--catalog-item-ids", out string? idList))
+        {
+            string[] parts = idList.Split(',');
+            Guid[] parsed = new Guid[parts.Length];
+            if (parts.Length is < 1 or > 50)
+            {
+                valid = false;
+            }
+            else
+            {
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    if (!Guid.TryParse(parts[i].Trim(), out Guid value) || value == Guid.Empty)
+                    {
+                        valid = false;
+                        break;
+                    }
+                    parsed[i] = value;
+                }
+                if (valid && parsed.Distinct().Count() == parsed.Length)
+                {
+                    catalogItemIds = parsed;
+                }
+                else
+                {
+                    valid = false;
+                }
+            }
+        }
+
+        bool removeContents = flags.Contains("--remove-contents");
+        if ((removeContents && actionName != "remove-category") ||
+            (catalogItemIds is not null && actionName != "add-items") ||
+            (actionName == "add-items" && (catalogItemIds is null || catalogItemId.HasValue)))
         {
             valid = false;
         }
@@ -120,7 +160,7 @@ public static class MenuDraftManageCommand
 
         if (actionName == "ensure-store-default" &&
             (!storeId.HasValue || menuId.HasValue || revision.HasValue ||
-             categoryId.HasValue || parentCategoryId.HasValue || itemId.HasValue || catalogItemId.HasValue ||
+             categoryId.HasValue || parentCategoryId.HasValue || itemId.HasValue || catalogItemId.HasValue || catalogItemIds is not null ||
              position.HasValue || visible.HasValue))
         {
             valid = false;
@@ -132,7 +172,7 @@ public static class MenuDraftManageCommand
         }
 
         if (read && (storeId.HasValue || revision.HasValue || requestId.HasValue || categoryId.HasValue ||
-                     itemId.HasValue || catalogItemId.HasValue || position.HasValue ||
+                     itemId.HasValue || catalogItemId.HasValue || catalogItemIds is not null || position.HasValue ||
                      visible.HasValue))
         {
             valid = false;
@@ -143,8 +183,9 @@ public static class MenuDraftManageCommand
             await error.WriteLineAsync(
                 "Χρήση: --manage-menus --username NAME --tenant-id GUID --confirm-database NAME " +
                 "--action list|details|catalog|create-menu|import-catalog|ensure-store-default|update-menu|add-category|update-category|" +
-                "move-category|remove-category|add-item|rename-item|move-item|remove-item " +
+                "move-category|remove-category|add-item|add-items|rename-item|move-item|remove-item " +
                 "[--store-id GUID] [--menu-id GUID] [--category-id GUID] [--parent-category-id GUID] [--item-id GUID] [--catalog-item-id GUID] " +
+                "[--catalog-item-ids GUID,GUID,...] [--remove-contents] " +
                 "[--code CODE] [--name NAME] [--name-override TEXT] [--expected-revision N] " +
                 "[--position N] [--visible true|false] [--request-id GUID] [--search PREFIX] " +
                 "(--dry-run | --apply). Απαιτείται διαδραστικό τερματικό.");
@@ -260,6 +301,7 @@ public static class MenuDraftManageCommand
                 "move-category" => MenuDraftAction.MoveCategory,
                 "remove-category" => MenuDraftAction.RemoveCategory,
                 "add-item" => MenuDraftAction.AddItem,
+                "add-items" => MenuDraftAction.AddItems,
                 "rename-item" => MenuDraftAction.RenameItem,
                 "move-item" => MenuDraftAction.MoveItem,
                 "remove-item" => MenuDraftAction.RemoveItem,
@@ -270,7 +312,7 @@ public static class MenuDraftManageCommand
             var command = new MenuDraftCommand(action, operation, menuId, revision,
                 categoryId, itemId, catalogItemId, values.GetValueOrDefault("--code"),
                 values.GetValueOrDefault("--name"), values.GetValueOrDefault("--name-override"),
-                position, visible, storeId, parentCategoryId);
+                position, visible, storeId, parentCategoryId, catalogItemIds, removeContents);
 
             if (dryRun)
             {
@@ -278,6 +320,14 @@ public static class MenuDraftManageCommand
                 if (action is MenuDraftAction.CreateMenu or MenuDraftAction.ImportCatalogContents or MenuDraftAction.EnsureStoreDefault)
                 {
                     await output.WriteLineAsync("Η εφαρμογή θα εισαγάγει τις ενεργές κατηγορίες ΜΑΖΙ με τα ενεργά είδη ERP, χωρίς αλλαγή του καταλόγου ή τιμών.");
+                }
+                if (action == MenuDraftAction.RemoveCategory && removeContents)
+                {
+                    await output.WriteLineAsync("ΠΡΟΣΟΧΗ: Θα αφαιρεθούν και οι υποκατηγορίες/συνδέσεις ειδών μόνο του επιλεγμένου μενού.");
+                }
+                if (action == MenuDraftAction.AddItems)
+                {
+                    await output.WriteLineAsync($"Πρόκειται να προστεθούν {catalogItemIds?.Count ?? 0} είδη σε μία SQL συναλλαγή.");
                 }
                 await output.WriteLineAsync("Ο έλεγχος αναφοράς/σύγκρουσης θα εκτελεστεί μόνο κατά την εφαρμογή.");
                 return 0;
