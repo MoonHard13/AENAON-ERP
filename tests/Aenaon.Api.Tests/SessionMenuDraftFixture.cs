@@ -24,6 +24,7 @@ internal sealed class SessionMenuDraftFixture : IMenuDraftStore
     public bool ExtraItem { get; set; }
     public bool NestedCategory { get; set; }
     public bool RootItem { get; set; }
+    public bool AllSourceCategoriesLinked { get; set; }
 
     public Task<MenuDraftMutationResult> ApplyAsync(Guid tenantId, Guid userId,
         MenuDraftCommand command, CancellationToken cancellationToken = default)
@@ -59,10 +60,12 @@ internal sealed class SessionMenuDraftFixture : IMenuDraftStore
                 new(MenuId, "MAIN", "Κυρίως", 1,
                     new DateTime(2026, 11, 17, 8, 0, 0, DateTimeKind.Utc)),
                 EmptyDraft ? [] : ExtraCategory || NestedCategory
-                    ? [new MenuDraftCategoryRecord(CategoryId, "Ορεκτικά", 1, true),
+                    ? [new MenuDraftCategoryRecord(CategoryId, "Ορεκτικά", 1, true,
+                            CatalogCategoryId: AllSourceCategoriesLinked ? SourceCategoryId : null),
                         new MenuDraftCategoryRecord(SecondaryCategoryId, "Ποτά",
                             NestedCategory ? 1 : 2, false,
-                            NestedCategory ? CategoryId : null)]
+                            NestedCategory ? CategoryId : null,
+                            AllSourceCategoriesLinked ? OtherSourceCategoryId : null)]
                     : [new MenuDraftCategoryRecord(CategoryId, "Ορεκτικά", 1, true)],
                 EmptyDraft ? [] : RootItem
                     ? [new MenuDraftItemRecord(Guid.NewGuid(), CategoryId, ProductId,
