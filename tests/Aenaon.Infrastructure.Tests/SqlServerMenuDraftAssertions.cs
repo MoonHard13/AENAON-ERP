@@ -390,5 +390,114 @@ internal static class SqlServerMenuDraftAssertions
         Assert.IsInstanceOfType<SqlException>(crossMenuParentFk.InnerException);
         Assert.AreEqual(547, ((SqlException)crossMenuParentFk.InnerException).Number);
         context.ChangeTracker.Clear();
+
+        await AssertBulkAddAndCategoryRemovalAsync(context, store, menuTenantId,
+            ownerId, activeParent.Id, activeChild.Id, foreignProductId, token);
+    }
+
+    private static async Task AssertBulkAddAndCategoryRemovalAsync(
+        AenaonDbContext context, SqlMenuDraftStore store, Guid tenantId,
+        Guid userId, Guid firstCatalogItem, Guid secondCatalogItem,
+        Guid foreignCatalogItem, CancellationToken token)
+    {
+        // Δοκιμές σε νέο ανεξάρτητο draft, ώστε να μη μεταβληθούν άλλα fixtures.
+        RestaurantMenu menu = RestaurantMenu.Create(tenantId, "BULK-REMOVE", "Μαζική επιλογή");
+        context.RestaurantMenus.Add(menu);
+        context.MenuDrafts.Add(MenuDraft.Create(tenantId, menu.Id, DateTime.UtcNow));
+        await context.SaveChangesAsync(token);
+        context.ChangeTracker.Clear();
+
+        var batch = new MenuDraftCommand(MenuDraftAction.AddItems, Guid.NewGuid(),
+            MenuId: menu.Id, ExpectedRevision: 1,
+            CatalogItemIds: [firstCatalogItem, secondCatalogItem]);
+        MenuDraftMutationResult added = await store.ApplyAsync(tenantId, userId, batch, token);
+        Assert.AreEqual(MenuDraftStatus.Saved, added.Status);
+        Assert.AreEqual(2L, added.Revision);
+        MenuDraftDetails afterAdd = (await store.GetAsync(tenantId, menu.Id, token))!;
+        Assert.HasCount(2, afterAdd.Items);
+        Assert.IsTrue(afterAdd.Items.All(x => x.CategoryId is null));
+        CollectionAssert.AreEquivalent(new[] { 1, 2 },
+            afterAdd.Items.Select(x => x.Position).ToArray());
+
+        // Ίδιο RequestId επιστρέφει την αρχική επιτυχία, χωρίς δεύτερη εισαγωγή.
+        MenuDraftMutationResult replay = await store.ApplyAsync(tenantId, userId, batch, token);
+        Assert.AreEqual(MenuDraftStatus.Saved, replay.Status);
+        Assert.AreEqual(2L, replay.Revision);
+        Assert.AreEqual(2, await context.MenuDraftItems.CountAsync(x =>
+            x.TenantId == tenantId && x.MenuId == menu.Id, token));
+
+        // Κανένα μέρος του batch δεν καταχωρίζεται αν ένα είδος είναι ξένου Tenant.
+        MenuDraftMutationResult invalid = await store.ApplyAsync(tenantId, userId,
+            new(MenuDraftAction.AddItems, Guid.NewGuid(), MenuId: menu.Id,
+                ExpectedRevision: 2,
+                CatalogItemIds: [firstCatalogItem, foreignCatalogItem]), token);
+        Assert.AreEqual(MenuDraftStatus.Invalid, invalid.Status);
+        Assert.AreEqual(2L, (await store.GetAsync(tenantId, menu.Id, token))!.Menu.Revision);
+        Assert.AreEqual(2, await context.MenuDraftItems.CountAsync(x =>
+            x.TenantId == tenantId && x.MenuId == menu.Id, token));
+
+        // Το ίδιο είδος στην ίδια θέση απορρίπτεται ατομικά.
+        MenuDraftMutationResult duplicate = await store.ApplyAsync(tenantId, userId,
+            new(MenuDraftAction.AddItems, Guid.NewGuid(), MenuId: menu.Id,
+                ExpectedRevision: 2,
+                CatalogItemIds: [firstCatalogItem, secondCatalogItem]), token);
+        Assert.AreEqual(MenuDraftStatus.Duplicate, duplicate.Status);
+
+        MenuDraftCategory parent = MenuDraftCategory.Create(tenantId, menu.Id,
+            "Προσωπικό μενού", 1);
+        MenuDraftCategory sibling = MenuDraftCategory.Create(tenantId, menu.Id,
+            "Ξεχωριστή κατηγορία", 2);
+        MenuDraftCategory child = MenuDraftCategory.Create(tenantId, menu.Id,
+            "Υποκατηγορία", 1, parentCategoryId: parent.Id);
+        MenuDraftCategory grandchild = MenuDraftCategory.Create(tenantId, menu.Id,
+            "Βαθύτερο επίπεδο", 1, parentCategoryId: child.Id);
+        context.MenuDraftCategories.AddRange(parent, sibling, child, grandchild);
+        await context.SaveChangesAsync(token);
+        context.ChangeTracker.Clear();
+
+        MenuDraftMutationResult childAdded = await store.ApplyAsync(tenantId, userId,
+            new(MenuDraftAction.AddItems, Guid.NewGuid(), MenuId: menu.Id,
+                CategoryId: child.Id, ExpectedRevision: 2,
+                CatalogItemIds: [firstCatalogItem, secondCatalogItem]), token);
+        Assert.AreEqual(MenuDraftStatus.Saved, childAdded.Status);
+        MenuDraftMutationResult deepAdded = await store.ApplyAsync(tenantId, userId,
+            new(MenuDraftAction.AddItem, Guid.NewGuid(), MenuId: menu.Id,
+                CategoryId: grandchild.Id, ExpectedRevision: childAdded.Revision,
+                CatalogItemId: secondCatalogItem), token);
+        Assert.AreEqual(MenuDraftStatus.Saved, deepAdded.Status);
+
+        // Χωρίς ρητή επιβεβαίωση απαγορεύεται η διαγραφή μη άδειου δέντρου.
+        var destructive = new MenuDraftCommand(MenuDraftAction.RemoveCategory, Guid.NewGuid(),
+            MenuId: menu.Id, CategoryId: parent.Id, ExpectedRevision: deepAdded.Revision,
+            RemoveContents: true);
+        MenuDraftMutationResult blocked = await store.ApplyAsync(tenantId, userId,
+            destructive with { RequestId = Guid.NewGuid(), RemoveContents = false }, token);
+        Assert.AreEqual(MenuDraftStatus.Invalid, blocked.Status);
+        Assert.HasCount(4, (await store.GetAsync(tenantId, menu.Id, token))!.Categories);
+
+        // Δοκιμάζεται και το stale revision πριν από οποιαδήποτε διαγραφή.
+        MenuDraftMutationResult staleRemoval = await store.ApplyAsync(tenantId, userId,
+            destructive with { RequestId = Guid.NewGuid(), ExpectedRevision = 2 }, token);
+        Assert.AreEqual(MenuDraftStatus.Conflict, staleRemoval.Status);
+
+        // Ρητά εγκεκριμένη διαγραφή όλων των παιδιών + ειδών, μόνο στο επιλεγμένο μενού.
+        MenuDraftMutationResult removed = await store.ApplyAsync(tenantId, userId, destructive, token);
+        Assert.AreEqual(MenuDraftStatus.Saved, removed.Status);
+        MenuDraftDetails afterRemoval = (await store.GetAsync(tenantId, menu.Id, token))!;
+        Assert.HasCount(1, afterRemoval.Categories);
+        Assert.AreEqual(sibling.Id, afterRemoval.Categories[0].CategoryId);
+        Assert.AreEqual(1, afterRemoval.Categories[0].Position);
+        Assert.HasCount(2, afterRemoval.Items);
+        Assert.IsTrue(afterRemoval.Items.All(x => x.CategoryId is null));
+        Assert.AreEqual(2, await context.MenuDraftItems.CountAsync(x =>
+            x.TenantId == tenantId && x.MenuId == menu.Id, token));
+
+        // Ο πραγματικός ERP Catalog διατηρείται, ανεξάρτητα από το προσχέδιο.
+        Assert.IsTrue(await context.CatalogItems.AsNoTracking().AnyAsync(x =>
+            x.TenantId == tenantId && x.Id == firstCatalogItem, token));
+        Assert.IsTrue(await context.CatalogItems.AsNoTracking().AnyAsync(x =>
+            x.TenantId == tenantId && x.Id == secondCatalogItem, token));
+        Assert.AreEqual(removed.Revision,
+            (await store.ApplyAsync(tenantId, userId, destructive, token)).Revision);
     }
 }
