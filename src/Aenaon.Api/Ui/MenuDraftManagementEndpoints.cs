@@ -43,6 +43,7 @@ public static class MenuDraftManagementEndpoints
              !TryGuid(form, "returnCategoryId", required: false, out Guid? returnCategoryId) ||
             !TryGuid(form, "itemId", required: false, out Guid? itemId) ||
             !TryGuid(form, "catalogItemId", required: false, out Guid? catalogItemId) ||
+            !TryGuidList(form, "catalogItemIds", out IReadOnlyList<Guid>? catalogItemIds) ||
             !TryGuid(form, "requestId", required: true, out Guid? requestId) ||
             !TrySingle(form, "action", out string actionText) ||
             !TrySingle(form, "name", out string name) ||
@@ -51,6 +52,8 @@ public static class MenuDraftManagementEndpoints
             !TrySingle(form, "expectedRevision", out string revisionText) ||
             !TrySingle(form, "targetPosition", out string positionText) ||
             !TrySingle(form, "isVisible", out string visibleText) ||
+            !TrySingle(form, "removeContents", out string removeContentsText) ||
+            (removeContentsText.Length > 0 && removeContentsText != "true") ||
             tenantId is null || requestId is null)
         {
             return Results.BadRequest();
@@ -66,6 +69,7 @@ public static class MenuDraftManagementEndpoints
             "move-category" => MenuDraftAction.MoveCategory,
             "remove-category" => MenuDraftAction.RemoveCategory,
             "add-item" => MenuDraftAction.AddItem,
+            "add-items" => MenuDraftAction.AddItems,
             "rename-item" => MenuDraftAction.RenameItem,
             "move-item" => MenuDraftAction.MoveItem,
             "remove-item" => MenuDraftAction.RemoveItem,
@@ -120,7 +124,8 @@ public static class MenuDraftManagementEndpoints
         var command = new MenuDraftCommand(
             action, requestId.Value, menuId, revision, categoryId, itemId,
             catalogItemId, code, name, nameOverride, position, visible,
-            ParentCategoryId: parentCategoryId);
+            ParentCategoryId: parentCategoryId, CatalogItemIds: catalogItemIds,
+            RemoveContents: removeContentsText == "true");
 
         try
         {
@@ -133,19 +138,20 @@ public static class MenuDraftManagementEndpoints
 
             string state = result.Status switch
             {
-                MenuDraftStatus.Saved => "saved",
+                MenuDraftStatus.Saved => action == MenuDraftAction.AddItems ? "items-added" : "saved",
                 MenuDraftStatus.Duplicate when result.Error == "menu.catalog.import_not_empty" => "import-not-empty",
                 MenuDraftStatus.Duplicate => "duplicate",
                 MenuDraftStatus.Conflict => "conflict",
                 MenuDraftStatus.Missing => "missing",
                 MenuDraftStatus.Invalid when result.Error == "menu.catalog.no_active_categories" => "empty-catalog",
                 MenuDraftStatus.Invalid when result.Error == "menu.catalog.import_limit" => "import-limit",
+                MenuDraftStatus.Invalid when result.Error == "menu.category.contents_confirmation" => "confirm-remove",
                 _ => "invalid"
             };
 
             string tab = action switch
             {
-                MenuDraftAction.AddItem or MenuDraftAction.RenameItem or
+                MenuDraftAction.AddItem or MenuDraftAction.AddItems or MenuDraftAction.RenameItem or
                     MenuDraftAction.MoveItem or MenuDraftAction.RemoveItem => "items",
                 _ => "categories"
             };
@@ -159,7 +165,7 @@ public static class MenuDraftManagementEndpoints
             {
                 destinationCategory = returnCategoryId;
             }
-            if (action is MenuDraftAction.AddItem or MenuDraftAction.RenameItem or
+            if (action is MenuDraftAction.AddItem or MenuDraftAction.AddItems or MenuDraftAction.RenameItem or
                 MenuDraftAction.MoveItem or MenuDraftAction.RemoveItem)
             {
                 tab = "items";
@@ -210,6 +216,36 @@ public static class MenuDraftManagementEndpoints
         StringValues values = form[field];
         value = values.ToString();
         return values.Count <= 1;
+    }
+
+    private static bool TryGuidList(IFormCollection form, string field, out IReadOnlyList<Guid>? ids)
+    {
+        ids = null;
+        StringValues values = form[field];
+        if (values.Count == 0)
+        {
+            return true;
+        }
+        if (values.Count > 50)
+        {
+            return false;
+        }
+
+        var parsed = new List<Guid>(values.Count);
+        foreach (string? value in values)
+        {
+            if (!Guid.TryParse(value, out Guid id) || id == Guid.Empty)
+            {
+                return false;
+            }
+            parsed.Add(id);
+        }
+        if (parsed.Distinct().Count() != parsed.Count)
+        {
+            return false;
+        }
+        ids = parsed;
+        return true;
     }
 
     private static bool TryGuid(IFormCollection form, string field, bool required, out Guid? value)
