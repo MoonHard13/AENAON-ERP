@@ -51,9 +51,9 @@ public sealed class MenuPreviewServiceTests
         Assert.AreEqual(Store, prices.LastStore);
         Assert.AreEqual(Tenant, prices.LastTenant);
         Assert.AreEqual(MenuPreviewItemStatus.HiddenCategory,
-            result.Items.Single(x => x.CatalogItemId == hiddenItem).Status);
+            result.Items!.Single(x => x.CatalogItemId == hiddenItem).Status);
         Assert.AreEqual(MenuPreviewItemStatus.InactiveCatalogItem,
-            result.Items.Single(x => x.CatalogItemId == inactiveItem).Status);
+            result.Items!.Single(x => x.CatalogItemId == inactiveItem).Status);
     }
 
     [TestMethod]
@@ -78,7 +78,7 @@ public sealed class MenuPreviewServiceTests
         Assert.AreEqual(2, prices.RequestedCount);
         Assert.AreEqual(MenuPreviewItemStatus.MissingPrice,
             result.Items!.Single(x => x.CatalogItemId == missingItem).Status);
-        MenuPreviewItem ambiguous = result.Items.Single(x =>
+        MenuPreviewItem ambiguous = result.Items!.Single(x =>
             x.CatalogItemId == ambiguousItem);
         Assert.AreEqual(MenuPreviewItemStatus.AmbiguousPrice, ambiguous.Status);
         Assert.IsNull(ambiguous.UnitPrice);
