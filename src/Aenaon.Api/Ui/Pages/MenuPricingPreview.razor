@@ -69,7 +69,7 @@
                             <label for="menu-preview-store">Κατάστημα *</label>
                             <select id="menu-preview-store" name="storeId" required>
                                 <option value="">Επιλέξτε κατάστημα</option>
-                                @foreach (AccessibleStore store in _workspace.Stores)
+                                @foreach (TenantStoreSummary store in _workspace.Stores)
                                 {
                                     <option value="@store.StoreId"
                                             selected="@(store.StoreId == _selectedStore)">
