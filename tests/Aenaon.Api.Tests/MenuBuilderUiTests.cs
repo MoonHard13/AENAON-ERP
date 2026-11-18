@@ -201,6 +201,87 @@ public sealed class MenuBuilderUiTests
     }
 
     [TestMethod]
+    public async Task Owner_CanBulkSelectAndPostMultipleCatalogItemsWithOneRequest()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.MenuDrafts.EmptyCategory = true;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}" +
+            $"&categoryId={SessionMenuDraftFixture.CategoryId:D}&tab=catalog"));
+        Assert.Contains("id=\"menu-bulk-add\"", html);
+        Assert.Contains("name=\"catalogItemIds\"", html);
+        Assert.Contains("value=\"add-items\"", html);
+        Assert.Contains("Επιλογή όλων", html);
+        Assert.Contains("Προσθήκη επιλεγμένων", html);
+
+        var values = new List<KeyValuePair<string, string>>
+        {
+            new("tenantId", Tenant.ToString("D")),
+            new("menuId", SessionMenuDraftFixture.MenuId.ToString("D")),
+            new("categoryId", SessionMenuDraftFixture.CategoryId.ToString("D")),
+            new("expectedRevision", "1"),
+            new("requestId", Guid.NewGuid().ToString("D")),
+            new("action", "add-items"),
+            new("catalogItemIds", SessionMenuDraftFixture.ProductId.ToString("D")),
+            new("catalogItemIds", SessionMenuDraftFixture.SecondaryProductId.ToString("D")),
+            new("__RequestVerificationToken", Token(html))
+        };
+        using var saved = await client.PostAsync("/ui/menus/draft",
+            new FormUrlEncodedContent(values));
+        Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
+        Assert.Contains("result=items-added", saved.Headers.Location?.OriginalString ?? "");
+        Assert.AreEqual(MenuDraftAction.AddItems, factory.MenuDrafts.LastCommand?.Action);
+        Assert.AreEqual(2, factory.MenuDrafts.LastCommand?.CatalogItemIds?.Count);
+        Assert.AreEqual(1, factory.MenuDrafts.ApplyCalls);
+
+        // Μη έγκυρα/διπλά GUIDs απορρίπτονται πριν από authorization/SQL.
+        values[7] = new("catalogItemIds", SessionMenuDraftFixture.ProductId.ToString("D"));
+        using var duplicate = await client.PostAsync("/ui/menus/draft",
+            new FormUrlEncodedContent(values));
+        Assert.AreEqual(HttpStatusCode.BadRequest, duplicate.StatusCode);
+        Assert.AreEqual(1, factory.MenuDrafts.ApplyCalls);
+
+        values[7] = new("catalogItemIds", Guid.Empty.ToString("D"));
+        using var emptyGuid = await client.PostAsync("/ui/menus/draft",
+            new FormUrlEncodedContent(values));
+        Assert.AreEqual(HttpStatusCode.BadRequest, emptyGuid.StatusCode);
+        Assert.AreEqual(1, factory.MenuDrafts.ApplyCalls);
+    }
+
+    [TestMethod]
+    public async Task Owner_CanConfirmRemovalOfCategoryWithContents()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.MenuDrafts.NestedCategory = true;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}"));
+        Assert.Contains("Αφαίρεση από μενού", html);
+        Assert.Contains("name=\"removeContents\"", html);
+        Assert.Contains("θα αφαιρεθούν", html);
+        Assert.Contains("Ο κεντρικός ERP Catalog δεν αλλάζει", html);
+
+        using var saved = await PostAsync(client, Token(html), new()
+        {
+            ["tenantId"] = Tenant.ToString("D"),
+            ["requestId"] = Guid.NewGuid().ToString("D"),
+            ["action"] = "remove-category",
+            ["menuId"] = SessionMenuDraftFixture.MenuId.ToString("D"),
+            ["categoryId"] = SessionMenuDraftFixture.CategoryId.ToString("D"),
+            ["expectedRevision"] = "1",
+            ["removeContents"] = "true"
+        });
+        Assert.AreEqual(HttpStatusCode.Redirect, saved.StatusCode);
+        Assert.AreEqual(MenuDraftAction.RemoveCategory, factory.MenuDrafts.LastCommand?.Action);
+        Assert.IsTrue(factory.MenuDrafts.LastCommand?.RemoveContents);
+    }
+
+    [TestMethod]
     public async Task Owner_CanReorderBothLevelsAndRemoveEmptyCategory()
     {
         await using var factory = new SessionApiFactory();
