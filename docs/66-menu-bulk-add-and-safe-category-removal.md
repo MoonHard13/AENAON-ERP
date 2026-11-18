@@ -2,7 +2,7 @@
 
 **Κατάσταση:** Υλοποίηση στο Draft PR #62, branch `feature/step-9-6a-1-menu-drafts`. Δεν έχει γίνει merge, Production ή πραγματικό browser acceptance. Η ήδη εγκεκριμένη migration #13 έχει αναφερθεί ως εφαρμοσμένη μόνο στην Development `AenaonERP_Dev` (13/0 στις 18/11/2026). **Δεν απαιτείται νέα SQL migration για αυτές τις δύο βελτιώσεις.**
 
-**Συνδεδεμένα manuals:** [61 — Διαχείριση πρόχειρων μενού](61-draft-menu-management.md), [64 — Ιεραρχία και Drag & Drop](64-menu-builder-hierarchy-and-drag-drop.md), [65 — Postmigration integrity](65-menu-builder-hierarchy-sql-preflight-review.md).
+**Συνδεδεμένα manuals:** [61 — Διαχείριση πρόχειρων μενού](61-draft-menu-management.md), [64 — Ιεραρχία και Drag & Drop](64-menu-builder-hierarchy-and-drag-drop.md), [65 — Postmigration integrity](65-menu-builder-hierarchy-sql-preflight-review.md), [67 — Φίλτρο κατηγορίας ERP και συμπαγής λίστα](67-erp-category-filters-and-existing-menu-category.md).
 
 {% hint style="warning" %}
 Οι ενέργειες εδώ αφορούν **μόνο συνδέσεις κατηγοριών και ειδών μέσα στο επιλεγμένο προσχέδιο**. Η αφαίρεση ολόκληρου κλάδου διαγράφει τις υποκατηγορίες και τις συνδέσεις ειδών αυτού του κλάδου **από το μενού**, όχι τα προϊόντα/τιμές/κατηγορίες του κεντρικού ERP Catalog. Δεν υπάρχει λειτουργία undo. Δοκιμάστε μόνο σε ξεχωριστό δοκιμαστικό μενού πριν από χρήση σε πραγματικό μενού.
