@@ -1975,3 +1975,25 @@ html {
     .menu-builder__catalog-entry { gap: 7px; padding: 7px 8px; }
     .menu-builder__catalog-pick { gap: 8px; }
 }
+
+
+/* Όταν ανοίγει φόρμα κατηγορίας, καταλαμβάνει δική της πλήρη σειρά.
+   Οι υπόλοιπες κάρτες δεν τεντώνονται στο ύψος της φόρμας. */
+.menu-builder__tiles--categories { align-items: start; }
+.menu-builder__tiles--categories > .menu-builder__tile { align-self: start; }
+.menu-builder__tiles--categories > .menu-builder__tile--create[open] {
+    grid-column: 1 / -1; min-height: 0;
+    background: var(--surface-alt); border-style: solid;
+}
+.menu-builder__tiles--categories > .menu-builder__tile--create[open] > .menu-builder__create-trigger {
+    flex-direction: row; justify-content: flex-start; align-items: center;
+    min-height: 52px; padding: 10px 15px; gap: 10px;
+}
+.menu-builder__tiles--categories > .menu-builder__tile--create[open] > .menu-builder__inline-form {
+    width: min(640px, calc(100% - 28px));
+    max-width: calc(100% - 28px); margin: 0 14px 14px;
+}
+.menu-builder__tiles--categories > .menu-builder__tile--create[open] > .menu-builder__inline-form input,
+.menu-builder__tiles--categories > .menu-builder__tile--create[open] > .menu-builder__inline-form select {
+    width: 100%; min-width: 0;
+}
