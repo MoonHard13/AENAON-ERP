@@ -416,6 +416,11 @@ internal static class SqlServerMenuDraftAssertions
             await store.SearchCatalogAsync(tenantId, "P001", token, sourceParent.Id);
         Assert.HasCount(1, parentResults);
         Assert.AreEqual(parentItem.Id, parentResults[0].CatalogItemId);
+        IReadOnlyList<MenuCatalogOption> wholeFoodBranch =
+            await store.SearchCatalogAsync(tenantId, null, token, sourceParent.Id);
+        Assert.HasCount(2, wholeFoodBranch);
+        Assert.IsTrue(wholeFoodBranch.Any(x => x.CatalogItemId == parentItem.Id));
+        Assert.IsTrue(wholeFoodBranch.Any(x => x.CatalogItemId == childItem.Id));
         Assert.HasCount(0, await store.SearchCatalogAsync(
             tenantId, "P001", token, sourceChild.Id));
         IReadOnlyList<MenuCatalogOption> childResults =
