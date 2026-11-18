@@ -362,18 +362,44 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
                         return new(MenuDraftStatus.Missing);
                     }
 
-                    bool hasItems = await context.MenuDraftItems.AnyAsync(x =>
-                        x.TenantId == tenantId && x.MenuId == menu.Id &&
-                        x.MenuCategoryId == category.Id, token);
-                    bool hasChildren = await context.MenuDraftCategories.AnyAsync(x =>
-                        x.TenantId == tenantId && x.MenuId == menu.Id &&
-                        x.ParentCategoryId == category.Id, token);
-                    if (hasItems || hasChildren)
+                    // Εντοπίζονται όλα τα παιδιά αποκλειστικά μέσα στο ίδιο μενού και Tenant.
+                    List<MenuDraftCategory> categories = await context.MenuDraftCategories
+                        .Where(x => x.TenantId == tenantId && x.MenuId == menu.Id)
+                        .ToListAsync(token);
+                    ILookup<Guid?, MenuDraftCategory> byParent =
+                        categories.ToLookup(x => x.ParentCategoryId);
+                    var removalIds = new HashSet<Guid>();
+                    var pending = new Stack<Guid>();
+                    pending.Push(category.Id);
+                    while (pending.TryPop(out Guid currentId))
                     {
-                        return new(MenuDraftStatus.Invalid, Error: "menu.category.not_empty");
+                        if (!removalIds.Add(currentId))
+                        {
+                            continue;
+                        }
+                        foreach (MenuDraftCategory child in byParent[currentId])
+                        {
+                            pending.Push(child.Id);
+                        }
                     }
 
-                    context.MenuDraftCategories.Remove(category);
+                    Guid[] removedCategoryIds = removalIds.ToArray();
+                    List<MenuDraftItem> removedItems = await context.MenuDraftItems
+                        .Where(x => x.TenantId == tenantId && x.MenuId == menu.Id &&
+                            x.MenuCategoryId.HasValue &&
+                            removedCategoryIds.Contains(x.MenuCategoryId.Value))
+                        .ToListAsync(token);
+                    if ((removalIds.Count > 1 || removedItems.Count > 0) &&
+                        !command.RemoveContents)
+                    {
+                        return new(MenuDraftStatus.Invalid, Error: "menu.category.contents_confirmation");
+                    }
+
+                    // Αφαιρούνται μόνο οι συνδέσεις του προσχεδίου, ποτέ ο ERP Catalog.
+                    // Το outer transaction και η revision εγγυώνται ατομική εγγραφή.
+                    context.MenuDraftItems.RemoveRange(removedItems);
+                    context.MenuDraftCategories.RemoveRange(
+                        categories.Where(x => removalIds.Contains(x.Id)));
                     List<MenuDraftCategory> remaining = await context.MenuDraftCategories
                         .Where(x => x.TenantId == tenantId && x.MenuId == menu.Id &&
                             x.Id != category.Id && x.ParentCategoryId == category.ParentCategoryId)
@@ -385,41 +411,55 @@ public sealed class SqlMenuDraftStore(AenaonDbContext context, TimeProvider cloc
                     return new(MenuDraftStatus.Saved, category.Id);
                 }
             case MenuDraftAction.AddItem:
+            case MenuDraftAction.AddItems:
                 {
                     if (command.CategoryId.HasValue &&
                         !await context.MenuDraftCategories.AnyAsync(x =>
                             x.TenantId == tenantId && x.MenuId == menu.Id &&
                             x.Id == command.CategoryId, token))
                     {
-                        return new(MenuDraftStatus.Missing);
+                        return new(MenuDraftStatus.Missing, Error: "menu.category.not_found");
                     }
-                    bool eligible = await context.CatalogItems.AnyAsync(x =>
-                        x.TenantId == tenantId && x.Id == command.CatalogItemId &&
-                        x.IsActive, token);
-                    if (!eligible)
+
+                    // Η μαζική επιλογή εκτελείται ολόκληρη ή απορρίπτεται, χωρίς μερικό save.
+                    IReadOnlyList<Guid> requested = command.Action == MenuDraftAction.AddItems
+                        ? command.CatalogItemIds!
+                        : [command.CatalogItemId!.Value];
+                    Guid[] ids = requested.ToArray();
+                    int eligible = await context.CatalogItems.CountAsync(x =>
+                        x.TenantId == tenantId && x.IsActive && ids.Contains(x.Id), token);
+                    if (eligible != ids.Length)
                     {
                         return new(MenuDraftStatus.Invalid, Error: "menu.catalog.unavailable");
                     }
+
                     bool duplicate = await context.MenuDraftItems.AnyAsync(x =>
                         x.TenantId == tenantId && x.MenuId == menu.Id &&
                         x.MenuCategoryId == command.CategoryId &&
-                        x.CatalogItemId == command.CatalogItemId, token);
+                        ids.Contains(x.CatalogItemId), token);
                     if (duplicate)
                     {
                         return new(MenuDraftStatus.Duplicate, Error: "menu.item.duplicate");
                     }
+
                     int count = await context.MenuDraftItems.CountAsync(x =>
                         x.TenantId == tenantId && x.MenuId == menu.Id &&
                         x.MenuCategoryId == command.CategoryId, token);
-                    if (count >= 10000)
+                    if (count + ids.Length > 10000)
                     {
                         return new(MenuDraftStatus.Invalid, Error: "menu.item.limit");
                     }
-                    MenuDraftItem item = MenuDraftItem.Create(tenantId, menu.Id,
-                        command.CategoryId, command.CatalogItemId!.Value,
-                        count + 1, command.NameOverride);
-                    context.MenuDraftItems.Add(item);
-                    return new(MenuDraftStatus.Saved, item.Id);
+
+                    Guid? firstItemId = null;
+                    for (int i = 0; i < ids.Length; i++)
+                    {
+                        MenuDraftItem item = MenuDraftItem.Create(tenantId, menu.Id,
+                            command.CategoryId, ids[i], count + i + 1,
+                            command.Action == MenuDraftAction.AddItem ? command.NameOverride : null);
+                        context.MenuDraftItems.Add(item);
+                        firstItemId ??= item.Id;
+                    }
+                    return new(MenuDraftStatus.Saved, firstItemId);
                 }
             case MenuDraftAction.RenameItem:
                 {
