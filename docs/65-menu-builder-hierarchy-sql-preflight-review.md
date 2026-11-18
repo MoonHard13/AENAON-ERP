@@ -1,11 +1,11 @@
-# AENAON ERP — Manual 65: Έλεγχος migration #13 πριν την εφαρμογή
+# AENAON ERP — Manual 65: Preflight και έλεγχος μετά τη migration #13
 
-**Κατάσταση:** REVIEW ONLY — Draft PR #62. Η νέα migration δεν έχει εφαρμοστεί στην AenaonERP_Dev. Δεν έχει εγκριθεί merge ή SQL apply.
+**Κατάσταση (18/11/2026):** Η migration #13 **εγκρίθηκε και εφαρμόστηκε από τον ιδιοκτήτη αποκλειστικά στην Development `AenaonERP_Dev`**. Τα αποσταλμένα αποτελέσματα `--apply` και `--dry-run` συμφωνούν: **13 applied / 0 pending**. Backup owner-attested, isolated restore NOT VERIFIED. Το PR #62 παραμένει Draft, **όχι merged / όχι Production**. Η παρούσα preflight διαδικασία είναι πλέον ιστορική για τη συγκεκριμένη βάση.
 
-Σχετικά: [Manual 64](64-menu-builder-hierarchy-and-drag-drop.md) · [SSMS preflight](../scripts/sql/013-menu-builder-preflight.sql) · [migration source](../src/Aenaon.Infrastructure/Persistence/Migrations/20261117170000_MenuBuilderHierarchyAndRootItems.cs).
+Σχετικά: [Manual 64](64-menu-builder-hierarchy-and-drag-drop.md) · [SSMS preflight (ιστορικό)](../scripts/sql/013-menu-builder-preflight.sql) · [SSMS postmigration integrity review (επόμενο βήμα)](../scripts/sql/014-menu-builder-postmigration-review.sql) · [migration source](../src/Aenaon.Infrastructure/Persistence/Migrations/20261117170000_MenuBuilderHierarchyAndRootItems.cs).
 
 {% hint style="warning" %}
-Οι διαδικασίες αυτής της ενότητας είναι μόνο για ανάγνωση και παραγωγή SQL αρχείου. Απαγορεύεται η εκτέλεση του παραγόμενου SQL, --apply ή dotnet ef database update χωρίς ξεχωριστή ρητή έγκριση και νέο ελεγμένο backup.
+Η Development εφαρμογή της #13 έχει ήδη ολοκληρωθεί σύμφωνα με τα αποτελέσματα του χειριστή. **Μην επανεκτελέσετε** παραγόμενο SQL, --apply ή dotnet ef database update. Τα read-only preflight βήματα παραμένουν ιστορικό τεκμήριο· η επόμενη ενέργεια είναι η επιθεώρηση postmigration δεδομένων, χωρίς καμία εγγραφή.
 {% endhint %}
 
 ## 1. Σκοπός και αλλαγές σχήματος
@@ -21,7 +21,7 @@
 - Μόνο SQL Server Development, ακριβής βάση AenaonERP_Dev.
 - Branch feature/step-9-6a-1-menu-drafts, χωρίς μη ελεγμένες τοπικές αλλαγές.
 - Εγκατεστημένο SDK από global.json και dotnet-ef από το τοπικό tool manifest.
-- Παλαιότερη owner-provided ένδειξη 12/0. Από τη νέα έκδοση αναμένεται 12 applied / 1 pending, αλλά δεν έχει ακόμα διαπιστωθεί σε πραγματική SQL.
+- **Ιστορικά πριν από τη #13:** ο χειριστής επιβεβαίωσε 12 applied / 1 pending με CLI και με πραγματικά SQL αποτελέσματα (3 menus, 3 drafts, 27 categories, 39 items, 6 intended parent links). **Μετά την APPLY (18/11/2026): 13 applied / 0 pending**, owner-provided CLI output.
 - CI στον τελευταίο commit με unit, API και απομονωμένο SQL 2022 migration upgrade.
 
 ## 3. Read-only έλεγχος CLI
@@ -37,7 +37,7 @@ git pull --ff-only origin feature/step-9-6a-1-menu-drafts
 dotnet run --project src/Aenaon.Api --launch-profile https -- --migrate-database --dry-run
 ~~~
 
-**Αναμενόμενο:** 12 applied / 1 pending, migration 20261117170000_MenuBuilderHierarchyAndRootItems. Αν το git status δείχνει αλλαγές, μη χρησιμοποιήσετε reset --hard ή clean. Ελέγξτε τις πρώτα. Δεν εκτελείται SQL apply.
+**Ιστορικό pre-apply αποτέλεσμα:** 12 applied / 1 pending, migration 20261117170000_MenuBuilderHierarchyAndRootItems. Το αποτέλεσμα **δεν** ισχύει πλέον στη Development μετά την εγκεκριμένη εφαρμογή. Η τρέχουσα κατάσταση είναι 13/0. Αν το git status δείχνει αλλαγές, μη χρησιμοποιήσετε reset --hard ή clean.
 
 ## 4. SSMS preflight
 
@@ -81,20 +81,25 @@ WITH CHECKSUM;
 
 Το VERIFYONLY **δεν ισοδυναμεί με επιτυχημένο restore**. Κανένα backup ή recovery operation δεν εκτελέστηκε από τον reviewer.
 
-## 7. Checklist, κίνδυνοι και αντιμετώπιση προβλημάτων
+## 7. Postmigration επαλήθευση και checklist
+
+Στο SSMS, επιλέξτε μόνο την `AenaonERP_Dev` και ανοίξτε `scripts/sql/014-menu-builder-postmigration-review.sql`. Εκτελέστε το read-only script και ελέγξτε: **3 menus / 3 drafts / 27 categories / 39 items / 19 ERP-linked categories**, **6 nested categories**, **0 invalid parent links, invalid category items, orphan menu items**, καμία διπλή θέση ανά γονέα ή διπλό ERP είδος ανά επίπεδο, νέα FKs/check constraints ενεργά και trusted (`IsDisabled=0`, `IsNotTrusted=0`). Τυχόν απόκλιση χρειάζεται αξιολόγηση πριν από το browser acceptance, όχι αυτόματη διόρθωση.
+
+Η ιστορική έκδοση (pre-apply) του ελέγχου αφορούσε 12/1· η σημερινή Development έχει 13/0. Αυτή η σύγκριση βασίζεται σε στοιχεία χειριστή, **όχι ανεξάρτητη σύνδεση reviewer στη Development SQL**.
+
 
 - [ ] GitHub CI SUCCESS στο τελικό HEAD.
-- [ ] Πραγματικό Development dry-run 12/1.
+- [x] Ιστορικό Development dry-run 12/1 πριν από την εφαρμογή και νέο dry-run 13/0 μετά από αυτήν (owner-provided).
 - [ ] Read-only SSMS preflight: σωστή βάση, αμετάβλητα δεδομένα, μηδενικά orphan records.
 - [ ] Έλεγχος των πραγματικών parent-child mappings και orphan parent links.
 - [ ] Ανάλυση ακριβούς παραγόμενου SQL χωρίς μη αναμενόμενες εντολές.
 - [ ] Νέο backup, VERIFYONLY, δοκιμασμένο isolated restore.
-- [ ] Ξεχωριστή ρητή έγκριση για #13 στην AenaonERP_Dev.
-- [ ] Μόνο μετά: SQL 13/0, πραγματική persistence/tenant isolation, Owner/Member και real browser Desktop/Mobile/Light-Dark/drag E2E.
+- [x] Χωριστή ρητή έγκριση και εφαρμογή #13 αποκλειστικά στην AenaonERP_Dev (owner-provided).
+- [ ] Απομένουν: postmigration SQL integrity, πραγματική persistence/tenant isolation, Owner/Member και real browser Desktop/Mobile/Light-Dark/drag E2E.
 - [ ] Χωριστή έγκριση για merge, καμία Production/POS/Publish/fiscal αλλαγή.
 
 **Troubleshooting:** αν το preflight σταματά λόγω ονόματος βάσης ή ιστορικού, ελέγξτε το SSMS dropdown και migrations· αν λείπει γονέας, ελέγξτε CatalogCategoryId του ίδιου Tenant/Menu χωρίς χειροκίνητο UPDATE· αν αποτύχει dotnet ef script, κρατήστε το design-time error.
 
 **Πότε χρησιμοποιείται:** μόνο πριν την έγκριση νέας Development migration. **Πότε δεν χρησιμοποιείται:** Production, εφαρμογή SQL, POS, παραγγελίες ή φορολογικές λειτουργίες.
 
-**Κατάσταση:** IMPLEMENTED IN DRAFT — NOT FULLY ACCEPTED.
+**Κατάσταση:** Development migration applied per owner's logs, postmigration SQL/browser acceptance NOT VERIFIED — NOT FULLY ACCEPTED.
