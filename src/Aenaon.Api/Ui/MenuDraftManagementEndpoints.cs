@@ -43,6 +43,8 @@ public static class MenuDraftManagementEndpoints
              !TryGuid(form, "returnCategoryId", required: false, out Guid? returnCategoryId) ||
             !TryGuid(form, "itemId", required: false, out Guid? itemId) ||
             !TryGuid(form, "catalogItemId", required: false, out Guid? catalogItemId) ||
+            !TryGuid(form, "sourceCatalogCategoryId", required: false,
+                out Guid? sourceCatalogCategoryId) ||
             !TryGuidList(form, "catalogItemIds", out IReadOnlyList<Guid>? catalogItemIds) ||
             !TryGuid(form, "requestId", required: true, out Guid? requestId) ||
             !TrySingle(form, "action", out string actionText) ||
@@ -65,6 +67,7 @@ public static class MenuDraftManagementEndpoints
             "import-catalog" => MenuDraftAction.ImportCatalogContents,
             "update-menu" => MenuDraftAction.UpdateMenu,
             "add-category" => MenuDraftAction.AddCategory,
+            "link-catalog-category" => MenuDraftAction.LinkCatalogCategory,
             "update-category" => MenuDraftAction.UpdateCategory,
             "move-category" => MenuDraftAction.MoveCategory,
             "remove-category" => MenuDraftAction.RemoveCategory,
@@ -125,7 +128,8 @@ public static class MenuDraftManagementEndpoints
             action, requestId.Value, menuId, revision, categoryId, itemId,
             catalogItemId, code, name, nameOverride, position, visible,
             ParentCategoryId: parentCategoryId, CatalogItemIds: catalogItemIds,
-            RemoveContents: removeContentsText == "true");
+            RemoveContents: removeContentsText == "true",
+            SourceCatalogCategoryId: sourceCatalogCategoryId);
 
         try
         {
@@ -138,7 +142,12 @@ public static class MenuDraftManagementEndpoints
 
             string state = result.Status switch
             {
-                MenuDraftStatus.Saved => action == MenuDraftAction.AddItems ? "items-added" : "saved",
+                MenuDraftStatus.Saved => action switch
+                {
+                    MenuDraftAction.AddItems => "items-added",
+                    MenuDraftAction.LinkCatalogCategory => "category-linked",
+                    _ => "saved"
+                },
                 MenuDraftStatus.Duplicate when result.Error == "menu.catalog.import_not_empty" => "import-not-empty",
                 MenuDraftStatus.Duplicate => "duplicate",
                 MenuDraftStatus.Conflict => "conflict",
@@ -158,7 +167,8 @@ public static class MenuDraftManagementEndpoints
 
             Guid? targetMenu = result.Status == MenuDraftStatus.Saved
                 ? result.MenuId ?? menuId : menuId;
-            Guid? destinationCategory = action == MenuDraftAction.AddCategory
+            Guid? destinationCategory = action is
+                MenuDraftAction.AddCategory or MenuDraftAction.LinkCatalogCategory
                 ? parentCategoryId : categoryId;
             if (action is MenuDraftAction.UpdateCategory or MenuDraftAction.MoveCategory or
                 MenuDraftAction.RemoveCategory && form.ContainsKey("returnCategoryId"))
@@ -170,7 +180,8 @@ public static class MenuDraftManagementEndpoints
             {
                 tab = "items";
             }
-            else if (action is MenuDraftAction.AddCategory or MenuDraftAction.UpdateCategory or
+            else if (action is MenuDraftAction.AddCategory or MenuDraftAction.LinkCatalogCategory or
+                MenuDraftAction.UpdateCategory or
                 MenuDraftAction.MoveCategory or MenuDraftAction.RemoveCategory)
             {
                 tab = destinationCategory.HasValue ? "items" : "categories";
