@@ -17,7 +17,8 @@ public enum MenuDraftAction
     MoveItem = 9,
     RemoveItem = 10,
     ImportCatalogContents = 11,
-    EnsureStoreDefault = 12
+    EnsureStoreDefault = 12,
+    AddItems = 13
 }
 
 public enum MenuDraftStatus
@@ -45,7 +46,9 @@ public sealed record MenuDraftCommand(
     int? TargetPosition = null,
     bool? IsVisible = null,
     Guid? StoreId = null,
-    Guid? ParentCategoryId = null);
+    Guid? ParentCategoryId = null,
+    IReadOnlyList<Guid>? CatalogItemIds = null,
+    bool RemoveContents = false);
 
 public sealed record MenuDraftMutationResult(
     MenuDraftStatus Status, Guid? RecordId = null, Guid? MenuId = null,
@@ -130,6 +133,8 @@ public sealed class MenuDraftManagementService(
             (command.Action == MenuDraftAction.UpdateMenu && command.Name is null) ||
             (command.ParentCategoryId == Guid.Empty ||
                 (command.ParentCategoryId.HasValue && command.Action != MenuDraftAction.AddCategory)) ||
+            (command.RemoveContents && command.Action != MenuDraftAction.RemoveCategory) ||
+            (command.CatalogItemIds is not null && command.Action != MenuDraftAction.AddItems) ||
             (command.CategoryId == Guid.Empty) ||
             (command.Action is MenuDraftAction.AddCategory or MenuDraftAction.UpdateCategory &&
                 command.Name is null) ||
@@ -141,6 +146,11 @@ public sealed class MenuDraftManagementService(
                 (command.ItemId is not { } itemId || itemId == Guid.Empty)) ||
             (command.Action == MenuDraftAction.AddItem &&
                 (command.CatalogItemId is not { } catalogId || catalogId == Guid.Empty)) ||
+            (command.Action == MenuDraftAction.AddItems &&
+                (command.CatalogItemId.HasValue ||
+                 command.CatalogItemIds is not { Count: > 0 and <= 50 } selectedIds ||
+                 selectedIds.Any(id => id == Guid.Empty) ||
+                 selectedIds.Distinct().Count() != selectedIds.Count)) ||
             (command.Action is MenuDraftAction.MoveItem or MenuDraftAction.MoveCategory &&
                 command.TargetPosition is not > 0) ||
             (command.Action == MenuDraftAction.ImportCatalogContents &&
