@@ -129,6 +129,10 @@
                                 <span class="catalog-code">@details.Menu.Code</span>
                                 <small>Αναθεώρηση @details.Menu.Revision</small>
                             </div>
+                            <a class="button button--outline" href="@MenuPreviewUrl(details.Menu.MenuId)"
+                               accesskey="p">
+                                <AppIcon Name="search" /> Προεπισκόπηση τιμών
+                            </a>
                             @if (CanManage && _csrfToken is not null)
                             {
                                 <details>
@@ -616,6 +620,16 @@
         }
         result.Reverse();
         return result;
+    }
+
+    private string MenuPreviewUrl(Guid menuId)
+    {
+        string url = $"/menus/preview?tenantId={_workspace!.Tenant!.TenantId:D}&menuId={menuId:D}";
+        if (_workspace.Store is { } store)
+        {
+            url += $"&storeId={store.StoreId:D}";
+        }
+        return url;
     }
 
     private string Url(Guid? menuId = null, Guid? categoryId = null,
