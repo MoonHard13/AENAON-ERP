@@ -170,6 +170,22 @@ public sealed class MenuBuilderUiTests
     }
 
     [TestMethod]
+    public async Task AllERPSourceCategoriesAlreadyLinked_ShowsExplanationInsteadOfDuplicateAction()
+    {
+        await using var factory = new SessionApiFactory();
+        factory.MenuDrafts.ExtraCategory = true;
+        factory.MenuDrafts.AllSourceCategoriesLinked = true;
+        using var client = factory.CreateHttpsClient();
+        await LoginAsync(client);
+
+        string html = WebUtility.HtmlDecode(await client.GetStringAsync(
+            $"/menus?tenantId={Tenant:D}&menuId={SessionMenuDraftFixture.MenuId:D}"));
+        Assert.Contains("Υπάρχουσα κατηγορία ERP", html);
+        Assert.Contains("Όλες οι ενεργές κατηγορίες ERP υπάρχουν ήδη στο μενού", html);
+        Assert.Contains("id=\"menu-existing-category\"", html);
+    }
+
+    [TestMethod]
     public async Task Owner_CanAddItemDirectlyToRootAndNestedCategory()
     {
         await using var factory = new SessionApiFactory();
