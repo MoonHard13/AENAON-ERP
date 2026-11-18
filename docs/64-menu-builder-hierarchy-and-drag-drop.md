@@ -2,10 +2,10 @@
 
 **Κατάσταση:** Υλοποιείται στο **Draft PR #62** στο branch `feature/step-9-6a-1-menu-drafts`. **Όχι merged / όχι Production / όχι πλήρως αποδεκτό.**
 
-**Ημερομηνία:** 17/11/2026 · **Εξάρτηση:** [Manual 61](61-draft-menu-management.md), [Manual 62](62-default-menu-auto-catalog-sync.md), [Manual 63](63-menu-builder-tile-redesign.md).
+**Ενημέρωση:** 18/11/2026 · **Εξάρτηση:** [Manual 61](61-draft-menu-management.md), [Manual 62](62-default-menu-auto-catalog-sync.md), [Manual 63](63-menu-builder-tile-redesign.md).
 
 {% hint style="warning" %}
-Η νέα **13η migration** `20261117170000_MenuBuilderHierarchyAndRootItems` υπάρχει **μόνο σε πηγαίο κώδικα**. **Δεν έχει εγκριθεί ούτε εφαρμοστεί** στην `AenaonERP_Dev`, ούτε σε Production. Η ήδη εφαρμοσμένη migration #12 παραμένει ως έχει. Μην εκκινήσετε το ενημερωμένο branch απέναντι σε βάση με εκκρεμή migration και μην επιλέξετε `--apply` χωρίς χωριστή έγκριση, ανάλυση SQL, νέο backup και ελεγμένο σχέδιο επαναφοράς.
+**Development (18/11/2026, owner-reported):** Η #13 `20261117170000_MenuBuilderHierarchyAndRootItems` **εγκρίθηκε και εφαρμόστηκε αποκλειστικά στην `AenaonERP_Dev`**. Ο χειριστής έδωσε αποτελέσματα εφαρμογής και ανεξάρτητου dry-run: **13 applied / 0 pending**. Το read-only preflight και το παραγόμενο SQL ελέγχθηκαν πριν την εφαρμογή. Το backup επιβεβαιώθηκε από τον ίδιο, αλλά ανεξάρτητο isolated restore **NOT VERIFIED**. Δεν έγινε Production, merge ή πραγματικό browser acceptance. **Μην επανεκτελέσετε τη migration ή το παραγόμενο SQL.** Για τη διατήρηση των πραγματικών δεδομένων εκτελέστε μόνο [read-only SQL postflight](../scripts/sql/014-menu-builder-postmigration-review.sql).
 {% endhint %}
 
 ## 1. Σκοπός και λειτουργική συμπεριφορά
@@ -86,7 +86,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-menus --u
 
 Για τις **ήδη υπάρχουσες** συνδεδεμένες ERP κατηγορίες: η migration γεμίζει τον γονέα **μόνο** όταν υπάρχει ρητό `CatalogCategoryId` για παιδί και γονέα στο ίδιο Tenant/Menu. Οι μη συνδεδεμένες χειροκίνητες κατηγορίες μένουν στη ρίζα. Διατηρείται η παλιά σειρά εντός κάθε επιπέδου με `ROW_NUMBER`. Εάν υπάρχει παλιό όνομα τύπου `Γονέας / Παιδί`, το UI δείχνει μόνο το τμήμα `Παιδί` στο εσωτερικό του γονέα· η DB ονομασία δεν τροποποιείται.
 
-**Πριν από οποιαδήποτε APPLY:**
+**Ιστορικά βήματα που ακολουθήθηκαν πριν την εγκεκριμένη Development APPLY (όχι εντολή επανάληψης):**
 1. Ελέγξτε στο CI το τελευταίο commit και τον ακριβή generated incremental SQL. Ελέγξτε FK/index/filtered uniqueness, row normalization και σύγκρουση δεδομένων.
 2. Επιβεβαιώστε αποκλειστικά `AenaonERP_Dev` και `12 applied / 1 pending` (αναμενόμενο πριν την #13, εφόσον δεν μεσολάβησαν άλλες αλλαγές).
 3. Πάρτε νέο `BACKUP DATABASE`, `RESTORE VERIFYONLY` και ιδανικά πραγματικό restore σε απομονωμένο SQL Server.
@@ -96,7 +96,7 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-menus --u
 
 ## 7. Έλεγχοι αποδοχής
 
-- [ ] Κατάσταση migrations μόνο με read-only dry-run, χωρίς μη εγκεκριμένη APPLY.
+- [x] Εγκεκριμένη εφαρμογή #13 μόνο στη Development (owner-provided logs 13/0).
 - [ ] Release build, format, unit/SSR, isolated SQL 2022 integration PASS στη *τελική* έκδοση.
 - [ ] Root: εμφανίζει μόνο κύριες κατηγορίες + root items.
 - [ ] Μέσα σε κατηγορία: εμφανίζονται μόνο τα άμεσα παιδιά και άμεσα είδη.
@@ -107,11 +107,11 @@ dotnet run --project src/Aenaon.Api --launch-profile https -- --manage-menus --u
 - [ ] Auto-sync νέας ERP parent/child κατηγορίας και είδους.
 - [ ] Owner write / Member read only, stale revision, CSRF, idempotency.
 - [ ] Real E2E στις 320/375/390/768/1366/1920 px, Light/Dark, zoom και screenshots.
-- [ ] Independent SQL persistence check, owner acceptance, χωριστή έγκριση merge.
+- [ ] [Postmigration SQL integrity check](../scripts/sql/014-menu-builder-postmigration-review.sql), ανεξάρτητη persistence verification, owner acceptance και χωριστή έγκριση merge.
 
-**Επαληθευμένο CI:** [GitHub Actions #44108994465](https://github.com/MoonHard13/AENAON-ERP/actions/runs/44108994465) **SUCCESS** σε Windows/Ubuntu, Release 0 warnings/errors, 536/536 non-SQL tests ανά λειτουργικό και Ubuntu isolated SQL Server 2022 1/1. Πρόκειται για δοκιμαστική SQL βάση CI, **όχι** την `AenaonERP_Dev`.
+**Επαληθευμένο CI (commit `fd27243b`):** [GitHub Actions #44113980845](https://github.com/MoonHard13/AENAON-ERP/actions/runs/44113980845) **SUCCESS** σε Windows/Ubuntu, Release 0 warnings/errors, 538/538 non-SQL tests ανά λειτουργικό και Ubuntu isolated SQL Server 2022 1/1. Πρόκειται για δοκιμαστική SQL βάση CI, **όχι** την `AenaonERP_Dev`.
 
-**Κατάσταση έως πραγματικό Development browser/SQL έλεγχο και ρητή έγκριση migration:** **IMPLEMENTED, NOT FULLY ACCEPTED**.
+**Κατάσταση μετά την owner-applied Development migration #13, έως postmigration SQL/real browser E2E και ρητή άδεια merge:** **IMPLEMENTED, NOT FULLY ACCEPTED**.
 
 ## 8. Troubleshooting και Best Practices
 
