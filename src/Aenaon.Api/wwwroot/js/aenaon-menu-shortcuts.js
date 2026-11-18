@@ -6,7 +6,8 @@ document.addEventListener("keydown", (event) => {
     }
 
     const active = document.activeElement;
-    const form = active?.closest?.(".menu-builder form[data-menu-save='true']");
+    const form = active?.closest?.(".menu-builder form[data-menu-save='true']") ??
+        (active?.matches?.("[data-menu-bulk-checkbox]") ? active.form : null);
     if (!form || !form.checkValidity()) {
         return;
     }
