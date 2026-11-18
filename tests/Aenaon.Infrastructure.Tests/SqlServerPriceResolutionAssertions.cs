@@ -53,7 +53,7 @@ internal static class SqlServerPriceResolutionAssertions
             foreignTenantId, [itemId], storeId, PriceListChannel.Retail, day, token)).Count);
         Assert.AreEqual(0, (await menuPreviewStore.FindCandidatesAsync(
             tenantId, [itemId], storeId, PriceListChannel.Retail,
-            new DateOnly(2028, 1, 1), token)).Count);
+            new DateOnly(2020, 1, 1), token)).Count);
 
         IReadOnlyList<PriceResolutionCandidate> delivery = await store.FindCandidatesAsync(
             tenantId, itemId, null, PriceListChannel.Delivery, day, token);
