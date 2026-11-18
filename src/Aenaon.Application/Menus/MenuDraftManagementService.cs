@@ -1,6 +1,6 @@
+using System.Text.Json.Serialization;
 using Aenaon.Application.Tenancy;
 using Aenaon.Domain.Exceptions;
-using System.Text.Json.Serialization;
 
 namespace Aenaon.Application.Menus;
 
